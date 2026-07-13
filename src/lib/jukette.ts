@@ -1154,6 +1154,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 				if (this.preloadMetadata || this.preferMediaMetadata) {
 					void this.preloadMidiMetadata(track, metadataPreloadId)
 				}
+			} else if (type === 'soundcloud') {
+				if (this.preferMediaMetadata) {
+					void this.preloadSoundCloudMetadata(
+						track,
+						metadataPreloadId,
+					)
+				}
 			}
 		}
 	}
@@ -1225,6 +1232,33 @@ export class JukettePlayerElement extends HTMLElementBase {
 			}
 		} catch {
 			// Leave duration unknown when metadata cannot be preloaded.
+		}
+	}
+
+	private async preloadSoundCloudMetadata(
+		track: JuketteTrack,
+		metadataPreloadId: number,
+	): Promise<void> {
+		if (!this.preferMediaMetadata) return
+		if (this.trackMetadata.has(this.getTrackKey(track))) return
+		if (typeof fetch === 'undefined') return
+
+		try {
+			const url = new URL('https://soundcloud.com/oembed')
+			url.searchParams.set('format', 'json')
+			url.searchParams.set('url', track.src)
+
+			const response = await fetch(url)
+			if (!response.ok) return
+
+			const metadata = parseSoundCloudOEmbedMetadata(
+				await response.json(),
+			)
+			if (metadataPreloadId === this.metadataPreloadId) {
+				this.setTrackMetadata(track, metadata)
+			}
+		} catch {
+			// Leave authored title and artist in place when oEmbed is unavailable.
 		}
 	}
 
@@ -1621,6 +1655,23 @@ export const parseAudioFileMetadata = (
 	}
 
 	return metadata
+}
+
+export const parseSoundCloudOEmbedMetadata = (
+	value: unknown,
+): AudioFileMetadata => {
+	if (!isRecord(value) || typeof value.title !== 'string') return {}
+
+	const title = value.title.trim()
+	if (!title) return {}
+
+	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title)
+	if (!match?.groups) return { title }
+
+	return {
+		artist: match.groups.artist.trim() || undefined,
+		title: match.groups.title.trim() || title,
+	}
 }
 
 class MidiReader {

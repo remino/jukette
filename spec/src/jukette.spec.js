@@ -5,6 +5,7 @@ import {
 	parseAudioFileMetadata,
 	parseMidi,
 	parsePlaylist,
+	parseSoundCloudOEmbedMetadata,
 	trackFromElement,
 } from '../../src/lib/jukette'
 
@@ -163,6 +164,25 @@ describe('jukette', () => {
 		expect(parseAudioFileMetadata(bytes.buffer)).toEqual({
 			artist: 'Tagged artist',
 			title: 'Tagged title',
+		})
+	})
+
+	it('parses SoundCloud oEmbed titles', () => {
+		expect(
+			parseSoundCloudOEmbedMetadata({
+				title: 'Flickermood by Forss',
+			}),
+		).toEqual({
+			artist: 'Forss',
+			title: 'Flickermood',
+		})
+
+		expect(
+			parseSoundCloudOEmbedMetadata({
+				title: 'Untitled SoundCloud track',
+			}),
+		).toEqual({
+			title: 'Untitled SoundCloud track',
 		})
 	})
 })

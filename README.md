@@ -224,8 +224,9 @@ when the SoundCloud widget has loaded that track.
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3
 ID3 `TIT2` title and `TPE1` artist tags, plus MIDI track/sequence names as
-titles. MIDI artists stay authored-only. Authored values stay in place when tags
-are missing, unreadable, or unsupported.
+titles. SoundCloud display metadata is loaded from oEmbed when available. MIDI
+artists stay authored-only. Authored values stay in place when tags are missing,
+unreadable, or unsupported.
 
 [Back to top](#)
 
