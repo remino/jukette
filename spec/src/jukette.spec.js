@@ -3,6 +3,7 @@ import {
 	normalizeTrack,
 	parseMidi,
 	parsePlaylist,
+	trackFromElement,
 } from '../../src/lib/jukette'
 
 describe('jukette', () => {
@@ -22,6 +23,40 @@ describe('jukette', () => {
 		expect(parsePlaylist('[{"title":"One","src":"/one.mp3"}]')).toEqual([
 			{ src: '/one.mp3', title: 'One' },
 		])
+	})
+
+	it('parses jukette-track elements', () => {
+		const element = {
+			localName: 'jukette-track',
+			getAttribute(name) {
+				return (
+					{
+						artist: 'Example',
+						src: '/one.mp3',
+						title: 'One',
+						type: 'audio',
+					}[name] ?? null
+				)
+			},
+		}
+
+		expect(trackFromElement(element)).toEqual({
+			artist: 'Example',
+			src: '/one.mp3',
+			title: 'One',
+			type: 'audio',
+		})
+	})
+
+	it('ignores non-track elements', () => {
+		const element = {
+			localName: 'div',
+			getAttribute() {
+				return null
+			},
+		}
+
+		expect(trackFromElement(element)).toBeNull()
 	})
 
 	it('parses simple MIDI files', () => {

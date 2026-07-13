@@ -117,16 +117,25 @@ After registration, use the element with a single source:
 <jukette-player src="/audio/theme.mp3"></jukette-player>
 ```
 
-Or pass a playlist:
+Or pass a playlist with child track elements:
 
 ```html
-<jukette-player
-	playlist='[
-        { "title": "Theme", "artist": "Local", "src": "/audio/theme.mp3" },
-        { "title": "Sketch", "src": "/midi/sketch.mid", "type": "midi" },
-        { "title": "Set", "src": "https://soundcloud.com/example/set" }
-    ]'
-></jukette-player>
+<jukette-player>
+	<jukette-track
+		title="Theme"
+		artist="Local"
+		src="/audio/theme.mp3"
+	></jukette-track>
+	<jukette-track
+		title="Sketch"
+		src="/midi/sketch.mid"
+		type="midi"
+	></jukette-track>
+	<jukette-track
+		title="Set"
+		src="https://soundcloud.com/example/set"
+	></jukette-track>
+</jukette-player>
 ```
 
 [Back to top](#)
@@ -135,8 +144,13 @@ Or pass a playlist:
 
 ## Playlist
 
-The `playlist` attribute accepts JSON. Each item can be either a URL string or a
-track object.
+Use direct `<jukette-track>` children for authored HTML. Browser HTML requires
+explicit closing tags, so write `<jukette-track></jukette-track>` rather than a
+self-closing tag.
+
+For generated markup or compatibility with older usage, the `playlist`
+attribute also accepts JSON. Each item can be either a URL string or a track
+object.
 
 ```json
 [
@@ -153,13 +167,20 @@ track object.
 When JSON parsing fails, Jukette treats the attribute as a newline-separated URL
 list.
 
+Track sources are resolved in this order:
+
+- `player.playlist` set from JavaScript.
+- Direct `<jukette-track>` children.
+- `playlist` attribute JSON or newline list.
+- Single `src` attribute.
+
 [Back to top](#)
 
 ---
 
 ## Tracks
 
-Track object fields:
+`<jukette-track>` attributes and track object fields:
 
 - `src`: required URL for a local audio file, local MIDI file, or SoundCloud URL.
 - `title`: optional display title.

@@ -22,6 +22,9 @@ interface MidiSequence {
 const ATTR_SRC = 'src'
 const ATTR_PLAYLIST = 'playlist'
 const ATTR_TRACK_INDEX = 'track-index'
+const ATTR_TITLE = 'title'
+const ATTR_ARTIST = 'artist'
+const ATTR_TYPE = 'type'
 const CSS_VAR_PROGRESS = '--jukette-progress'
 const CSS_VAR_PROGRESS_DURATION = '--jukette-progress-duration'
 const CSS_VAR_PROGRESS_DELAY = '--jukette-progress-delay'
@@ -85,6 +88,17 @@ export const parsePlaylist = (value: string | null): JuketteTrack[] => {
 	}
 }
 
+export const trackFromElement = (element: Element): JuketteTrack | null => {
+	if (element.localName !== 'jukette-track') return null
+
+	return normalizeTrack({
+		artist: element.getAttribute(ATTR_ARTIST) ?? undefined,
+		src: element.getAttribute(ATTR_SRC) ?? '',
+		title: element.getAttribute(ATTR_TITLE) ?? undefined,
+		type: element.getAttribute(ATTR_TYPE) ?? undefined,
+	})
+}
+
 export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [ATTR_SRC, ATTR_PLAYLIST, ATTR_TRACK_INDEX]
 
@@ -112,9 +126,17 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private midiGain: GainNode | null = null
 	private midiSequence: MidiSequence | null = null
 	private midiSources: OscillatorNode[] = []
+	private readonly trackObserver: MutationObserver | null = null
+	private playlistOverride: JuketteTrack[] | null = null
 
 	constructor() {
 		super()
+
+		if (typeof MutationObserver !== 'undefined') {
+			this.trackObserver = new MutationObserver(() =>
+				this.syncChildTracks(),
+			)
+		}
 
 		const shadowRoot = this.attachShadow({ mode: 'open' })
 		shadowRoot.innerHTML = `
@@ -343,11 +365,18 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	connectedCallback(): void {
+		this.trackObserver?.observe(this, {
+			attributeFilter: [ATTR_ARTIST, ATTR_SRC, ATTR_TITLE, ATTR_TYPE],
+			attributes: true,
+			childList: true,
+			subtree: true,
+		})
 		this.syncTracks()
 		this.loadTrack()
 	}
 
 	disconnectedCallback(): void {
+		this.trackObserver?.disconnect()
 		this.stopMidi()
 	}
 
@@ -370,9 +399,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	set playlist(tracks: JuketteTrack[]) {
-		this.tracks = tracks
+		this.playlistOverride = tracks
 			.map((track) => normalizeTrack(track))
 			.filter((track): track is JuketteTrack => track !== null)
+		this.tracks = [...this.playlistOverride]
 		this.index = 0
 		this.renderPlaylist()
 		this.loadTrack()
@@ -471,11 +501,19 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private syncTracks(): void {
-		const tracks = parsePlaylist(this.getAttribute(ATTR_PLAYLIST))
+		const childTracks = this.getChildTracks()
+		const attributeTracks = parsePlaylist(this.getAttribute(ATTR_PLAYLIST))
 		const src = this.getAttribute(ATTR_SRC)
 		const singleTrack = normalizeTrack(src ?? undefined)
 		this.tracks =
-			tracks.length > 0 ? tracks : singleTrack ? [singleTrack] : []
+			this.playlistOverride ??
+			(childTracks.length > 0
+				? childTracks
+				: attributeTracks.length > 0
+					? attributeTracks
+					: singleTrack
+						? [singleTrack]
+						: [])
 
 		const nextIndex = Number(this.getAttribute(ATTR_TRACK_INDEX))
 		this.index =
@@ -484,6 +522,27 @@ export class JukettePlayerElement extends HTMLElementBase {
 				: Math.min(this.index, Math.max(0, this.tracks.length - 1))
 
 		this.renderPlaylist()
+	}
+
+	private syncChildTracks(): void {
+		if (this.playlistOverride) return
+
+		const currentTrack = this.currentTrack
+		this.syncTracks()
+
+		if (this.currentTrack?.src === currentTrack?.src) {
+			this.renderPlaylist()
+			return
+		}
+
+		this.loadTrack()
+		if (this.playing) void this.play()
+	}
+
+	private getChildTracks(): JuketteTrack[] {
+		return Array.from(this.children)
+			.map((element) => trackFromElement(element))
+			.filter((track): track is JuketteTrack => track !== null)
 	}
 
 	private loadTrack(): void {
@@ -871,13 +930,22 @@ export const loadMidiSequence = async (src: string): Promise<MidiSequence> => {
 export const defineJuketteElement = (): void => {
 	if (typeof customElements === 'undefined') return
 
+	if (!customElements.get('jukette-track')) {
+		customElements.define('jukette-track', JuketteTrackElement)
+	}
+
 	if (!customElements.get('jukette-player')) {
 		customElements.define('jukette-player', JukettePlayerElement)
 	}
 }
 
+export class JuketteTrackElement extends HTMLElementBase {}
+
+export const defineJuketteElements = defineJuketteElement
+
 declare global {
 	interface HTMLElementTagNameMap {
 		'jukette-player': JukettePlayerElement
+		'jukette-track': JuketteTrackElement
 	}
 }
