@@ -415,7 +415,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		shadowRoot.innerHTML = `
 			<style>
 				:host {
-					--jukette-control-size: 2rem;
+					--jukette-control-size: 2em;
 					display: block;
 					font: inherit;
 					color: inherit;
@@ -428,13 +428,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 				.player {
 					border: 1px solid currentColor;
 					display: grid;
-					gap: 0.75rem;
-					padding: 0.75rem;
+					gap: 0.5lh;
+					padding: 0.5rlh 1em;
 				}
 
 				.track {
 					display: grid;
-					gap: 0.15rem;
 					min-inline-size: 0;
 				}
 
@@ -452,7 +451,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 				.meta,
 				.status,
 				.time {
-					font-size: 0.875em;
 					opacity: 0.75;
 				}
 
@@ -466,7 +464,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				.controls {
 					align-items: center;
 					display: grid;
-					gap: 0.5rem;
+					gap: 0.5lh 0.5em;
 					grid-template-areas: "previous play next volume playlist";
 					grid-template-columns: repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);
 				}
@@ -506,9 +504,20 @@ export class JukettePlayerElement extends HTMLElementBase {
 					padding: 0;
 				}
 
+				button:focus-visible {
+					outline: 2px solid currentColor;
+					outline-offset: 0;
+					outline-radius: 0;
+				}
+
+				button:active {
+					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+				}
+
 				button[aria-pressed="true"] {
-					background: currentColor;
-					color: Canvas;
+					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
 				}
 
 				button:disabled {
@@ -518,17 +527,15 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 				input[type="range"] {
 					accent-color: currentColor;
-					inline-size: 100%;
 				}
 
 				.seek {
 					display: grid;
-					gap: 0.35rem;
 				}
 
 				.time {
 					display: grid;
-					gap: 0.5rem;
+					gap: 0.5em;
 					grid-template-columns: repeat(3, 1fr);
 					font-variant-numeric: tabular-nums;
 				}
@@ -543,25 +550,49 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 				.playlist {
 					border-block-start: 1px solid currentColor;
+					counter-reset: jukette-playlist;
 					display: none;
-					list-style: decimal;
+					gap: 0.5lh 0;
+					list-style: none;
 					margin: 0;
-					padding: 0.5rem 0 0 1.5rem;
+					padding: 1lh 0 0.5lh;
 				}
 
 				:host([playlist-open]) .playlist {
 					display: grid;
-					gap: 0.25rem;
+				}
+
+				.playlist li {
+					align-items: start;
+					counter-increment: jukette-playlist;
+					display: grid;
+				}
+
+				.playlist li button {
+					padding-inline: 0.5em;
+				}
+
+				.playlist li button::before {
+					content: counter(jukette-playlist) ".";
+					grid-column: 1;
+					grid-row: 1 / span 2;
+					font-variant-numeric: tabular-nums;
+					text-align: end;
+				}
+
+				.playlist li button[aria-current="true"] {
+					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
 				}
 
 				.playlist button {
+					align-items: start;
 					block-size: auto;
 					border: 0;
 					display: grid;
-					gap: 0.1rem 0.75rem;
-					grid-template-columns: minmax(0, 1fr) auto;
+					gap: 0 0.5em;
+					grid-template-columns: 2ch minmax(0, 1fr) auto;
 					inline-size: 100%;
-					padding: 0.25rem;
 					text-align: start;
 				}
 
@@ -574,20 +605,24 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 				.playlist-title {
 					font-weight: 700;
+					grid-column: 2;
 				}
 
 				.playlist-artist,
 				.playlist-duration {
-					font-size: 0.875em;
 					opacity: 0.75;
 				}
 
 				.playlist-duration {
 					align-self: center;
 					font-variant-numeric: tabular-nums;
-					grid-column: 2;
+					grid-column: 3;
 					grid-row: 1 / span 2;
 					white-space: nowrap;
+				}
+
+				.playlist-artist {
+					grid-column: 2;
 				}
 
 				.soundcloud {
@@ -601,7 +636,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 					display: none;
 				}
 
-				@media (max-width: 34rem) {
+				@media (max-width: 34em) {
 					.controls {
 						grid-template-areas:
 							"volume volume volume volume volume"
