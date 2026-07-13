@@ -20,8 +20,9 @@ interface MidiSequence {
 }
 
 interface SoundCloudWidget {
-	bind(eventName: string, listener: () => void): void
+	bind(eventName: string, listener: (event?: unknown) => void): void
 	getDuration(callback: (duration: number) => void): void
+	getPosition(callback: (position: number) => void): void
 	load(
 		url: string,
 		options?: {
@@ -42,6 +43,7 @@ interface SoundCloudApi {
 			FINISH: string
 			PAUSE: string
 			PLAY: string
+			PLAY_PROGRESS: string
 			READY: string
 		}
 	}
@@ -53,10 +55,6 @@ const ATTR_TRACK_INDEX = 'track-index'
 const ATTR_TITLE = 'title'
 const ATTR_ARTIST = 'artist'
 const ATTR_TYPE = 'type'
-const CSS_VAR_PROGRESS = '--jukette-progress'
-const CSS_VAR_PROGRESS_DURATION = '--jukette-progress-duration'
-const CSS_VAR_PROGRESS_DELAY = '--jukette-progress-delay'
-const CSS_VAR_PROGRESS_STATE = '--jukette-progress-state'
 const SOUNDCLOUD_API_SRC = 'https://w.soundcloud.com/player/api.js'
 const HTMLElementBase =
 	globalThis.HTMLElement ?? (class {} as typeof HTMLElement)
@@ -172,6 +170,180 @@ export const trackFromElement = (element: Element): JuketteTrack | null => {
 	})
 }
 
+interface SoundCloudAdapterCallbacks {
+	onDuration(duration: number): void
+	onFinish(): void
+	onPause(): void
+	onPlay(): void
+	onPositionRequestComplete(): void
+	onProgress(position: number): void
+	onRelativeProgress(relativePosition: number): void
+}
+
+class SoundCloudAdapter {
+	private eventsBound = false
+	private loadedDuration = 0
+	private loadedSrc = ''
+	private readyPromise: Promise<void> | null = null
+	private resolveReady: (() => void) | null = null
+	private widget: SoundCloudWidget | null = null
+
+	constructor(
+		private readonly iframe: HTMLIFrameElement,
+		private readonly callbacks: SoundCloudAdapterCallbacks,
+	) {}
+
+	get hasWidget(): boolean {
+		return this.widget !== null
+	}
+
+	getPlayerUrl(src: string): string {
+		const url = new URL('https://w.soundcloud.com/player/')
+		url.searchParams.set('url', src)
+		url.searchParams.set('auto_play', 'false')
+		url.searchParams.set('visual', 'false')
+		return url.toString()
+	}
+
+	prepare(src: string): void {
+		if (!this.widget && !this.iframe.src) {
+			this.iframe.src = this.getPlayerUrl(src)
+		}
+	}
+
+	async load(src: string, isStale: () => boolean): Promise<boolean> {
+		const widget = await this.getWidget(isStale)
+		if (!widget || isStale()) return false
+		if (this.loadedSrc === src) {
+			this.emitDuration(widget, isStale)
+			return true
+		}
+
+		this.readyPromise = new Promise((resolve) => {
+			this.resolveReady = resolve
+			widget.load(src, {
+				auto_play: false,
+				callback: resolve,
+			})
+			window.setTimeout(resolve, 1800)
+		})
+
+		await this.readyPromise
+		if (isStale()) return false
+
+		this.loadedSrc = src
+		this.emitDuration(widget, isStale)
+		return true
+	}
+
+	pause(): void {
+		this.widget?.pause()
+	}
+
+	play(): void {
+		this.widget?.play()
+	}
+
+	requestPosition(isStale: () => boolean): void {
+		this.widget?.getPosition((position) => {
+			if (!isStale()) {
+				this.callbacks.onProgress(position / 1000)
+			}
+			this.callbacks.onPositionRequestComplete()
+		})
+	}
+
+	seek(seconds: number): void {
+		this.widget?.seekTo(Math.max(0, seconds) * 1000)
+	}
+
+	setVolume(volume: number): void {
+		this.widget?.setVolume(Math.max(0, Math.min(100, volume * 100)))
+	}
+
+	private async getWidget(
+		isStale: () => boolean,
+	): Promise<SoundCloudWidget | null> {
+		if (this.widget) return this.widget
+
+		const api = await getSoundCloudApi()
+		if (isStale()) return null
+
+		const widget = api.Widget(this.iframe)
+		this.widget = widget
+		this.bindEvents(api, widget, isStale)
+		widget.bind(api.Widget.Events.READY, () => {
+			if (isStale() || widget !== this.widget) return
+
+			widget.getDuration((duration) => {
+				if (isStale() || widget !== this.widget) return
+				this.loadedDuration = duration / 1000
+				this.callbacks.onDuration(this.loadedDuration)
+			})
+			this.requestPosition(isStale)
+			this.resolveReady?.()
+		})
+
+		return widget
+	}
+
+	private bindEvents(
+		api: SoundCloudApi,
+		widget: SoundCloudWidget,
+		isStale: () => boolean,
+	): void {
+		if (this.eventsBound) return
+		this.eventsBound = true
+
+		widget.bind(api.Widget.Events.PLAY, () => {
+			if (isStale() || widget !== this.widget) return
+			this.callbacks.onPlay()
+		})
+		widget.bind(api.Widget.Events.PLAY_PROGRESS, (event) => {
+			if (isStale() || widget !== this.widget) return
+
+			if (event && typeof event === 'object') {
+				if (
+					'currentPosition' in event &&
+					typeof event.currentPosition === 'number'
+				) {
+					this.callbacks.onProgress(event.currentPosition / 1000)
+				}
+
+				if (
+					'relativePosition' in event &&
+					typeof event.relativePosition === 'number'
+				) {
+					this.callbacks.onRelativeProgress(event.relativePosition)
+				}
+			}
+		})
+		widget.bind(api.Widget.Events.PAUSE, () => {
+			if (isStale() || widget !== this.widget) return
+			this.callbacks.onPause()
+		})
+		widget.bind(api.Widget.Events.FINISH, () => {
+			if (isStale() || widget !== this.widget) return
+			this.callbacks.onFinish()
+		})
+	}
+
+	private emitDuration(
+		widget: SoundCloudWidget,
+		isStale: () => boolean,
+	): void {
+		if (this.loadedDuration > 0) {
+			this.callbacks.onDuration(this.loadedDuration)
+		}
+
+		widget.getDuration((duration) => {
+			if (isStale()) return
+			this.loadedDuration = duration / 1000
+			this.callbacks.onDuration(this.loadedDuration)
+		})
+	}
+}
+
 export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [ATTR_SRC, ATTR_PLAYLIST, ATTR_TRACK_INDEX]
 
@@ -187,10 +359,15 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly titleElement: HTMLElement
 	private readonly metaElement: HTMLElement
 	private readonly statusElement: HTMLElement
-	private readonly progressElement: HTMLElement
+	private readonly elapsedTimeElement: HTMLElement
+	private readonly remainingTimeElement: HTMLElement
+	private readonly totalTimeElement: HTMLElement
 	private tracks: JuketteTrack[] = []
+	private trackDurations = new Map<string, number>()
 	private index = 0
+	private desiredPlaying = false
 	private playing = false
+	private trackLoadId = 0
 	private duration = 0
 	private midiTimer = 0
 	private midiStartedAt = 0
@@ -199,10 +376,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private midiGain: GainNode | null = null
 	private midiSequence: MidiSequence | null = null
 	private midiSources: OscillatorNode[] = []
-	private soundCloudWidget: SoundCloudWidget | null = null
-	private soundCloudCurrentSrc = ''
-	private soundCloudEventsBound = false
-	private soundCloudReady = false
+	private soundCloudAdapter: SoundCloudAdapter | null = null
+	private soundCloudPosition = 0
+	private soundCloudPositionRequested = false
+	private restartOnNextPlay = false
+	private progressFrame = 0
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
 
@@ -303,33 +481,19 @@ export class JukettePlayerElement extends HTMLElementBase {
 					gap: 0.35rem;
 				}
 
-				.progress {
-					background: color-mix(in srgb, currentColor 20%, transparent);
-					block-size: 0.35rem;
-					overflow: hidden;
+				.time {
+					display: grid;
+					gap: 0.5rem;
+					grid-template-columns: repeat(3, 1fr);
+					font-variant-numeric: tabular-nums;
 				}
 
-				.progress::before {
-					animation: jukette-seek var(${CSS_VAR_PROGRESS_DURATION}, 1ms)
-						linear var(${CSS_VAR_PROGRESS_DELAY}, 0ms) both;
-					animation-play-state: var(${CSS_VAR_PROGRESS_STATE}, paused);
-					background: currentColor;
-					block-size: 100%;
-					content: "";
-					display: block;
-					inline-size: 100%;
-					transform: scaleX(var(${CSS_VAR_PROGRESS}, 0));
-					transform-origin: 0 50%;
+				.time span:nth-child(2) {
+					text-align: center;
 				}
 
-				@keyframes jukette-seek {
-					from {
-						transform: scaleX(var(${CSS_VAR_PROGRESS}, 0));
-					}
-
-					to {
-						transform: scaleX(1);
-					}
+				.time span:nth-child(3) {
+					text-align: end;
 				}
 
 				.playlist {
@@ -348,10 +512,37 @@ export class JukettePlayerElement extends HTMLElementBase {
 				.playlist button {
 					block-size: auto;
 					border: 0;
-					display: block;
+					display: grid;
+					gap: 0.1rem 0.75rem;
+					grid-template-columns: minmax(0, 1fr) auto;
 					inline-size: 100%;
 					padding: 0.25rem;
 					text-align: start;
+				}
+
+				.playlist-title,
+				.playlist-artist {
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+
+				.playlist-title {
+					font-weight: 700;
+				}
+
+				.playlist-artist,
+				.playlist-duration {
+					font-size: 0.875em;
+					opacity: 0.75;
+				}
+
+				.playlist-duration {
+					align-self: center;
+					font-variant-numeric: tabular-nums;
+					grid-column: 2;
+					grid-row: 1 / span 2;
+					white-space: nowrap;
 				}
 
 				.soundcloud {
@@ -383,13 +574,17 @@ export class JukettePlayerElement extends HTMLElementBase {
 					<div class="status"></div>
 				</div>
 				<div class="seek">
-					<div class="progress" part="progress"></div>
 					<input class="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+					<div class="time" aria-live="off">
+						<span class="elapsed">0:00</span>
+						<span class="remaining">-0:00</span>
+						<span class="total">0:00</span>
+					</div>
 				</div>
 				<div class="controls">
-					<button class="previous" type="button" aria-label="Previous or restart track">|&lt;</button>
+					<button class="previous" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
 					<button class="play" type="button" aria-label="Play">▶</button>
-					<button class="next" type="button" aria-label="Next track">&gt;|</button>
+					<button class="next" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
 					<input class="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 					<button class="playlist-toggle" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 				</div>
@@ -420,7 +615,46 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.titleElement = this.query<HTMLElement>(shadowRoot, '.title')
 		this.metaElement = this.query<HTMLElement>(shadowRoot, '.meta')
 		this.statusElement = this.query<HTMLElement>(shadowRoot, '.status')
-		this.progressElement = this.query<HTMLElement>(shadowRoot, '.progress')
+		this.elapsedTimeElement = this.query<HTMLElement>(
+			shadowRoot,
+			'.elapsed',
+		)
+		this.remainingTimeElement = this.query<HTMLElement>(
+			shadowRoot,
+			'.remaining',
+		)
+		this.totalTimeElement = this.query<HTMLElement>(shadowRoot, '.total')
+		this.soundCloudAdapter = new SoundCloudAdapter(this.iframe, {
+			onDuration: (duration) => {
+				this.duration = duration
+				this.setTrackDuration(this.currentTrack, duration)
+				this.syncProgress(this.soundCloudPosition, this.duration)
+			},
+			onFinish: () => this.next(),
+			onPause: () => {
+				this.desiredPlaying = false
+				this.playing = false
+				this.syncPlayingState()
+			},
+			onPlay: () => {
+				this.desiredPlaying = true
+				this.playing = true
+				this.syncPlayingState()
+			},
+			onPositionRequestComplete: () => {
+				this.soundCloudPositionRequested = false
+			},
+			onProgress: (position) => {
+				this.soundCloudPosition = position
+				this.soundCloudPositionRequested = false
+				this.syncProgress(this.soundCloudPosition, this.duration)
+			},
+			onRelativeProgress: (relativePosition) => {
+				if (this.duration <= 0) return
+				this.soundCloudPosition = relativePosition * this.duration
+				this.syncProgress(this.soundCloudPosition, this.duration)
+			},
+		})
 
 		this.playButton.addEventListener('click', () => this.toggle())
 		this.previousButton.addEventListener('click', () => this.previous())
@@ -450,6 +684,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	disconnectedCallback(): void {
 		this.trackObserver?.disconnect()
+		this.stopProgressLoop()
 		this.stopMidi()
 	}
 
@@ -485,14 +720,18 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const track = this.currentTrack
 		if (!track) return
 
+		this.desiredPlaying = true
+		const trackLoadId = this.trackLoadId
 		const type = inferTrackType(track)
 		if (type === 'audio') {
+			this.setStatus('Starting audio')
 			await this.audio.play()
+			if (trackLoadId !== this.trackLoadId) return
 			this.playing = true
 		} else if (type === 'midi') {
-			await this.playMidi()
+			await this.playMidi(trackLoadId)
 		} else if (type === 'soundcloud') {
-			await this.playSoundCloud()
+			await this.playSoundCloud(trackLoadId)
 		} else {
 			this.playing = true
 		}
@@ -501,6 +740,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	pause(): void {
+		this.setStatus()
+		this.desiredPlaying = false
 		if (inferTrackType(this.currentTrack ?? { src: '' }) === 'audio') {
 			this.audio.pause()
 		} else if (
@@ -510,7 +751,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		} else if (
 			inferTrackType(this.currentTrack ?? { src: '' }) === 'soundcloud'
 		) {
-			this.soundCloudWidget?.pause()
+			this.soundCloudAdapter?.pause()
 		}
 
 		this.playing = false
@@ -528,38 +769,49 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	next(): void {
 		if (this.tracks.length === 0) return
+		const shouldPlay = this.desiredPlaying || this.playing
 		this.index = (this.index + 1) % this.tracks.length
+		this.restartOnNextPlay = true
 		this.loadTrack()
-		if (this.playing) void this.play()
+		if (shouldPlay) void this.play()
 	}
 
 	previous(): void {
 		if (this.tracks.length === 0) return
 
 		if (this.currentTime > 3) {
+			this.restartOnNextPlay = true
 			this.seek(0)
+			if (this.desiredPlaying || this.playing) void this.play()
 			return
 		}
 
+		const shouldPlay = this.desiredPlaying || this.playing
 		this.index = (this.index - 1 + this.tracks.length) % this.tracks.length
+		this.restartOnNextPlay = true
 		this.loadTrack()
-		if (this.playing) void this.play()
+		if (shouldPlay) void this.play()
 	}
 
 	seek(seconds: number): void {
 		const track = this.currentTrack
 		if (!track) return
 
+		this.setStatus('Seeking')
 		if (inferTrackType(track) === 'audio') {
 			this.audio.currentTime = seconds
 		} else if (inferTrackType(track) === 'midi') {
 			this.midiPausedAt = Math.max(0, seconds)
 			if (this.playing) this.playMidi()
 		} else if (inferTrackType(track) === 'soundcloud') {
-			this.soundCloudWidget?.seekTo(Math.max(0, seconds) * 1000)
+			this.soundCloudPosition = Math.max(0, seconds)
+			this.soundCloudAdapter?.seek(seconds)
 		}
 
 		this.syncProgress(seconds, this.duration)
+		window.setTimeout(() => {
+			if (this.playing || !this.desiredPlaying) this.setStatus()
+		}, 500)
 	}
 
 	private get currentTime(): number {
@@ -572,6 +824,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 						this.midiPausedAt
 				: this.midiPausedAt
 		}
+		if (inferTrackType(track) === 'soundcloud')
+			return this.soundCloudPosition
 		return 0
 	}
 
@@ -627,15 +881,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private loadTrack(): void {
+		this.trackLoadId += 1
 		this.stopMidi()
 		this.audio.pause()
 		this.audio.removeAttribute('src')
-		this.iframe.removeAttribute('src')
-		this.soundCloudWidget?.pause()
-		this.soundCloudWidget = null
-		this.soundCloudCurrentSrc = ''
-		this.soundCloudEventsBound = false
-		this.soundCloudReady = false
+		this.soundCloudAdapter?.pause()
+		this.soundCloudPosition = 0
+		this.soundCloudPositionRequested = false
+		this.playing = false
 		this.duration = 0
 		this.midiSequence = null
 		this.midiPausedAt = 0
@@ -651,25 +904,28 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		const type = inferTrackType(track)
+		this.duration = this.getTrackDuration(track) ?? 0
 		this.dataset.kind = type
 		this.playButton.disabled = false
 		this.titleElement.textContent = track.title || track.src
 		this.metaElement.textContent = track.artist || type
-		this.statusElement.textContent =
-			type === 'soundcloud'
-				? 'SoundCloud embed'
-				: type === 'midi'
-					? 'MIDI file'
-					: 'Audio file'
+		this.setStatus()
+		this.syncProgress(0, this.duration)
 
 		if (type === 'audio') {
+			this.setStatus('Loading audio')
 			this.audio.src = track.src
 			this.audio.volume = Number(this.volumeInput.value)
+			this.audio.load()
+			this.audio.currentTime = 0
 		} else if (type === 'soundcloud') {
+			this.setStatus('Preparing SoundCloud')
 			this.loadSoundCloudTrack(track)
 		} else {
-			this.duration = 180
-			this.syncProgress(0, this.duration)
+			this.setStatus('Ready')
+			window.setTimeout(() => {
+				if (!this.playing) this.setStatus()
+			}, 700)
 		}
 
 		this.renderPlaylist()
@@ -681,18 +937,80 @@ export class JukettePlayerElement extends HTMLElementBase {
 			...this.tracks.map((track, index) => {
 				const item = document.createElement('li')
 				const button = document.createElement('button')
+				const title = document.createElement('span')
+				const artist = document.createElement('span')
+				const duration = document.createElement('span')
+				const durationValue = this.getTrackDuration(track)
+				const durationText =
+					durationValue === undefined
+						? '--:--'
+						: this.formatTime(durationValue)
+
 				button.type = 'button'
-				button.textContent = track.title || track.src
-				button.disabled = index === this.index
+				button.setAttribute(
+					'aria-label',
+					[
+						track.title || track.src,
+						track.artist,
+						durationValue === undefined
+							? 'unknown duration'
+							: durationText,
+					]
+						.filter(Boolean)
+						.join(', '),
+				)
+
+				title.className = 'playlist-title'
+				title.textContent = track.title || track.src
+				artist.className = 'playlist-artist'
+				artist.textContent = track.artist || ''
+				duration.className = 'playlist-duration'
+				duration.textContent = durationText
+
+				button.append(title, artist, duration)
+				if (index === this.index) {
+					button.setAttribute('aria-current', 'true')
+				}
 				button.addEventListener('click', () => {
+					this.desiredPlaying = true
+					this.restartOnNextPlay = true
 					this.index = index
 					this.loadTrack()
-					if (this.playing) void this.play()
+					void this.play()
 				})
 				item.append(button)
 				return item
 			}),
 		)
+	}
+
+	private getTrackDuration(track: JuketteTrack | null): number | undefined {
+		if (!track) return undefined
+
+		return this.trackDurations.get(this.getTrackKey(track))
+	}
+
+	private setTrackDuration(
+		track: JuketteTrack | null,
+		duration: number,
+	): void {
+		if (!track || !Number.isFinite(duration) || duration <= 0) return
+
+		const key = this.getTrackKey(track)
+		const currentDuration = this.trackDurations.get(key)
+		if (
+			currentDuration !== undefined &&
+			Math.abs(currentDuration - duration) < 0.5
+		) {
+			return
+		}
+
+		this.trackDurations.set(key, duration)
+		this.renderPlaylist()
+	}
+
+	private getTrackKey(track: JuketteTrack): string {
+		return `${inferTrackType(track)}:${track.src}`
 	}
 
 	private togglePlaylist(): void {
@@ -705,7 +1023,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.audio.volume = Number(this.volumeInput.value)
 		if (this.midiGain)
 			this.midiGain.gain.value = Number(this.volumeInput.value)
-		this.soundCloudWidget?.setVolume(Number(this.volumeInput.value) * 100)
+		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value))
 	}
 
 	private seekFromInput(): void {
@@ -717,22 +1035,40 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.duration = Number.isFinite(this.audio.duration)
 			? this.audio.duration
 			: 0
+		this.setTrackDuration(this.currentTrack, this.duration)
 		this.syncProgress(this.audio.currentTime, this.duration)
+		if (!this.playing) this.setStatus()
 	}
 
 	private syncProgress(currentTime: number, duration: number): void {
+		const safeDuration = Number.isFinite(duration)
+			? Math.max(0, duration)
+			: 0
+		const safeCurrentTime = Number.isFinite(currentTime)
+			? Math.min(
+					Math.max(0, currentTime),
+					safeDuration || Number.MAX_SAFE_INTEGER,
+				)
+			: 0
 		const ratio =
-			duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0
+			safeDuration > 0
+				? Math.min(1, Math.max(0, safeCurrentTime / safeDuration))
+				: 0
 		this.seekInput.value = String(Math.round(ratio * 1000))
-		this.progressElement.style.setProperty(CSS_VAR_PROGRESS, String(ratio))
-		this.progressElement.style.setProperty(
-			CSS_VAR_PROGRESS_DURATION,
-			`${Math.max(1, (duration - currentTime) * 1000)}ms`,
-		)
-		this.progressElement.style.setProperty(
-			CSS_VAR_PROGRESS_DELAY,
-			`${Math.min(0, -currentTime * 1000)}ms`,
-		)
+		this.elapsedTimeElement.textContent = this.formatTime(safeCurrentTime)
+		this.remainingTimeElement.textContent = `-${this.formatTime(
+			Math.max(0, safeDuration - safeCurrentTime),
+		)}`
+		this.totalTimeElement.textContent = this.formatTime(safeDuration)
+	}
+
+	private formatTime(seconds: number): string {
+		const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0
+		const roundedSeconds = Math.floor(safeSeconds)
+		const minutes = Math.floor(roundedSeconds / 60)
+		const remainder = roundedSeconds % 60
+
+		return `${minutes}:${String(remainder).padStart(2, '0')}`
 	}
 
 	private syncPlayingState(): void {
@@ -741,26 +1077,35 @@ export class JukettePlayerElement extends HTMLElementBase {
 			'aria-label',
 			this.playing ? 'Pause' : 'Play',
 		)
-		this.progressElement.style.setProperty(
-			CSS_VAR_PROGRESS_STATE,
-			this.playing ? 'running' : 'paused',
-		)
+		if (this.playing) {
+			this.setStatus()
+			this.startProgressLoop()
+		} else {
+			this.stopProgressLoop()
+		}
 	}
 
-	private async playMidi(): Promise<void> {
+	private setStatus(message = ''): void {
+		this.statusElement.textContent = message
+	}
+
+	private async playMidi(trackLoadId = this.trackLoadId): Promise<void> {
 		const track = this.currentTrack
 		if (!track) return
 
 		if (!this.midiSequence) {
-			this.statusElement.textContent = 'Loading MIDI file'
+			this.setStatus('Loading MIDI')
 			this.midiSequence = await loadMidiSequence(track.src)
+			if (trackLoadId !== this.trackLoadId) return
 			this.duration = this.midiSequence.duration
+			this.setTrackDuration(track, this.duration)
+			this.syncProgress(this.midiPausedAt, this.duration)
 		}
 
 		this.stopMidi()
+		if (trackLoadId !== this.trackLoadId) return
 		this.playing = true
 		this.midiStartedAt = performance.now()
-		this.statusElement.textContent = 'MIDI file'
 		this.ensureMidiAudio()
 
 		if (!this.midiAudio || !this.midiGain || !this.midiSequence) return
@@ -810,79 +1155,96 @@ export class JukettePlayerElement extends HTMLElementBase {
 		)
 	}
 
-	private async playSoundCloud(): Promise<void> {
+	private async playSoundCloud(
+		trackLoadId = this.trackLoadId,
+	): Promise<void> {
 		const track = this.currentTrack
 		if (!track) return
 
-		const widget = await this.getSoundCloudWidget()
-		widget.setVolume(Number(this.volumeInput.value) * 100)
+		this.playButton.disabled = true
+		this.setStatus('Loading SoundCloud')
+		const isStale = () => trackLoadId !== this.trackLoadId
+		const loaded = await this.soundCloudAdapter?.load(track.src, isStale)
 
-		if (this.soundCloudReady && this.soundCloudCurrentSrc === track.src) {
-			widget.play()
-			this.playing = true
+		if (!loaded || isStale()) {
+			this.playButton.disabled = false
+			this.setStatus('SoundCloud unavailable')
 			return
 		}
 
-		this.playButton.disabled = true
-		await new Promise<void>((resolve) => {
-			widget.load(track.src, {
-				auto_play: false,
-				callback: () => {
-					this.soundCloudReady = true
-					resolve()
-				},
-			})
-		})
-		this.soundCloudCurrentSrc = track.src
+		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value))
 		this.playButton.disabled = false
-		widget.play()
+		if (this.restartOnNextPlay) {
+			this.soundCloudAdapter?.seek(0)
+			this.soundCloudPosition = 0
+			this.syncProgress(0, this.duration)
+		}
+		this.restartOnNextPlay = false
+		this.soundCloudAdapter?.play()
 		this.playing = true
 	}
 
 	private loadSoundCloudTrack(track: JuketteTrack): void {
-		const url = new URL('https://w.soundcloud.com/player/')
-		url.searchParams.set('url', track.src)
-		url.searchParams.set('auto_play', 'false')
-		url.searchParams.set('visual', 'false')
-		this.iframe.src = url.toString()
-		this.soundCloudCurrentSrc = track.src
-		void this.getSoundCloudWidget()
+		this.soundCloudPosition = 0
+		this.syncProgress(0, this.getTrackDuration(track) ?? 0)
+		this.soundCloudAdapter?.prepare(track.src)
 	}
 
-	private async getSoundCloudWidget(): Promise<SoundCloudWidget> {
-		if (this.soundCloudWidget) return this.soundCloudWidget
+	private startProgressLoop(): void {
+		if (
+			this.progressFrame ||
+			typeof requestAnimationFrame === 'undefined'
+		) {
+			return
+		}
 
-		const api = await getSoundCloudApi()
-		const widget = api.Widget(this.iframe)
-		this.soundCloudWidget = widget
-		this.bindSoundCloudWidgetEvents(api, widget)
-		widget.bind(api.Widget.Events.READY, () => {
-			this.soundCloudReady = true
-			widget.setVolume(Number(this.volumeInput.value) * 100)
-			widget.getDuration((duration) => {
-				this.duration = duration / 1000
-				this.syncProgress(0, this.duration)
-			})
-		})
-		return widget
+		const tick = () => {
+			if (!this.playing) {
+				this.progressFrame = 0
+				return
+			}
+
+			if (
+				inferTrackType(this.currentTrack ?? { src: '' }) ===
+				'soundcloud'
+			) {
+				this.requestSoundCloudPosition()
+			}
+
+			this.syncProgress(this.currentTime, this.duration)
+			this.progressFrame = requestAnimationFrame(tick)
+		}
+
+		this.progressFrame = requestAnimationFrame(tick)
 	}
 
-	private bindSoundCloudWidgetEvents(
-		api: SoundCloudApi,
-		widget: SoundCloudWidget,
-	): void {
-		if (this.soundCloudEventsBound) return
-		this.soundCloudEventsBound = true
+	private stopProgressLoop(): void {
+		if (
+			!this.progressFrame ||
+			typeof cancelAnimationFrame === 'undefined'
+		) {
+			this.progressFrame = 0
+			return
+		}
 
-		widget.bind(api.Widget.Events.PLAY, () => {
-			this.playing = true
-			this.syncPlayingState()
-		})
-		widget.bind(api.Widget.Events.PAUSE, () => {
-			this.playing = false
-			this.syncPlayingState()
-		})
-		widget.bind(api.Widget.Events.FINISH, () => this.next())
+		cancelAnimationFrame(this.progressFrame)
+		this.progressFrame = 0
+		this.syncProgress(this.currentTime, this.duration)
+	}
+
+	private requestSoundCloudPosition(): void {
+		if (!this.soundCloudAdapter || this.soundCloudPositionRequested) return
+
+		this.soundCloudPositionRequested = true
+		const trackLoadId = this.trackLoadId
+		window.setTimeout(() => {
+			if (trackLoadId === this.trackLoadId) {
+				this.soundCloudPositionRequested = false
+			}
+		}, 500)
+		this.soundCloudAdapter.requestPosition(
+			() => trackLoadId !== this.trackLoadId,
+		)
 	}
 
 	private pauseMidi(): void {
@@ -918,7 +1280,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			).webkitAudioContext
 
 		if (!AudioContextConstructor) {
-			this.statusElement.textContent = 'MIDI playback needs Web Audio'
+			this.setStatus('MIDI playback needs Web Audio')
 			return
 		}
 

@@ -221,21 +221,13 @@ player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 ## Styling
 
 Jukette keeps the default UI basic on purpose. It uses inherited text color and
-font, a single border, native range controls, and shadow parts only where the
-internal structure needs to stay stable.
+font, a single border, and native range controls.
 
 ```css
 jukette-player {
 	max-inline-size: 36rem;
 }
-
-jukette-player::part(progress) {
-	block-size: 0.5rem;
-}
 ```
-
-The animated seek fill uses CSS animation and negative `animation-delay` to
-simulate the current handle position while playback runs.
 
 [Back to top](#)
 
