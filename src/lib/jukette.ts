@@ -457,7 +457,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				}
 
 				.status {
-					min-block-size: 1.25em;
+					min-block-size: 1lh;
 					overflow: hidden;
 					text-overflow: ellipsis;
 					white-space: nowrap;

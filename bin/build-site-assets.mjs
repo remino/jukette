@@ -1,27 +1,56 @@
 import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { execFile } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
 const root = process.cwd()
+const generatorPath = fileURLToPath(import.meta.url)
 const demoTonePath = resolve(root, 'public/jukette/demo-tone.mp3')
 const demoMidiPath = resolve(root, 'public/jukette/demo-scale.mid')
 
-const fileExists = async (filePath) => {
+const fileIsCurrent = async (filePath) => {
 	try {
 		const file = await stat(filePath)
-		return file.isFile() && file.size > 0
+		const generator = await stat(generatorPath)
+		return (
+			file.isFile() && file.size > 0 && file.mtimeMs >= generator.mtimeMs
+		)
 	} catch {
 		return false
 	}
 }
 
 const buildDemoTone = async () => {
-	if (await fileExists(demoTonePath)) {
+	if (await fileIsCurrent(demoTonePath)) {
 		console.log(`site:assets reused ${demoTonePath}`)
 		return
 	}
+
+	const noteDuration = 0.18
+	const arpeggio = [
+		277.18, // C#4
+		329.63, // E4
+		415.3, // G#4
+		493.88, // B4
+		554.37, // C#5
+		493.88, // B4
+		415.3, // G#4
+		329.63, // E4
+	]
+	const notes = Array.from({ length: 4 }, () => arpeggio).flat()
+	const noteFilters = notes.map(
+		(_frequency, index) =>
+			`[${index}:a]afade=t=in:st=0:d=0.01,afade=t=out:st=${noteDuration - 0.03}:d=0.03,volume=0.58[n${index}]`,
+	)
+	const concatInputs = notes
+		.map((_frequency, index) => `[n${index}]`)
+		.join('')
+	const filterComplex = [
+		...noteFilters,
+		`${concatInputs}concat=n=${notes.length}:v=0:a=1,alimiter=limit=0.9[out]`,
+	].join(';')
 
 	await mkdir(dirname(demoTonePath), { recursive: true })
 	await execFileAsync('ffmpeg', [
@@ -29,12 +58,16 @@ const buildDemoTone = async () => {
 		'-loglevel',
 		'error',
 		'-y',
-		'-f',
-		'lavfi',
-		'-i',
-		'sine=frequency=440:duration=4:sample_rate=44100',
-		'-filter:a',
-		'volume=0.18,afade=t=in:st=0:d=0.05,afade=t=out:st=3.85:d=0.15',
+		...notes.flatMap((frequency) => [
+			'-f',
+			'lavfi',
+			'-i',
+			`sine=frequency=${frequency}:duration=${noteDuration}:sample_rate=44100`,
+		]),
+		'-filter_complex',
+		filterComplex,
+		'-map',
+		'[out]',
 		'-codec:a',
 		'libmp3lame',
 		'-b:a',
@@ -61,7 +94,7 @@ const textBytes = (value) =>
 	[...value].map((character) => character.charCodeAt(0))
 
 const buildDemoMidi = async () => {
-	if (await fileExists(demoMidiPath)) {
+	if (await fileIsCurrent(demoMidiPath)) {
 		console.log(`site:assets reused ${demoMidiPath}`)
 		return
 	}
