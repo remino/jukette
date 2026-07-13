@@ -2,6 +2,7 @@ node_modules
 dist
 deploy/public
 public/jukette/demo-tone.mp3
+public/jukette/demo-scale.mid
 .astro
 .DS_Store
 .env
