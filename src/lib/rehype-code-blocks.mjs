@@ -8,11 +8,11 @@ const hasClass = (node, className) => {
 				.includes(className)
 }
 
-const isElement = node => node?.type === 'element'
+const isElement = (node) => node?.type === 'element'
 
-const isCodeBlock = node => isElement(node) && hasClass(node, 'code-block')
+const isCodeBlock = (node) => isElement(node) && hasClass(node, 'code-block')
 
-const isPre = node => isElement(node) && node.tagName === 'pre'
+const isPre = (node) => isElement(node) && node.tagName === 'pre'
 
 const wrapCodeBlocks = (node, parentIsCodeBlock = false) => {
 	if (!Array.isArray(node.children)) return
@@ -35,7 +35,7 @@ const wrapCodeBlocks = (node, parentIsCodeBlock = false) => {
 }
 
 export default function rehypeCodeBlocks() {
-	return tree => {
+	return (tree) => {
 		wrapCodeBlocks(tree)
 	}
 }

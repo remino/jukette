@@ -79,7 +79,7 @@
 		"lint:check": "eslint .",
 		"precommit": "lint-staged",
 		"preview": "astro preview",
-		"site:assets": "true",
+		"site:assets": "node bin/build-site-assets.mjs",
 		"start": "npm run dev",
 		"test": "tsx ./node_modules/jasmine/bin/jasmine.js",
 		"typecheck": "astro check && tsc --noEmit"
