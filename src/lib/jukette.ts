@@ -7,6 +7,11 @@ export interface JuketteTrack {
 	type?: JuketteTrackKind
 }
 
+export interface AudioFileMetadata {
+	artist?: string
+	title?: string
+}
+
 interface MidiNote {
 	duration: number
 	frequency: number
@@ -16,6 +21,9 @@ interface MidiNote {
 
 interface MidiSequence {
 	duration: number
+	metadata?: {
+		title?: string
+	}
 	notes: MidiNote[]
 }
 
@@ -51,6 +59,8 @@ interface SoundCloudApi {
 
 const ATTR_SRC = 'src'
 const ATTR_PLAYLIST = 'playlist'
+const ATTR_PRELOAD_METADATA = 'preload-metadata'
+const ATTR_PREFER_MEDIA_METADATA = 'prefer-media-metadata'
 const ATTR_TRACK_INDEX = 'track-index'
 const ATTR_TITLE = 'title'
 const ATTR_ARTIST = 'artist'
@@ -345,7 +355,13 @@ class SoundCloudAdapter {
 }
 
 export class JukettePlayerElement extends HTMLElementBase {
-	static observedAttributes = [ATTR_SRC, ATTR_PLAYLIST, ATTR_TRACK_INDEX]
+	static observedAttributes = [
+		ATTR_SRC,
+		ATTR_PLAYLIST,
+		ATTR_PRELOAD_METADATA,
+		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_TRACK_INDEX,
+	]
 
 	private readonly audio: HTMLAudioElement
 	private readonly iframe: HTMLIFrameElement
@@ -364,6 +380,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly totalTimeElement: HTMLElement
 	private tracks: JuketteTrack[] = []
 	private trackDurations = new Map<string, number>()
+	private trackMetadata = new Map<string, AudioFileMetadata>()
 	private index = 0
 	private desiredPlaying = false
 	private playing = false
@@ -381,6 +398,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private soundCloudPositionRequested = false
 	private restartOnNextPlay = false
 	private progressFrame = 0
+	private metadataPreloadId = 0
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
 
@@ -421,8 +439,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				}
 
 				.title,
-				.meta,
-				.status {
+				.meta {
 					overflow: hidden;
 					text-overflow: ellipsis;
 					white-space: nowrap;
@@ -439,11 +456,39 @@ export class JukettePlayerElement extends HTMLElementBase {
 					opacity: 0.75;
 				}
 
+				.status {
+					min-block-size: 1.25em;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+
 				.controls {
 					align-items: center;
 					display: grid;
 					gap: 0.5rem;
+					grid-template-areas: "previous play next volume playlist";
 					grid-template-columns: repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);
+				}
+
+				.previous {
+					grid-area: previous;
+				}
+
+				.play {
+					grid-area: play;
+				}
+
+				.next {
+					grid-area: next;
+				}
+
+				.volume {
+					grid-area: volume;
+				}
+
+				.playlist-toggle {
+					grid-area: playlist;
 				}
 
 				button {
@@ -558,11 +603,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 				@media (max-width: 34rem) {
 					.controls {
-						grid-template-columns: repeat(4, var(--jukette-control-size));
-					}
-
-					.volume {
-						grid-column: 1 / -1;
+						grid-template-areas:
+							"volume volume volume volume volume"
+							"previous play next . playlist";
+						grid-template-columns: repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);
+						justify-content: start;
 					}
 				}
 			</style>
@@ -571,7 +616,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 				<div class="track" aria-live="polite">
 					<div class="title"></div>
 					<div class="meta"></div>
-					<div class="status"></div>
 				</div>
 				<div class="seek">
 					<input class="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
@@ -588,6 +632,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 					<input class="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 					<button class="playlist-toggle" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 				</div>
+				<div class="status" role="status" aria-live="polite"></div>
 				<iframe class="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
 				<audio preload="metadata"></audio>
 				<ol class="playlist"></ol>
@@ -689,11 +734,21 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	attributeChangedCallback(
-		_name: string,
+		name: string,
 		oldValue: string | null,
 		newValue: string | null,
 	): void {
 		if (oldValue === newValue) return
+		if (
+			name === ATTR_PRELOAD_METADATA ||
+			name === ATTR_PREFER_MEDIA_METADATA
+		) {
+			this.renderCurrentTrack()
+			this.renderPlaylist()
+			this.preloadPlaylistMetadata()
+			return
+		}
+
 		this.syncTracks()
 		this.loadTrack()
 	}
@@ -706,6 +761,22 @@ export class JukettePlayerElement extends HTMLElementBase {
 		return [...this.tracks]
 	}
 
+	get preloadMetadata(): boolean {
+		return this.hasAttribute(ATTR_PRELOAD_METADATA)
+	}
+
+	set preloadMetadata(preload: boolean) {
+		this.toggleAttribute(ATTR_PRELOAD_METADATA, preload)
+	}
+
+	get preferMediaMetadata(): boolean {
+		return this.hasAttribute(ATTR_PREFER_MEDIA_METADATA)
+	}
+
+	set preferMediaMetadata(prefer: boolean) {
+		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer)
+	}
+
 	set playlist(tracks: JuketteTrack[]) {
 		this.playlistOverride = tracks
 			.map((track) => normalizeTrack(track))
@@ -713,6 +784,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.tracks = [...this.playlistOverride]
 		this.index = 0
 		this.renderPlaylist()
+		this.preloadPlaylistMetadata()
 		this.loadTrack()
 	}
 
@@ -857,6 +929,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				: Math.min(this.index, Math.max(0, this.tracks.length - 1))
 
 		this.renderPlaylist()
+		this.preloadPlaylistMetadata()
 	}
 
 	private syncChildTracks(): void {
@@ -907,8 +980,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.duration = this.getTrackDuration(track) ?? 0
 		this.dataset.kind = type
 		this.playButton.disabled = false
-		this.titleElement.textContent = track.title || track.src
-		this.metaElement.textContent = track.artist || type
+		this.renderCurrentTrack()
 		this.setStatus()
 		this.syncProgress(0, this.duration)
 
@@ -918,6 +990,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.audio.volume = Number(this.volumeInput.value)
 			this.audio.load()
 			this.audio.currentTime = 0
+			void this.preloadAudioFileMetadata(track, this.metadataPreloadId)
 		} else if (type === 'soundcloud') {
 			this.setStatus('Preparing SoundCloud')
 			this.loadSoundCloudTrack(track)
@@ -935,6 +1008,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private renderPlaylist(): void {
 		this.playlistElement.replaceChildren(
 			...this.tracks.map((track, index) => {
+				const display = this.getTrackDisplay(track)
 				const item = document.createElement('li')
 				const button = document.createElement('button')
 				const title = document.createElement('span')
@@ -950,8 +1024,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 				button.setAttribute(
 					'aria-label',
 					[
-						track.title || track.src,
-						track.artist,
+						display.title,
+						display.artist,
 						durationValue === undefined
 							? 'unknown duration'
 							: durationText,
@@ -961,9 +1035,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 				)
 
 				title.className = 'playlist-title'
-				title.textContent = track.title || track.src
+				title.textContent = display.title
 				artist.className = 'playlist-artist'
-				artist.textContent = track.artist || ''
+				artist.textContent = display.artist
 				duration.className = 'playlist-duration'
 				duration.textContent = durationText
 
@@ -1011,6 +1085,156 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private getTrackKey(track: JuketteTrack): string {
 		return `${inferTrackType(track)}:${track.src}`
+	}
+
+	private getTrackDisplay(track: JuketteTrack): Required<AudioFileMetadata> {
+		const metadata = this.preferMediaMetadata
+			? this.trackMetadata.get(this.getTrackKey(track))
+			: undefined
+
+		return {
+			artist: metadata?.artist || track.artist || '',
+			title: metadata?.title || track.title || track.src,
+		}
+	}
+
+	private renderCurrentTrack(): void {
+		const track = this.currentTrack
+		if (!track) return
+
+		const display = this.getTrackDisplay(track)
+		this.titleElement.textContent = display.title
+		this.metaElement.textContent = display.artist || inferTrackType(track)
+	}
+
+	private setTrackMetadata(
+		track: JuketteTrack | null,
+		metadata: AudioFileMetadata,
+	): void {
+		if (!track) return
+
+		const nextMetadata = {
+			artist: metadata.artist?.trim() || undefined,
+			title: metadata.title?.trim() || undefined,
+		}
+		if (!nextMetadata.artist && !nextMetadata.title) return
+
+		const key = this.getTrackKey(track)
+		const currentMetadata = this.trackMetadata.get(key)
+		if (
+			currentMetadata !== undefined &&
+			currentMetadata.artist === nextMetadata.artist &&
+			currentMetadata.title === nextMetadata.title
+		) {
+			return
+		}
+
+		this.trackMetadata.set(key, nextMetadata)
+		if (this.currentTrack && this.getTrackKey(this.currentTrack) === key) {
+			this.renderCurrentTrack()
+		}
+		this.renderPlaylist()
+	}
+
+	private preloadPlaylistMetadata(): void {
+		this.metadataPreloadId += 1
+		if (!this.preloadMetadata && !this.preferMediaMetadata) return
+
+		const metadataPreloadId = this.metadataPreloadId
+		for (const track of this.tracks) {
+			const type = inferTrackType(track)
+			if (type === 'audio') {
+				if (this.preloadMetadata) {
+					this.preloadAudioMetadata(track, metadataPreloadId)
+				}
+				if (this.preferMediaMetadata) {
+					void this.preloadAudioFileMetadata(track, metadataPreloadId)
+				}
+			} else if (type === 'midi') {
+				if (this.preloadMetadata || this.preferMediaMetadata) {
+					void this.preloadMidiMetadata(track, metadataPreloadId)
+				}
+			}
+		}
+	}
+
+	private preloadAudioMetadata(
+		track: JuketteTrack,
+		metadataPreloadId: number,
+	): void {
+		if (this.getTrackDuration(track) !== undefined) return
+		if (typeof Audio === 'undefined') return
+
+		const audio = new Audio()
+		const cleanup = () => {
+			audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+			audio.removeEventListener('error', cleanup)
+			audio.removeAttribute('src')
+			audio.load()
+		}
+		const onLoadedMetadata = () => {
+			if (metadataPreloadId === this.metadataPreloadId) {
+				this.setTrackDuration(track, audio.duration)
+			}
+			cleanup()
+		}
+
+		audio.preload = 'metadata'
+		audio.addEventListener('loadedmetadata', onLoadedMetadata)
+		audio.addEventListener('error', cleanup, { once: true })
+		audio.src = track.src
+		audio.load()
+	}
+
+	private async preloadAudioFileMetadata(
+		track: JuketteTrack,
+		metadataPreloadId: number,
+	): Promise<void> {
+		if (!this.preferMediaMetadata) return
+		if (this.trackMetadata.has(this.getTrackKey(track))) return
+		if (typeof fetch === 'undefined') return
+
+		try {
+			const response = await fetch(track.src, {
+				headers: { Range: 'bytes=0-65535' },
+			})
+			if (!response.ok) return
+
+			const metadata = parseAudioFileMetadata(
+				await response.arrayBuffer(),
+			)
+			if (metadataPreloadId === this.metadataPreloadId) {
+				this.setTrackMetadata(track, metadata)
+			}
+		} catch {
+			// Leave authored title and artist in place when tags cannot be read.
+		}
+	}
+
+	private async preloadMidiMetadata(
+		track: JuketteTrack,
+		metadataPreloadId: number,
+	): Promise<void> {
+		try {
+			const sequence = await loadMidiSequence(track.src)
+			if (metadataPreloadId === this.metadataPreloadId) {
+				if (this.preloadMetadata) {
+					this.setTrackDuration(track, sequence.duration)
+				}
+				this.setMidiTrackMetadata(track, sequence)
+			}
+		} catch {
+			// Leave duration unknown when metadata cannot be preloaded.
+		}
+	}
+
+	private setMidiTrackMetadata(
+		track: JuketteTrack,
+		sequence: MidiSequence,
+	): void {
+		if (!sequence.metadata?.title) return
+
+		this.setTrackMetadata(track, { title: sequence.metadata.title })
 	}
 
 	private togglePlaylist(): void {
@@ -1099,6 +1323,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			if (trackLoadId !== this.trackLoadId) return
 			this.duration = this.midiSequence.duration
 			this.setTrackDuration(track, this.duration)
+			this.setMidiTrackMetadata(track, this.midiSequence)
 			this.syncProgress(this.midiPausedAt, this.duration)
 		}
 
@@ -1291,6 +1516,113 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 }
 
+const decodeAscii = (bytes: Uint8Array): string => String.fromCharCode(...bytes)
+
+const decodeIso88591 = (bytes: Uint8Array): string =>
+	String.fromCharCode(...bytes)
+
+const decodeUtf16Be = (bytes: Uint8Array): string => {
+	const codeUnits: number[] = []
+	for (let index = 0; index + 1 < bytes.length; index += 2) {
+		codeUnits.push((bytes[index] << 8) | bytes[index + 1])
+	}
+	return String.fromCharCode(...codeUnits)
+}
+
+const decodeTextBytes = (bytes: Uint8Array, encoding: string): string => {
+	try {
+		return new TextDecoder(encoding).decode(bytes)
+	} catch {
+		return encoding === 'iso-8859-1'
+			? decodeIso88591(bytes)
+			: decodeAscii(bytes)
+	}
+}
+
+const cleanMetadataText = (value: string): string => {
+	const nullIndex = value.indexOf('\u0000')
+	const trimmedValue =
+		nullIndex >= 0 ? value.slice(0, nullIndex) : value.trimEnd()
+
+	return trimmedValue.trim()
+}
+
+const readSynchsafeInteger = (
+	data: Uint8Array,
+	offset: number,
+	length = 4,
+): number => {
+	let value = 0
+	for (let index = 0; index < length; index++) {
+		value = (value << 7) | (data[offset + index] & 0x7f)
+	}
+	return value
+}
+
+const readUint32 = (data: Uint8Array, offset: number): number =>
+	((data[offset] << 24) |
+		(data[offset + 1] << 16) |
+		(data[offset + 2] << 8) |
+		data[offset + 3]) >>>
+	0
+
+const decodeId3TextFrame = (frameData: Uint8Array): string => {
+	if (frameData.length < 2) return ''
+
+	const encoding = frameData[0]
+	const content = frameData.slice(1)
+	if (encoding === 0) return cleanMetadataText(decodeIso88591(content))
+	if (encoding === 3) {
+		return cleanMetadataText(decodeTextBytes(content, 'utf-8'))
+	}
+	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content))
+
+	return cleanMetadataText(decodeTextBytes(content, 'utf-16'))
+}
+
+export const parseAudioFileMetadata = (
+	buffer: ArrayBuffer,
+): AudioFileMetadata => {
+	const data = new Uint8Array(buffer)
+	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== 'ID3') {
+		return {}
+	}
+
+	const version = data[3]
+	const flags = data[5]
+	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6))
+	let offset = 10
+
+	if (flags & 0x40 && offset + 4 <= tagEnd) {
+		const extendedHeaderSize =
+			version === 4
+				? readSynchsafeInteger(data, offset)
+				: readUint32(data, offset) + 4
+		offset += extendedHeaderSize
+	}
+
+	const metadata: AudioFileMetadata = {}
+	while (offset + 10 <= tagEnd) {
+		const frameId = decodeAscii(data.slice(offset, offset + 4))
+		if (!/^[A-Z0-9]{4}$/.test(frameId)) break
+
+		const frameSize =
+			version === 4
+				? readSynchsafeInteger(data, offset + 4)
+				: readUint32(data, offset + 4)
+		const frameStart = offset + 10
+		const frameEnd = frameStart + frameSize
+		if (frameSize <= 0 || frameEnd > tagEnd) break
+
+		const frameData = data.slice(frameStart, frameEnd)
+		if (frameId === 'TIT2') metadata.title = decodeId3TextFrame(frameData)
+		if (frameId === 'TPE1') metadata.artist = decodeId3TextFrame(frameData)
+		offset = frameEnd
+	}
+
+	return metadata
+}
+
 class MidiReader {
 	private offset = 0
 
@@ -1347,6 +1679,9 @@ class MidiReader {
 const midiNoteFrequency = (note: number): number =>
 	440 * Math.pow(2, (note - 69) / 12)
 
+const decodeMidiText = (bytes: Uint8Array): string =>
+	cleanMetadataText(decodeTextBytes(bytes, 'utf-8'))
+
 export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 	const reader = new MidiReader(new Uint8Array(buffer))
 	if (reader.readText(4) !== 'MThd') throw new Error('Invalid MIDI header.')
@@ -1361,6 +1696,7 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 
 	const ticksPerBeat = division
 	const notes: MidiNote[] = []
+	const metadata: AudioFileMetadata = {}
 	let tempo = 500000
 	let duration = 0
 
@@ -1397,6 +1733,9 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 				if (type === 0x51 && length === 3) {
 					const bytes = trackReader.read(3)
 					tempo = (bytes[0] << 16) | (bytes[1] << 8) | bytes[2]
+				} else if (type === 0x03) {
+					const title = decodeMidiText(trackReader.read(length))
+					if (!metadata.title && title) metadata.title = title
 				} else {
 					trackReader.read(length)
 				}
@@ -1439,7 +1778,11 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 		}
 	}
 
-	return { duration: Math.max(duration, 1), notes }
+	return {
+		duration: Math.max(duration, 1),
+		metadata: metadata.title ? { title: metadata.title } : undefined,
+		notes,
+	}
 }
 
 export const loadMidiSequence = async (src: string): Promise<MidiSequence> => {

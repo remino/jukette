@@ -120,7 +120,7 @@ After registration, use the element with a single source:
 Or pass a playlist with child track elements:
 
 ```html
-<jukette-player>
+<jukette-player preload-metadata prefer-media-metadata>
 	<jukette-track
 		title="Theme"
 		artist="Local"
@@ -212,7 +212,20 @@ player.next()
 player.previous()
 player.seek(30)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
+player.preloadMetadata = true
+player.preferMediaMetadata = true
 ```
+
+Use the `preload-metadata` attribute or `preloadMetadata` property to discover
+playlist durations before tracks are played. Jukette preloads metadata for
+browser-native audio and local MIDI tracks. SoundCloud durations are reported
+when the SoundCloud widget has loaded that track.
+
+Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
+tags override authored track titles and artists. Jukette currently reads MP3
+ID3 `TIT2` title and `TPE1` artist tags, plus MIDI track/sequence names as
+titles. MIDI artists stay authored-only. Authored values stay in place when tags
+are missing, unreadable, or unsupported.
 
 [Back to top](#)
 
