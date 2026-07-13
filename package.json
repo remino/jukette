@@ -1,0 +1,101 @@
+{
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"browser": "./dist/jukette-auto.min.js",
+	"description": "White-label jukebox custom element for audio, SoundCloud, and MIDI playlists.",
+	"devDependencies": {
+		"@astrojs/check": "^0.9.4",
+		"@astrojs/markdown-remark": "^7.2.0",
+		"@eslint/js": "^10.0.1",
+		"@remino/astro-site-nav": "^0.4.2",
+		"@remino/directive": "^5.3.4",
+		"astro": "^7.0.0",
+		"astro-compressor": "^1.3.0",
+		"astro-eslint-parser": "^1.4.0",
+		"astro-minify-html": "^0.1.1",
+		"eslint": "^10.6.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-astro": "^1.7.0",
+		"globals": "^17.7.0",
+		"jasmine": "^6.3.0",
+		"lightningcss": "^1.32.0",
+		"lint-staged": "^16.4.0",
+		"prettier": "^3.7.4",
+		"prettier-plugin-astro": "^0.14.1",
+		"shiki": "^4.3.0",
+		"tsx": "^4.22.4",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.62.0",
+		"vite": "^8.1.0"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/jukette.d.ts",
+			"unpkg": "./dist/jukette-auto.min.js",
+			"import": "./dist/jukette.mjs",
+			"require": "./dist/jukette.cjs"
+		},
+		"./auto": {
+			"types": "./dist/auto.d.ts",
+			"import": "./dist/jukette-auto.mjs",
+			"require": "./dist/jukette-auto.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"homepage": "https://remino.net/jukette/",
+	"keywords": [
+		"custom-element",
+		"jukebox",
+		"midi",
+		"soundcloud",
+		"web-components"
+	],
+	"license": "ISC",
+	"main": "dist/jukette.cjs",
+	"module": "dist/jukette.mjs",
+	"name": "jukette",
+	"publishConfig": {
+		"registry": "https://registry.npmjs.org/"
+	},
+	"unpkg": "./dist/jukette-auto.min.js",
+	"jsdelivr": "./dist/jukette-auto.min.js",
+	"sideEffects": [
+		"./dist/jukette-auto.*",
+		"./src/lib/auto.ts",
+		"./src/assets/js/copy-buttons.js"
+	],
+	"scripts": {
+		"build": "npm run js:build && npm run site:assets && astro build",
+		"dev": "astro dev",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"js:build": "node bin/build-js.mjs && tsc --emitDeclarationOnly",
+		"lib:build": "npm run js:build",
+		"lint": "eslint --fix .",
+		"lint:check": "eslint .",
+		"precommit": "lint-staged",
+		"preview": "astro preview",
+		"site:assets": "true",
+		"start": "npm run dev",
+		"test": "tsx ./node_modules/jasmine/bin/jasmine.js",
+		"typecheck": "astro check && tsc --noEmit"
+	},
+	"type": "module",
+	"types": "dist/jukette.d.ts",
+	"lint-staged": {
+		"*.{js,mjs,cjs,ts,astro}": [
+			"prettier --write",
+			"eslint --fix"
+		],
+		"*.{css,md,json,yml,yaml}": "prettier --write"
+	},
+	"version": "0.1.0",
+	"dependencies": {
+		"@remino/astro-middleware": "^0.1.2",
+		"@remino/functions": "^1.2.0"
+	}
+}

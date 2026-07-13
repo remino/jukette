@@ -1,0 +1,142 @@
+---
+import SiteNavFooter from '@remino/astro-site-nav/SiteNavFooter.astro'
+import SiteNavHeader from '@remino/astro-site-nav/SiteNavHeader.astro'
+import SiteNavHtmlHead from '@remino/astro-site-nav/SiteNavHtmlHead.astro'
+import HeaderNav from './HeaderNav.astro'
+import { site } from '../data/site'
+import '../assets/css/style.css'
+
+interface Breadcrumb {
+	label: string
+	href?: string
+}
+
+interface Props {
+	title?: string
+	description?: string
+	path?: string
+	htmlClass?: string
+	bodyClass?: string
+	mainClass?: string
+	showHeader?: boolean
+	breadcrumbs?: Breadcrumb[]
+}
+
+const {
+	title = site.title,
+	description = site.description,
+	path = '/jukette/',
+	htmlClass = '',
+	bodyClass = '',
+	mainClass = '',
+	showHeader = true,
+	breadcrumbs,
+} = Astro.props
+
+const siteUrl = Astro.site ? new URL(path, Astro.site).toString() : site.url
+const imageUrl = Astro.site
+	? new URL(site.image, Astro.site).toString()
+	: site.image
+const documentTitle = title === site.title ? title : `${title} // ${site.title}`
+const readableDocumentTitle =
+	title === site.title
+		? site.readableTitle
+		: `${title} // ${site.readableTitle}`
+const breadcrumbItems =
+	breadcrumbs ??
+	(title === site.title
+		? [{ label: site.readableTitle, href: '/jukette/' }]
+		: [
+				{ label: site.readableTitle, href: '/jukette/' },
+				{ label: title, href: path },
+			])
+const combinedHtmlClass = ['no-js', 'rmn-nav-ribbon-bg-blur', htmlClass]
+	.filter(Boolean)
+	.join(' ')
+const navItems = [
+	{ label: 'Home', href: '/jukette/' },
+	{ label: 'Demo', href: '/jukette/demo/' },
+	{ label: 'Licence', href: '/jukette/license/' },
+	{
+		label: 'GitHub',
+		href: 'https://github.com/remino/jukette',
+		external: true,
+	},
+	{
+		label: 'npm',
+		href: 'https://www.npmjs.com/package/jukette',
+		external: true,
+	},
+]
+---
+
+<!doctype html>
+<html lang="en-CA" class={combinedHtmlClass}>
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="viewport-fit=cover, width=device-width, initial-scale=1.0"
+		/>
+		<meta name="format-detection" content="telephone=no" />
+		<title>{readableDocumentTitle}</title>
+		<meta name="description" content={description} />
+		<meta property="og:title" content={documentTitle} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={imageUrl} />
+		<meta property="og:image:alt" content={site.imageAlt} />
+		<meta property="og:url" content={siteUrl} />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={documentTitle} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={imageUrl} />
+		<meta name="twitter:image:alt" content={site.imageAlt} />
+		<meta name="twitter:site" content={site.twitterHandle} />
+		<meta name="twitter:creator" content={site.twitterHandle} />
+		<meta name="twitter:url" content={siteUrl} />
+		<SiteNavHtmlHead />
+		<slot name="head" />
+		<script>
+			document.documentElement.classList.add('js')
+			document.documentElement.classList.remove('no-js')
+		</script>
+	</head>
+	<body class={bodyClass}>
+		<SiteNavHeader />
+		{
+			showHeader && (
+				<header>
+					<h1>
+						<a href="/jukette/">{site.title}</a>
+					</h1>
+					<HeaderNav items={navItems} />
+				</header>
+			)
+		}
+		<main class={mainClass || undefined}>
+			<slot />
+		</main>
+		<div class="rmn-nav__content">
+			<ul class="rmn-breadcrumbs">
+				{
+					breadcrumbItems.map((item) => (
+						<li>
+							{item.href ? (
+								<a href={item.href}>{item.label}</a>
+							) : (
+								item.label
+							)}
+						</li>
+					))
+				}
+			</ul>
+		</div>
+		<SiteNavFooter />
+		<script>
+			import '../lib/auto'
+			import '../assets/js/copy-buttons'
+		</script>
+		<slot name="scripts" />
+	</body>
+</html>

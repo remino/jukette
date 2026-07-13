@@ -1,0 +1,13 @@
+{
+	"extends": "astro/tsconfigs/strict",
+	"compilerOptions": {
+		"declaration": true,
+		"declarationDir": "dist",
+		"emitDeclarationOnly": false,
+		"moduleResolution": "bundler",
+		"outDir": "dist",
+		"types": ["astro/client"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.astro"],
+	"exclude": ["dist", "deploy", "node_modules"]
+}

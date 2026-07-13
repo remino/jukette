@@ -1,0 +1,68 @@
+@import '@remino/directive';
+
+main {
+	margin-block-end: var(--rmn-ribbon-push, 0px);
+}
+
+header nav ul {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	list-style: none;
+	padding: 0;
+}
+
+jukette-player {
+	margin-block: var(--dress-m-bs) var(--dress-m-be);
+	max-inline-size: 42rem;
+}
+
+.code-block {
+	margin-block-end: var(--dress-m-be);
+	margin-block-start: var(--dress-m-bs);
+	position: relative;
+
+	> pre {
+		margin-block: 0;
+	}
+
+	.copy {
+		inset: 0 0 auto auto;
+		margin: 0;
+		position: absolute;
+		transform: scale(0.8);
+		transform-origin: 100% 0;
+		transition: opacity var(--dress-ad) var(--dress-at);
+
+		@media print {
+			display: none;
+		}
+	}
+
+	@media (pointer: fine) {
+		.copy {
+			opacity: 0;
+
+			&:focus {
+				opacity: 1;
+			}
+		}
+
+		&:hover .copy {
+			opacity: 1;
+		}
+	}
+}
+
+.sr-only {
+	block-size: 1px;
+	border: 0;
+	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
+	inline-size: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	white-space: nowrap;
+}

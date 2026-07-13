@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro'
+---
+
+<BaseLayout title="Demo" path="/jukette/demo/">
+	<h2>Demo</h2>
+	<jukette-player
+		playlist={JSON.stringify([
+			{
+				title: 'Browser audio',
+				artist: 'Jukette',
+				src: '/jukette/demo-tone.mp3',
+			},
+			{
+				title: 'SoundCloud URL',
+				artist: 'SoundCloud',
+				src: 'https://soundcloud.com/forss/flickermood',
+			},
+		])}
+		playlist-open></jukette-player>
+</BaseLayout>
