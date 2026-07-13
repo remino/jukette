@@ -19,6 +19,34 @@ interface MidiSequence {
 	notes: MidiNote[]
 }
 
+interface SoundCloudWidget {
+	bind(eventName: string, listener: () => void): void
+	getDuration(callback: (duration: number) => void): void
+	load(
+		url: string,
+		options?: {
+			auto_play?: boolean
+			callback?: () => void
+		},
+	): void
+	pause(): void
+	play(): void
+	seekTo(milliseconds: number): void
+	setVolume(volume: number): void
+}
+
+interface SoundCloudApi {
+	Widget: {
+		(iframe: HTMLIFrameElement | string): SoundCloudWidget
+		Events: {
+			FINISH: string
+			PAUSE: string
+			PLAY: string
+			READY: string
+		}
+	}
+}
+
 const ATTR_SRC = 'src'
 const ATTR_PLAYLIST = 'playlist'
 const ATTR_TRACK_INDEX = 'track-index'
@@ -29,8 +57,10 @@ const CSS_VAR_PROGRESS = '--jukette-progress'
 const CSS_VAR_PROGRESS_DURATION = '--jukette-progress-duration'
 const CSS_VAR_PROGRESS_DELAY = '--jukette-progress-delay'
 const CSS_VAR_PROGRESS_STATE = '--jukette-progress-state'
+const SOUNDCLOUD_API_SRC = 'https://w.soundcloud.com/player/api.js'
 const HTMLElementBase =
 	globalThis.HTMLElement ?? (class {} as typeof HTMLElement)
+let soundCloudApiPromise: Promise<SoundCloudApi> | null = null
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null
@@ -88,6 +118,49 @@ export const parsePlaylist = (value: string | null): JuketteTrack[] => {
 	}
 }
 
+const getSoundCloudApi = async (): Promise<SoundCloudApi> => {
+	const existingApi = (
+		globalThis as typeof globalThis & { SC?: SoundCloudApi }
+	).SC
+	if (existingApi?.Widget) return existingApi
+
+	if (soundCloudApiPromise) return soundCloudApiPromise
+	if (typeof document === 'undefined') {
+		throw new Error('SoundCloud playback requires a browser document.')
+	}
+
+	soundCloudApiPromise = new Promise((resolve, reject) => {
+		const existingScript = document.querySelector<HTMLScriptElement>(
+			`script[src="${SOUNDCLOUD_API_SRC}"]`,
+		)
+		const script = existingScript ?? document.createElement('script')
+
+		const resolveIfReady = () => {
+			const api = (
+				globalThis as typeof globalThis & { SC?: SoundCloudApi }
+			).SC
+			if (api?.Widget) resolve(api)
+		}
+
+		script.addEventListener('load', resolveIfReady, { once: true })
+		script.addEventListener(
+			'error',
+			() => reject(new Error('Unable to load SoundCloud Widget API.')),
+			{ once: true },
+		)
+
+		if (!existingScript) {
+			script.async = true
+			script.src = SOUNDCLOUD_API_SRC
+			document.head.append(script)
+		}
+
+		resolveIfReady()
+	})
+
+	return soundCloudApiPromise
+}
+
 export const trackFromElement = (element: Element): JuketteTrack | null => {
 	if (element.localName !== 'jukette-track') return null
 
@@ -126,6 +199,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private midiGain: GainNode | null = null
 	private midiSequence: MidiSequence | null = null
 	private midiSources: OscillatorNode[] = []
+	private soundCloudWidget: SoundCloudWidget | null = null
+	private soundCloudCurrentSrc = ''
+	private soundCloudEventsBound = false
+	private soundCloudReady = false
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
 
@@ -284,10 +361,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 					inline-size: 100%;
 				}
 
-				:host([data-kind="soundcloud"]) .soundcloud {
-					display: block;
-				}
-
 				audio {
 					display: none;
 				}
@@ -418,6 +491,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.playing = true
 		} else if (type === 'midi') {
 			await this.playMidi()
+		} else if (type === 'soundcloud') {
+			await this.playSoundCloud()
 		} else {
 			this.playing = true
 		}
@@ -432,6 +507,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 			inferTrackType(this.currentTrack ?? { src: '' }) === 'midi'
 		) {
 			this.pauseMidi()
+		} else if (
+			inferTrackType(this.currentTrack ?? { src: '' }) === 'soundcloud'
+		) {
+			this.soundCloudWidget?.pause()
 		}
 
 		this.playing = false
@@ -476,6 +555,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 		} else if (inferTrackType(track) === 'midi') {
 			this.midiPausedAt = Math.max(0, seconds)
 			if (this.playing) this.playMidi()
+		} else if (inferTrackType(track) === 'soundcloud') {
+			this.soundCloudWidget?.seekTo(Math.max(0, seconds) * 1000)
 		}
 
 		this.syncProgress(seconds, this.duration)
@@ -550,6 +631,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.audio.pause()
 		this.audio.removeAttribute('src')
 		this.iframe.removeAttribute('src')
+		this.soundCloudWidget?.pause()
+		this.soundCloudWidget = null
+		this.soundCloudCurrentSrc = ''
+		this.soundCloudEventsBound = false
+		this.soundCloudReady = false
 		this.duration = 0
 		this.midiSequence = null
 		this.midiPausedAt = 0
@@ -580,10 +666,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.audio.src = track.src
 			this.audio.volume = Number(this.volumeInput.value)
 		} else if (type === 'soundcloud') {
-			const url = new URL('https://w.soundcloud.com/player/')
-			url.searchParams.set('url', track.src)
-			url.searchParams.set('auto_play', 'false')
-			this.iframe.src = url.toString()
+			this.loadSoundCloudTrack(track)
 		} else {
 			this.duration = 180
 			this.syncProgress(0, this.duration)
@@ -622,6 +705,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.audio.volume = Number(this.volumeInput.value)
 		if (this.midiGain)
 			this.midiGain.gain.value = Number(this.volumeInput.value)
+		this.soundCloudWidget?.setVolume(Number(this.volumeInput.value) * 100)
 	}
 
 	private seekFromInput(): void {
@@ -724,6 +808,81 @@ export class JukettePlayerElement extends HTMLElementBase {
 			() => this.next(),
 			Math.max(0, this.duration - startOffset) * 1000,
 		)
+	}
+
+	private async playSoundCloud(): Promise<void> {
+		const track = this.currentTrack
+		if (!track) return
+
+		const widget = await this.getSoundCloudWidget()
+		widget.setVolume(Number(this.volumeInput.value) * 100)
+
+		if (this.soundCloudReady && this.soundCloudCurrentSrc === track.src) {
+			widget.play()
+			this.playing = true
+			return
+		}
+
+		this.playButton.disabled = true
+		await new Promise<void>((resolve) => {
+			widget.load(track.src, {
+				auto_play: false,
+				callback: () => {
+					this.soundCloudReady = true
+					resolve()
+				},
+			})
+		})
+		this.soundCloudCurrentSrc = track.src
+		this.playButton.disabled = false
+		widget.play()
+		this.playing = true
+	}
+
+	private loadSoundCloudTrack(track: JuketteTrack): void {
+		const url = new URL('https://w.soundcloud.com/player/')
+		url.searchParams.set('url', track.src)
+		url.searchParams.set('auto_play', 'false')
+		url.searchParams.set('visual', 'false')
+		this.iframe.src = url.toString()
+		this.soundCloudCurrentSrc = track.src
+		void this.getSoundCloudWidget()
+	}
+
+	private async getSoundCloudWidget(): Promise<SoundCloudWidget> {
+		if (this.soundCloudWidget) return this.soundCloudWidget
+
+		const api = await getSoundCloudApi()
+		const widget = api.Widget(this.iframe)
+		this.soundCloudWidget = widget
+		this.bindSoundCloudWidgetEvents(api, widget)
+		widget.bind(api.Widget.Events.READY, () => {
+			this.soundCloudReady = true
+			widget.setVolume(Number(this.volumeInput.value) * 100)
+			widget.getDuration((duration) => {
+				this.duration = duration / 1000
+				this.syncProgress(0, this.duration)
+			})
+		})
+		return widget
+	}
+
+	private bindSoundCloudWidgetEvents(
+		api: SoundCloudApi,
+		widget: SoundCloudWidget,
+	): void {
+		if (this.soundCloudEventsBound) return
+		this.soundCloudEventsBound = true
+
+		widget.bind(api.Widget.Events.PLAY, () => {
+			this.playing = true
+			this.syncPlayingState()
+		})
+		widget.bind(api.Widget.Events.PAUSE, () => {
+			this.playing = false
+			this.syncPlayingState()
+		})
+		widget.bind(api.Widget.Events.FINISH, () => this.next())
 	}
 
 	private pauseMidi(): void {
