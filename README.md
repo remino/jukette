@@ -2,7 +2,7 @@
 
 A white-label jukebox custom element exposed as `<jukette-player>`.
 
-Jukette v0.1.0
+Jukette v0.2.0
 
 By Rémino Rem  
 <https://remino.net/>
@@ -51,14 +51,14 @@ Mirrors:
 Use a pinned version in production:
 
 ```html
-<script src="https://unpkg.com/jukette@0.1.0"></script>
+<script src="https://unpkg.com/jukette@0.2.0"></script>
 ```
 
 If you want the API instead of auto-registration, import the ES module directly:
 
 ```html
 <script type="module">
-	import { defineJuketteElement } from 'https://unpkg.com/jukette@0.1.0/dist/jukette.mjs'
+	import { defineJuketteElement } from 'https://unpkg.com/jukette@0.2.0/dist/jukette.mjs'
 
 	defineJuketteElement()
 </script>
