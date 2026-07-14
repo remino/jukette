@@ -1,5 +1,16 @@
 type JuketteTrackKind = 'audio' | 'soundcloud' | 'midi'
 export type JuketteMidiOscillator = OscillatorType | 'auto'
+export type JuketteEventName =
+	| 'jukette:ended'
+	| 'jukette:next'
+	| 'jukette:pause'
+	| 'jukette:play'
+	| 'jukette:playlisttoggle'
+	| 'jukette:previous'
+	| 'jukette:restart'
+	| 'jukette:seek'
+	| 'jukette:trackchange'
+	| 'jukette:volumechange'
 
 export interface JuketteTrack {
 	title?: string
@@ -12,6 +23,22 @@ export interface JuketteTrack {
 export interface AudioFileMetadata {
 	artist?: string
 	title?: string
+}
+
+export interface JuketteEventDetail {
+	currentTime: number
+	direction?: 'next' | 'previous'
+	duration: number
+	fromIndex?: number
+	index: number
+	open?: boolean
+	playing: boolean
+	playlistOpen: boolean
+	toIndex?: number
+	track: JuketteTrack | null
+	tracks: JuketteTrack[]
+	type?: JuketteTrackKind
+	volume: number
 }
 
 interface MidiNote {
@@ -98,6 +125,14 @@ export const inferTrackType = (track: Pick<JuketteTrack, 'src' | 'type'>) => {
 	if (/\.(?:mid|midi)(?:[?#].*)?$/.test(source)) return 'midi'
 	return 'audio'
 }
+
+export const createJuketteEventDetail = (
+	detail: Omit<JuketteEventDetail, 'type'>,
+): JuketteEventDetail => ({
+	...detail,
+	tracks: [...detail.tracks],
+	type: detail.track ? inferTrackType(detail.track) : undefined,
+})
 
 export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 	if (typeof value === 'string') {
@@ -226,6 +261,7 @@ class SoundCloudAdapter {
 	private loadedDuration = 0
 	private loadedSrc = ''
 	private resolvePlay: ((played: boolean) => void) | null = null
+	private silentPause = false
 	private widget: SoundCloudWidget | null = null
 
 	constructor(
@@ -289,7 +325,8 @@ class SoundCloudAdapter {
 		return true
 	}
 
-	pause(): void {
+	pause(options: { silent?: boolean } = {}): void {
+		if (options.silent) this.silentPause = true
 		this.resolvePlay?.(false)
 		this.resolvePlay = null
 		this.widget?.pause()
@@ -299,6 +336,7 @@ class SoundCloudAdapter {
 		this.currentIsStale = isStale
 		if (!this.widget || isStale()) return false
 
+		this.silentPause = false
 		return new Promise<boolean>((resolve) => {
 			let settled = false
 			const timeout = window.setTimeout(
@@ -368,6 +406,7 @@ class SoundCloudAdapter {
 
 		widget.bind(api.Widget.Events.PLAY, () => {
 			if (this.isStale() || widget !== this.widget) return
+			this.silentPause = false
 			this.resolvePlay?.(true)
 			this.callbacks.onPlay()
 		})
@@ -392,6 +431,10 @@ class SoundCloudAdapter {
 		})
 		widget.bind(api.Widget.Events.PAUSE, () => {
 			if (this.isStale() || widget !== this.widget) return
+			if (this.silentPause) {
+				this.silentPause = false
+				return
+			}
 			this.callbacks.onPause()
 		})
 		widget.bind(api.Widget.Events.FINISH, () => {
@@ -468,6 +511,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private metadataPreloadId = 0
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
+	private loadedTrackKey = ''
 
 	constructor() {
 		super()
@@ -784,16 +828,19 @@ export class JukettePlayerElement extends HTMLElementBase {
 				this.setTrackDuration(this.currentTrack, duration)
 				this.syncProgress(this.soundCloudPosition, this.duration)
 			},
-			onFinish: () => this.next(),
+			onFinish: () => this.finishTrack(),
 			onPause: () => {
+				const wasPlaying = this.playing || this.desiredPlaying
 				this.desiredPlaying = false
 				this.playing = false
 				this.syncPlayingState()
+				if (wasPlaying) this.emitJuketteEvent('jukette:pause')
 			},
 			onPlay: () => {
 				this.desiredPlaying = true
 				this.playing = true
 				this.syncPlayingState()
+				this.emitJuketteEvent('jukette:play')
 			},
 			onPositionRequestComplete: () => {
 				this.soundCloudPositionRequested = false
@@ -822,7 +869,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.syncFromMedia(),
 		)
 		this.audio.addEventListener('timeupdate', () => this.syncFromMedia())
-		this.audio.addEventListener('ended', () => this.next())
+		this.audio.addEventListener('ended', () => this.finishTrack())
 	}
 
 	connectedCallback(): void {
@@ -933,9 +980,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		this.syncPlayingState()
+		if (type !== 'soundcloud') this.emitJuketteEvent('jukette:play')
 	}
 
 	pause(): void {
+		const wasPlaying = this.playing || this.desiredPlaying
 		this.setStatus()
 		this.desiredPlaying = false
 		if (inferTrackType(this.currentTrack ?? { src: '' }) === 'audio') {
@@ -952,6 +1001,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.playing = false
 		this.syncPlayingState()
+		if (wasPlaying) this.emitJuketteEvent('jukette:pause')
 	}
 
 	toggle(): void {
@@ -965,10 +1015,16 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	next(): void {
 		if (this.tracks.length === 0) return
+		const fromIndex = this.index
 		const shouldPlay = this.desiredPlaying || this.playing
 		this.index = (this.index + 1) % this.tracks.length
 		this.restartOnNextPlay = true
 		this.loadTrack()
+		this.emitJuketteEvent('jukette:next', {
+			direction: 'next',
+			fromIndex,
+			toIndex: this.index,
+		})
 		if (shouldPlay) void this.play()
 	}
 
@@ -978,14 +1034,21 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (this.currentTime > 3) {
 			this.restartOnNextPlay = true
 			this.seek(0)
+			this.emitJuketteEvent('jukette:restart')
 			if (this.desiredPlaying || this.playing) void this.play()
 			return
 		}
 
+		const fromIndex = this.index
 		const shouldPlay = this.desiredPlaying || this.playing
 		this.index = (this.index - 1 + this.tracks.length) % this.tracks.length
 		this.restartOnNextPlay = true
 		this.loadTrack()
+		this.emitJuketteEvent('jukette:previous', {
+			direction: 'previous',
+			fromIndex,
+			toIndex: this.index,
+		})
 		if (shouldPlay) void this.play()
 	}
 
@@ -1005,6 +1068,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		this.syncProgress(seconds, this.duration)
+		this.emitJuketteEvent('jukette:seek')
 		window.setTimeout(() => {
 			if (this.playing || !this.desiredPlaying) this.setStatus()
 		}, 500)
@@ -1023,6 +1087,37 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (inferTrackType(track) === 'soundcloud')
 			return this.soundCloudPosition
 		return 0
+	}
+
+	private getJuketteEventDetail(
+		detail: Partial<JuketteEventDetail> = {},
+	): JuketteEventDetail {
+		return createJuketteEventDetail({
+			currentTime: this.currentTime,
+			duration: this.duration,
+			index: this.index,
+			playing: this.playing,
+			playlistOpen: this.hasAttribute('playlist-open'),
+			track: this.currentTrack,
+			tracks: this.tracks,
+			volume: Number(this.volumeInput.value),
+			...detail,
+		})
+	}
+
+	private emitJuketteEvent(
+		name: JuketteEventName,
+		detail: Partial<JuketteEventDetail> = {},
+	): void {
+		if (typeof CustomEvent === 'undefined') return
+
+		this.dispatchEvent(
+			new CustomEvent(name, {
+				bubbles: true,
+				composed: true,
+				detail: this.getJuketteEventDetail(detail),
+			}),
+		)
 	}
 
 	private query<T extends Element>(root: ParentNode, selector: string): T {
@@ -1079,10 +1174,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private loadTrack(): void {
 		this.trackLoadId += 1
+		const previousTrackKey = this.loadedTrackKey
 		this.stopMidi()
 		this.audio.pause()
 		this.audio.removeAttribute('src')
-		this.soundCloudAdapter?.pause()
+		this.soundCloudAdapter?.pause({ silent: true })
 		this.soundCloudPosition = 0
 		this.soundCloudPositionRequested = false
 		this.playing = false
@@ -1093,14 +1189,18 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		const track = this.currentTrack
 		if (!track) {
+			this.loadedTrackKey = ''
 			this.titleElement.textContent = 'No track'
 			this.metaElement.textContent = ''
 			this.statusElement.textContent = ''
 			this.playButton.disabled = true
+			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
 			return
 		}
 
 		const type = inferTrackType(track)
+		const trackKey = this.getTrackKey(track)
+		this.loadedTrackKey = trackKey
 		this.duration = this.getTrackDuration(track) ?? 0
 		this.dataset.kind = type
 		this.playButton.disabled = false
@@ -1127,6 +1227,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.renderPlaylist()
 		this.syncPlayingState()
+		if (trackKey !== previousTrackKey) {
+			this.emitJuketteEvent('jukette:trackchange')
+		}
 	}
 
 	private renderPlaylist(): void {
@@ -1409,6 +1512,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const open = !this.hasAttribute('playlist-open')
 		this.toggleAttribute('playlist-open', open)
 		this.syncPlaylistButton()
+		this.emitJuketteEvent('jukette:playlisttoggle', { open })
 	}
 
 	private syncPlaylistButton(): void {
@@ -1423,6 +1527,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (this.midiGain)
 			this.midiGain.gain.value = Number(this.volumeInput.value)
 		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value))
+		this.emitJuketteEvent('jukette:volumechange')
 	}
 
 	private seekFromInput(): void {
@@ -1486,6 +1591,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private setStatus(message = ''): void {
 		this.statusElement.textContent = message
+	}
+
+	private finishTrack(): void {
+		this.emitJuketteEvent('jukette:ended')
+		this.next()
 	}
 
 	private async playMidi(trackLoadId = this.trackLoadId): Promise<void> {
@@ -1556,7 +1666,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			})
 
 		this.midiTimer = window.setTimeout(
-			() => this.next(),
+			() => this.finishTrack(),
 			Math.max(0, this.duration - startOffset) * 1000,
 		)
 	}

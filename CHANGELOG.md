@@ -11,6 +11,9 @@
 
 - Repo
     - Add Husky, lint-staged, release-it, and changelog release tooling.
+- Library
+    - Add `jukette:*` custom events for playback, navigation, progress, volume,
+      playlist toggling, and track changes.
 - Site
     - Add an updates page rendered from this changelog.
 

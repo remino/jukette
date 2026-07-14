@@ -244,6 +244,25 @@ oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
 `triangle`. `auto` is the default and maps MIDI program changes to a simple
 preview timbre; invalid values fall back to `auto`.
 
+Jukette dispatches bubbling composed custom events from the `<jukette-player>`
+host:
+
+- `jukette:play`
+- `jukette:pause`
+- `jukette:next`
+- `jukette:previous`
+- `jukette:restart`
+- `jukette:seek`
+- `jukette:ended`
+- `jukette:trackchange`
+- `jukette:volumechange`
+- `jukette:playlisttoggle`
+
+Each event includes `event.detail` with the current `track`, `tracks`, `index`,
+`type`, `currentTime`, `duration`, `volume`, `playing`, and `playlistOpen`.
+Navigation events also include `fromIndex`, `toIndex`, and `direction`; playlist
+toggle events include `open`.
+
 [Back to top](#)
 
 ---

@@ -1,4 +1,5 @@
 import {
+	createJuketteEventDetail,
 	inferTrackType,
 	JukettePlayerElement,
 	midiProgramToOscillator,
@@ -44,6 +45,34 @@ describe('jukette', () => {
 		expect(parsePlaylist('[{"title":"One","src":"/one.mp3"}]')).toEqual([
 			{ src: '/one.mp3', title: 'One' },
 		])
+	})
+
+	it('creates event details with inferred track type', () => {
+		const track = { src: '/track.mid' }
+		const tracks = [track]
+		const detail = createJuketteEventDetail({
+			currentTime: 2,
+			duration: 8,
+			index: 0,
+			playing: true,
+			playlistOpen: false,
+			track,
+			tracks,
+			volume: 0.5,
+		})
+
+		expect(detail).toEqual({
+			currentTime: 2,
+			duration: 8,
+			index: 0,
+			playing: true,
+			playlistOpen: false,
+			track,
+			tracks: [track],
+			type: 'midi',
+			volume: 0.5,
+		})
+		expect(detail.tracks).not.toBe(tracks)
 	})
 
 	it('parses jukette-track elements', () => {
