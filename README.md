@@ -25,6 +25,7 @@ By Rémino Rem
 - [API](#api)
 - [Styling](#styling)
 - [Development](#development)
+- [Release](#release)
 - [Contributing](#contributing)
 - [Licence](#licence)
 
@@ -272,6 +273,33 @@ npm run build
 
 The library source lives in `src/lib`. The documentation site is built with
 Astro and lives in the rest of `src`.
+
+[Back to top](#)
+
+---
+
+## Release
+
+Release automation is available through `release-it`. A release runs checks,
+builds, publishes the npm package, pushes the release commit and tag, creates a
+GitHub release, uploads `dist/*`, then publishes docs:
+
+```sh
+npm run release:dry-run
+npm run release
+```
+
+If docs publishing fails after the package release, rerun it directly:
+
+```sh
+npm run docs:publish
+```
+
+Before running a real release, make sure `RELEASE_IT_GITHUB_TOKEN` is set and
+`npm whoami --registry https://registry.npmjs.org/` passes. Release-it prompts
+for an npm OTP when npm requires one.
+
+[Back to top](#)
 
 ---
 
