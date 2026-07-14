@@ -1,11 +1,14 @@
 import {
 	inferTrackType,
 	JukettePlayerElement,
+	midiProgramToOscillator,
 	normalizeTrack,
+	normalizeMidiOscillator,
 	parseAudioFileMetadata,
 	parseMidi,
 	parsePlaylist,
 	parseSoundCloudOEmbedMetadata,
+	resolveMidiOscillatorType,
 	trackFromElement,
 } from '../../src/lib/jukette'
 
@@ -54,6 +57,9 @@ describe('jukette', () => {
 	it('observes preload metadata option changes', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'preload-metadata',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'midi-oscillator',
 		)
 	})
 
@@ -131,6 +137,51 @@ describe('jukette', () => {
 		expect(parseMidi(bytes.buffer).metadata).toEqual({
 			title: 'MIDI title',
 		})
+	})
+
+	it('parses MIDI program changes', () => {
+		const events = new Uint8Array([
+			0x00, 0xc0, 0x18, 0x00, 0x90, 0x3c, 0x40, 0x60, 0x80, 0x3c, 0x00,
+			0x00, 0xff, 0x2f, 0x00,
+		])
+		const bytes = new Uint8Array([
+			0x4d,
+			0x54,
+			0x68,
+			0x64,
+			0x00,
+			0x00,
+			0x00,
+			0x06,
+			0x00,
+			0x00,
+			0x00,
+			0x01,
+			0x00,
+			0x60,
+			0x4d,
+			0x54,
+			0x72,
+			0x6b,
+			0x00,
+			0x00,
+			0x00,
+			events.length,
+			...events,
+		])
+
+		expect(parseMidi(bytes.buffer).metadata).toEqual({ program: 24 })
+	})
+
+	it('resolves MIDI oscillator options', () => {
+		expect(normalizeMidiOscillator('sine')).toBe('sine')
+		expect(normalizeMidiOscillator('nope')).toBe('auto')
+		expect(midiProgramToOscillator(20)).toBe('sine')
+		expect(midiProgramToOscillator(34)).toBe('square')
+		expect(midiProgramToOscillator(61)).toBe('sawtooth')
+		expect(midiProgramToOscillator()).toBe('triangle')
+		expect(resolveMidiOscillatorType('sawtooth', 20)).toBe('sawtooth')
+		expect(resolveMidiOscillatorType('auto', 20)).toBe('sine')
 	})
 
 	it('parses ID3 title and artist tags', () => {

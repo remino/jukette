@@ -1,4 +1,5 @@
 type JuketteTrackKind = 'audio' | 'soundcloud' | 'midi'
+export type JuketteMidiOscillator = OscillatorType | 'auto'
 
 export interface JuketteTrack {
 	title?: string
@@ -22,6 +23,7 @@ interface MidiNote {
 interface MidiSequence {
 	duration: number
 	metadata?: {
+		program?: number
 		title?: string
 	}
 	notes: MidiNote[]
@@ -61,6 +63,7 @@ const ATTR_SRC = 'src'
 const ATTR_PLAYLIST = 'playlist'
 const ATTR_PRELOAD_METADATA = 'preload-metadata'
 const ATTR_PREFER_MEDIA_METADATA = 'prefer-media-metadata'
+const ATTR_MIDI_OSCILLATOR = 'midi-oscillator'
 const ATTR_TRACK_INDEX = 'track-index'
 const ATTR_TITLE = 'title'
 const ATTR_ARTIST = 'artist'
@@ -360,6 +363,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
 	]
 
@@ -759,6 +763,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			subtree: true,
 		})
 		this.syncTracks()
+		this.syncPlaylistButton()
 		this.loadTrack()
 	}
 
@@ -810,6 +815,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	set preferMediaMetadata(prefer: boolean) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer)
+	}
+
+	get midiOscillator(): JuketteMidiOscillator {
+		return normalizeMidiOscillator(this.getAttribute(ATTR_MIDI_OSCILLATOR))
+	}
+
+	set midiOscillator(oscillator: JuketteMidiOscillator) {
+		this.setAttribute(ATTR_MIDI_OSCILLATOR, oscillator)
 	}
 
 	set playlist(tracks: JuketteTrack[]) {
@@ -1309,7 +1322,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private togglePlaylist(): void {
 		const open = !this.hasAttribute('playlist-open')
 		this.toggleAttribute('playlist-open', open)
-		this.playlistButton.setAttribute('aria-pressed', String(open))
+		this.syncPlaylistButton()
+	}
+
+	private syncPlaylistButton(): void {
+		this.playlistButton.setAttribute(
+			'aria-pressed',
+			String(this.hasAttribute('playlist-open')),
+		)
 	}
 
 	private syncVolume(): void {
@@ -1410,6 +1430,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		const startOffset = this.midiPausedAt
 		const startTime = this.midiAudio.currentTime + 0.03
+		const oscillatorType = resolveMidiOscillatorType(
+			this.midiOscillator,
+			this.midiSequence.metadata?.program,
+		)
 		this.midiSources = this.midiSequence.notes
 			.filter((note) => note.start + note.duration > startOffset)
 			.map((note) => {
@@ -1424,7 +1448,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				const noteStart = startTime + relativeStart
 				const noteEnd = noteStart + clippedDuration
 
-				oscillator.type = 'triangle'
+				oscillator.type = oscillatorType
 				oscillator.frequency.value = note.frequency
 				envelope.gain.setValueAtTime(0, noteStart)
 				envelope.gain.linearRampToValueAtTime(
@@ -1768,6 +1792,37 @@ const midiNoteFrequency = (note: number): number =>
 const decodeMidiText = (bytes: Uint8Array): string =>
 	cleanMetadataText(decodeTextBytes(bytes, 'utf-8'))
 
+export const normalizeMidiOscillator = (
+	value: string | null,
+): JuketteMidiOscillator => {
+	if (
+		value === 'sine' ||
+		value === 'square' ||
+		value === 'sawtooth' ||
+		value === 'triangle'
+	) {
+		return value
+	}
+
+	return 'auto'
+}
+
+export const midiProgramToOscillator = (program?: number): OscillatorType => {
+	if (program === undefined) return 'triangle'
+	if (program >= 16 && program <= 23) return 'sine'
+	if (program >= 32 && program <= 39) return 'square'
+	if (program >= 80 && program <= 87) return 'square'
+	if (program >= 56 && program <= 87) return 'sawtooth'
+
+	return 'triangle'
+}
+
+export const resolveMidiOscillatorType = (
+	oscillator: JuketteMidiOscillator,
+	program?: number,
+): OscillatorType =>
+	oscillator === 'auto' ? midiProgramToOscillator(program) : oscillator
+
 export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 	const reader = new MidiReader(new Uint8Array(buffer))
 	if (reader.readText(4) !== 'MThd') throw new Error('Invalid MIDI header.')
@@ -1783,6 +1838,7 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 	const ticksPerBeat = division
 	const notes: MidiNote[] = []
 	const metadata: AudioFileMetadata = {}
+	let program: number | undefined
 	let tempo = 500000
 	let duration = 0
 
@@ -1834,7 +1890,13 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 			}
 
 			const command = status & 0xf0
-			if (command === 0xc0 || command === 0xd0) {
+			if (command === 0xc0) {
+				const nextProgram = trackReader.readU8()
+				if (program === undefined) program = nextProgram
+				continue
+			}
+
+			if (command === 0xd0) {
 				trackReader.readU8()
 				continue
 			}
@@ -1864,9 +1926,16 @@ export const parseMidi = (buffer: ArrayBuffer): MidiSequence => {
 		}
 	}
 
+	const sequenceMetadata: MidiSequence['metadata'] = {}
+	if (metadata.title) sequenceMetadata.title = metadata.title
+	if (program !== undefined) sequenceMetadata.program = program
+
 	return {
 		duration: Math.max(duration, 1),
-		metadata: metadata.title ? { title: metadata.title } : undefined,
+		metadata:
+			sequenceMetadata.title || sequenceMetadata.program !== undefined
+				? sequenceMetadata
+				: undefined,
 		notes,
 	}
 }

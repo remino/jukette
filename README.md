@@ -214,6 +214,7 @@ player.seek(30)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 player.preloadMetadata = true
 player.preferMediaMetadata = true
+player.midiOscillator = 'sine'
 ```
 
 Use the `preload-metadata` attribute or `preloadMetadata` property to discover
@@ -227,6 +228,11 @@ ID3 `TIT2` title and `TPE1` artist tags, plus MIDI track/sequence names as
 titles. SoundCloud display metadata is loaded from oEmbed when available. MIDI
 artists stay authored-only. Authored values stay in place when tags are missing,
 unreadable, or unsupported.
+
+Use `midi-oscillator` or `midiOscillator` to choose the built-in MIDI preview
+oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
+`triangle`. `auto` is the default and maps MIDI program changes to a simple
+preview timbre; invalid values fall back to `auto`.
 
 [Back to top](#)
 
