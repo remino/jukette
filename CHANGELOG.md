@@ -14,6 +14,8 @@
 - Library
     - Add `jukette:*` custom events for playback, navigation, progress, volume,
       playlist toggling, and track changes.
+    - Add a public `currentTime` getter/setter for reading and seeking the
+      playback position.
 - Site
     - Add an updates page rendered from this changelog.
 

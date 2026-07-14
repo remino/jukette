@@ -215,6 +215,8 @@ player.toggle()
 player.next()
 player.previous()
 player.seek(30)
+player.currentTime = 30
+console.log(player.currentTime)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 player.preloadMetadata = true
 player.preferMediaMetadata = true
@@ -225,6 +227,9 @@ Use the `preload-metadata` attribute or `preloadMetadata` property to discover
 playlist durations before tracks are played. Jukette preloads metadata for
 browser-native audio and local MIDI tracks. SoundCloud durations are reported
 when the SoundCloud widget has loaded that track.
+
+Use `currentTime` to read the current playback position in seconds. Assigning
+to `currentTime` seeks, matching native media element behavior.
 
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3

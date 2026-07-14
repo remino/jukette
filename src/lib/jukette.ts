@@ -920,6 +920,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 		return this.tracks[this.index] ?? null
 	}
 
+	get currentTime(): number {
+		return this.getCurrentTime()
+	}
+
+	set currentTime(seconds: number) {
+		this.seek(seconds)
+	}
+
 	get playlist(): JuketteTrack[] {
 		return [...this.tracks]
 	}
@@ -1031,7 +1039,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	previous(): void {
 		if (this.tracks.length === 0) return
 
-		if (this.currentTime > 3) {
+		if (this.getCurrentTime() > 3) {
 			this.restartOnNextPlay = true
 			this.seek(0)
 			this.emitJuketteEvent('jukette:restart')
@@ -1074,7 +1082,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}, 500)
 	}
 
-	private get currentTime(): number {
+	private getCurrentTime(): number {
 		const track = this.currentTrack
 		if (!track) return 0
 		if (inferTrackType(track) === 'audio') return this.audio.currentTime
@@ -1093,7 +1101,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		detail: Partial<JuketteEventDetail> = {},
 	): JuketteEventDetail {
 		return createJuketteEventDetail({
-			currentTime: this.currentTime,
+			currentTime: this.getCurrentTime(),
 			duration: this.duration,
 			index: this.index,
 			playing: this.playing,
@@ -1741,7 +1749,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				this.requestSoundCloudPosition()
 			}
 
-			this.syncProgress(this.currentTime, this.duration)
+			this.syncProgress(this.getCurrentTime(), this.duration)
 			this.progressFrame = requestAnimationFrame(tick)
 		}
 
@@ -1759,7 +1767,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		cancelAnimationFrame(this.progressFrame)
 		this.progressFrame = 0
-		this.syncProgress(this.currentTime, this.duration)
+		this.syncProgress(this.getCurrentTime(), this.duration)
 	}
 
 	private requestSoundCloudPosition(): void {
@@ -1778,7 +1786,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private pauseMidi(): void {
-		this.midiPausedAt = this.currentTime
+		this.midiPausedAt = this.getCurrentTime()
 		this.stopMidi()
 	}
 
