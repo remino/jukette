@@ -1,5 +1,5 @@
 node_modules
-deploy/public
+deploy/
 public/jukette/demo-tone.mp3
 public/jukette/demo-scale.mid
 .astro
