@@ -17,6 +17,21 @@ describe('jukette', () => {
 		expect(normalizeTrack('/track.mp3')).toEqual({ src: '/track.mp3' })
 	})
 
+	it('normalizes track metadata preferences', () => {
+		expect(
+			normalizeTrack({
+				preferMediaMetadata: true,
+				src: '/track.mp3',
+			}),
+		).toEqual({ preferMediaMetadata: true, src: '/track.mp3' })
+		expect(
+			normalizeTrack({
+				preferMediaMetadata: 'false',
+				src: '/track.mp3',
+			}),
+		).toEqual({ preferMediaMetadata: false, src: '/track.mp3' })
+	})
+
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
 		expect(inferTrackType({ src: '/track.mid' })).toBe('midi')
@@ -38,6 +53,7 @@ describe('jukette', () => {
 				return (
 					{
 						artist: 'Example',
+						'prefer-media-metadata': 'false',
 						src: '/one.mp3',
 						title: 'One',
 						type: 'audio',
@@ -48,6 +64,7 @@ describe('jukette', () => {
 
 		expect(trackFromElement(element)).toEqual({
 			artist: 'Example',
+			preferMediaMetadata: false,
 			src: '/one.mp3',
 			title: 'One',
 			type: 'audio',
@@ -60,6 +77,9 @@ describe('jukette', () => {
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'midi-oscillator',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'prefer-media-metadata',
 		)
 	})
 

@@ -4,6 +4,7 @@ export type JuketteMidiOscillator = OscillatorType | 'auto'
 export interface JuketteTrack {
 	title?: string
 	artist?: string
+	preferMediaMetadata?: boolean
 	src: string
 	type?: JuketteTrackKind
 }
@@ -76,6 +77,17 @@ let soundCloudApiPromise: Promise<SoundCloudApi> | null = null
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null
 
+const normalizeBooleanAttribute = (
+	value: string | null,
+): boolean | undefined => {
+	if (value === null) return undefined
+
+	const normalizedValue = value.trim().toLowerCase()
+	if (normalizedValue === '' || normalizedValue === 'true') return true
+	if (normalizedValue === 'false') return false
+	return undefined
+}
+
 export const inferTrackType = (track: Pick<JuketteTrack, 'src' | 'type'>) => {
 	if (track.type) return track.type
 
@@ -106,6 +118,16 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 	const track: JuketteTrack = { src }
 
 	if (typeof value.artist === 'string') track.artist = value.artist
+	if (typeof value.preferMediaMetadata === 'boolean') {
+		track.preferMediaMetadata = value.preferMediaMetadata
+	} else if (typeof value.preferMediaMetadata === 'string') {
+		const preferMediaMetadata = normalizeBooleanAttribute(
+			value.preferMediaMetadata,
+		)
+		if (preferMediaMetadata !== undefined) {
+			track.preferMediaMetadata = preferMediaMetadata
+		}
+	}
 	if (typeof value.title === 'string') track.title = value.title
 	if (type) track.type = type
 
@@ -177,6 +199,8 @@ export const trackFromElement = (element: Element): JuketteTrack | null => {
 
 	return normalizeTrack({
 		artist: element.getAttribute(ATTR_ARTIST) ?? undefined,
+		preferMediaMetadata:
+			element.getAttribute(ATTR_PREFER_MEDIA_METADATA) ?? undefined,
 		src: element.getAttribute(ATTR_SRC) ?? '',
 		title: element.getAttribute(ATTR_TITLE) ?? undefined,
 		type: element.getAttribute(ATTR_TYPE) ?? undefined,
@@ -757,7 +781,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	connectedCallback(): void {
 		this.trackObserver?.observe(this, {
-			attributeFilter: [ATTR_ARTIST, ATTR_SRC, ATTR_TITLE, ATTR_TYPE],
+			attributeFilter: [
+				ATTR_ARTIST,
+				ATTR_PREFER_MEDIA_METADATA,
+				ATTR_SRC,
+				ATTR_TITLE,
+				ATTR_TYPE,
+			],
 			attributes: true,
 			childList: true,
 			subtree: true,
@@ -1135,8 +1165,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 		return `${inferTrackType(track)}:${track.src}`
 	}
 
+	private trackPrefersMediaMetadata(track: JuketteTrack): boolean {
+		return track.preferMediaMetadata ?? this.preferMediaMetadata
+	}
+
 	private getTrackDisplay(track: JuketteTrack): Required<AudioFileMetadata> {
-		const metadata = this.preferMediaMetadata
+		const metadata = this.trackPrefersMediaMetadata(track)
 			? this.trackMetadata.get(this.getTrackKey(track))
 			: undefined
 
@@ -1186,24 +1220,28 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private preloadPlaylistMetadata(): void {
 		this.metadataPreloadId += 1
-		if (!this.preloadMetadata && !this.preferMediaMetadata) return
+		const hasMetadataPreference = this.tracks.some((track) =>
+			this.trackPrefersMediaMetadata(track),
+		)
+		if (!this.preloadMetadata && !hasMetadataPreference) return
 
 		const metadataPreloadId = this.metadataPreloadId
 		for (const track of this.tracks) {
 			const type = inferTrackType(track)
+			const preferMediaMetadata = this.trackPrefersMediaMetadata(track)
 			if (type === 'audio') {
 				if (this.preloadMetadata) {
 					this.preloadAudioMetadata(track, metadataPreloadId)
 				}
-				if (this.preferMediaMetadata) {
+				if (preferMediaMetadata) {
 					void this.preloadAudioFileMetadata(track, metadataPreloadId)
 				}
 			} else if (type === 'midi') {
-				if (this.preloadMetadata || this.preferMediaMetadata) {
+				if (this.preloadMetadata || preferMediaMetadata) {
 					void this.preloadMidiMetadata(track, metadataPreloadId)
 				}
 			} else if (type === 'soundcloud') {
-				if (this.preferMediaMetadata) {
+				if (preferMediaMetadata) {
 					void this.preloadSoundCloudMetadata(
 						track,
 						metadataPreloadId,
@@ -1245,7 +1283,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		track: JuketteTrack,
 		metadataPreloadId: number,
 	): Promise<void> {
-		if (!this.preferMediaMetadata) return
+		if (!this.trackPrefersMediaMetadata(track)) return
 		if (this.trackMetadata.has(this.getTrackKey(track))) return
 		if (typeof fetch === 'undefined') return
 
@@ -1276,7 +1314,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 				if (this.preloadMetadata) {
 					this.setTrackDuration(track, sequence.duration)
 				}
-				this.setMidiTrackMetadata(track, sequence)
+				if (this.trackPrefersMediaMetadata(track)) {
+					this.setMidiTrackMetadata(track, sequence)
+				}
 			}
 		} catch {
 			// Leave duration unknown when metadata cannot be preloaded.
@@ -1287,7 +1327,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		track: JuketteTrack,
 		metadataPreloadId: number,
 	): Promise<void> {
-		if (!this.preferMediaMetadata) return
+		if (!this.trackPrefersMediaMetadata(track)) return
 		if (this.trackMetadata.has(this.getTrackKey(track))) return
 		if (typeof fetch === 'undefined') return
 
@@ -1412,7 +1452,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 			if (trackLoadId !== this.trackLoadId) return
 			this.duration = this.midiSequence.duration
 			this.setTrackDuration(track, this.duration)
-			this.setMidiTrackMetadata(track, this.midiSequence)
+			if (this.trackPrefersMediaMetadata(track)) {
+				this.setMidiTrackMetadata(track, this.midiSequence)
+			}
 			this.syncProgress(this.midiPausedAt, this.duration)
 		}
 

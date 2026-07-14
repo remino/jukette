@@ -159,7 +159,8 @@ object.
 		"title": "Two",
 		"artist": "Example",
 		"src": "/audio/two.ogg",
-		"type": "audio"
+		"type": "audio",
+		"preferMediaMetadata": false
 	}
 ]
 ```
@@ -186,6 +187,8 @@ Track sources are resolved in this order:
 - `title`: optional display title.
 - `artist`: optional display artist.
 - `type`: optional `audio`, `midi`, or `soundcloud`.
+- `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
+  for the player's media metadata preference.
 
 If `type` is omitted, Jukette infers SoundCloud URLs and `.mid` / `.midi` files.
 Everything else is treated as browser-native audio.
@@ -228,6 +231,12 @@ ID3 `TIT2` title and `TPE1` artist tags, plus MIDI track/sequence names as
 titles. SoundCloud display metadata is loaded from oEmbed when available. MIDI
 artists stay authored-only. Authored values stay in place when tags are missing,
 unreadable, or unsupported.
+
+Direct `<jukette-track>` children and JavaScript track objects can override the
+player-level preference per track. Use `prefer-media-metadata` or
+`preferMediaMetadata: true` to force metadata display for that track, use
+`prefer-media-metadata="false"` or `preferMediaMetadata: false` to force
+authored display values, or omit it to inherit the player setting.
 
 Use `midi-oscillator` or `midiOscillator` to choose the built-in MIDI preview
 oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
