@@ -1,4 +1,4 @@
-/*! jukette v0.2.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! jukette v0.3.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 //#region src/lib/jukette.ts
 var ATTR_SRC = "src";
