@@ -217,7 +217,11 @@ player.previous()
 player.seek(30)
 player.currentTime = 30
 console.log(player.currentTime)
+console.log(player.currentTrack)
+console.log(player.currentTrackIndex)
+console.log(player.totalTracks)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
+player.playlistOpen = true
 player.preloadMetadata = true
 player.preferMediaMetadata = true
 player.midiOscillator = 'sine'
@@ -230,6 +234,9 @@ when the SoundCloud widget has loaded that track.
 
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.
+
+Use `currentTrack`, `currentTrackIndex`, and `totalTracks` to inspect playlist
+state. Use `playlistOpen` to read or set whether the playlist panel is expanded.
 
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3

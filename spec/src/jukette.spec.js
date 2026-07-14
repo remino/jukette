@@ -105,6 +105,9 @@ describe('jukette', () => {
 			'preload-metadata',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
+			'playlist-open',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
 			'midi-oscillator',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(

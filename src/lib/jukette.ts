@@ -89,6 +89,7 @@ interface SoundCloudApi {
 
 const ATTR_SRC = 'src'
 const ATTR_PLAYLIST = 'playlist'
+const ATTR_PLAYLIST_OPEN = 'playlist-open'
 const ATTR_PRELOAD_METADATA = 'preload-metadata'
 const ATTR_PREFER_MEDIA_METADATA = 'prefer-media-metadata'
 const ATTR_MIDI_OSCILLATOR = 'midi-oscillator'
@@ -467,6 +468,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
 		ATTR_SRC,
 		ATTR_PLAYLIST,
+		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
@@ -911,6 +913,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.preloadPlaylistMetadata()
 			return
 		}
+		if (name === ATTR_PLAYLIST_OPEN) {
+			const open = newValue !== null
+			this.syncPlaylistButton()
+			this.emitJuketteEvent('jukette:playlisttoggle', { open })
+			return
+		}
 
 		this.syncTracks()
 		this.loadTrack()
@@ -918,6 +926,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	get currentTrack(): JuketteTrack | null {
 		return this.tracks[this.index] ?? null
+	}
+
+	get currentTrackIndex(): number {
+		return this.index
 	}
 
 	get currentTime(): number {
@@ -930,6 +942,18 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	get playlist(): JuketteTrack[] {
 		return [...this.tracks]
+	}
+
+	get playlistOpen(): boolean {
+		return this.hasAttribute(ATTR_PLAYLIST_OPEN)
+	}
+
+	set playlistOpen(open: boolean) {
+		this.toggleAttribute(ATTR_PLAYLIST_OPEN, open)
+	}
+
+	get totalTracks(): number {
+		return this.tracks.length
 	}
 
 	get preloadMetadata(): boolean {
@@ -1105,7 +1129,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			duration: this.duration,
 			index: this.index,
 			playing: this.playing,
-			playlistOpen: this.hasAttribute('playlist-open'),
+			playlistOpen: this.playlistOpen,
 			track: this.currentTrack,
 			tracks: this.tracks,
 			volume: Number(this.volumeInput.value),
@@ -1517,16 +1541,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private togglePlaylist(): void {
-		const open = !this.hasAttribute('playlist-open')
-		this.toggleAttribute('playlist-open', open)
-		this.syncPlaylistButton()
-		this.emitJuketteEvent('jukette:playlisttoggle', { open })
+		this.playlistOpen = !this.playlistOpen
 	}
 
 	private syncPlaylistButton(): void {
 		this.playlistButton.setAttribute(
 			'aria-pressed',
-			String(this.hasAttribute('playlist-open')),
+			String(this.playlistOpen),
 		)
 	}
 

@@ -16,6 +16,8 @@
       playlist toggling, and track changes.
     - Add a public `currentTime` getter/setter for reading and seeking the
       playback position.
+    - Add `currentTrackIndex`, `totalTracks`, and `playlistOpen` public
+      properties.
 - Site
     - Add an updates page rendered from this changelog.
 
