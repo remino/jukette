@@ -282,11 +282,72 @@ toggle events include `open`.
 ## Styling
 
 Jukette keeps the default UI basic on purpose. It uses inherited text color and
-font, a single border, and native range controls.
+font, a single border, and native range controls. Style the host element first:
 
 ```css
 jukette-player {
+	color: #111;
+	font:
+		1rem/1.4 system-ui,
+		sans-serif;
 	max-inline-size: 36rem;
+	--jukette-control-size: 2.25rem;
+}
+```
+
+The host supports these stable styling inputs:
+
+- `color`: inherited by text, borders, buttons, and range accents.
+- `font`: inherited by labels, buttons, and playlist items.
+- `--jukette-control-size`: controls the square previous, play, next, and
+  playlist-toggle button size. Defaults to `2em`.
+- `inline-size`, `max-inline-size`, `margin`, and other normal layout
+  properties on `jukette-player`.
+
+Use host attributes for state-specific styling:
+
+```css
+jukette-player[playlist-open] {
+	border-color: currentColor;
+}
+
+jukette-player[data-kind='soundcloud'] {
+	color: #f50;
+}
+
+jukette-player[data-kind='midi'] {
+	color: #164e63;
+}
+```
+
+Range inputs use `accent-color: currentColor` inside the shadow DOM, so changing
+the host `color` changes the seek and volume accents in browsers that support
+native range accent styling.
+
+For deeper styling, Jukette exposes stable `::part()` hooks:
+
+- Layout: `player`, `track`, `progress`, `seek`, `time`, `controls`,
+  `playlist`.
+- Track display: `title`, `artist`, `status`.
+- Time display: `elapsed`, `remaining`, `total`.
+- Controls: `button`, `previous-button`, `play-button`, `next-button`,
+  `playlist-button`, `seek-input`, `volume`.
+- Playlist rows: `playlist-item`, `playlist-track`, `playlist-title`,
+  `playlist-artist`, `playlist-duration`.
+- SoundCloud iframe: `soundcloud`.
+
+```css
+jukette-player::part(player) {
+	border: 0;
+	padding: 0;
+}
+
+jukette-player::part(play-button) {
+	border-radius: 999px;
+}
+
+jukette-player::part(playlist-track) {
+	padding-block: 0.5rem;
 }
 ```
 

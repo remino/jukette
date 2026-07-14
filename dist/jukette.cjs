@@ -542,32 +542,32 @@ var JukettePlayerElement = class extends HTMLElementBase {
 				}
 			</style>
 
-			<div class="player">
-				<div class="track" aria-live="polite">
-					<div class="title"></div>
-					<div class="meta"></div>
+			<div class="player" part="player">
+				<div class="track" part="track" aria-live="polite">
+					<div class="title" part="title"></div>
+					<div class="meta" part="artist"></div>
 				</div>
-				<div class="progress">
-					<div class="status" role="status" aria-live="polite"></div>
-					<div class="seek">
-						<input class="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
-						<div class="time" aria-live="off">
-							<span class="elapsed">0:00</span>
-							<span class="remaining">-0:00</span>
-							<span class="total">0:00</span>
+				<div class="progress" part="progress">
+					<div class="status" part="status" role="status" aria-live="polite"></div>
+					<div class="seek" part="seek">
+						<input class="seek-input" part="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+						<div class="time" part="time" aria-live="off">
+							<span class="elapsed" part="elapsed">0:00</span>
+							<span class="remaining" part="remaining">-0:00</span>
+							<span class="total" part="total">0:00</span>
 						</div>
 					</div>
 				</div>
-				<div class="controls">
-					<button class="previous" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
-					<button class="play" type="button" aria-label="Play">▶</button>
-					<button class="next" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
-					<input class="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
-					<button class="playlist-toggle" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
+				<div class="controls" part="controls">
+					<button class="previous" part="button previous-button" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
+					<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
+					<button class="next" part="button next-button" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
+					<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+					<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 				</div>
-				<iframe class="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
+				<iframe class="soundcloud" part="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
 				<audio preload="metadata"></audio>
-				<ol class="playlist"></ol>
+				<ol class="playlist" part="playlist"></ol>
 			</div>
 		`;
 		this.audio = this.query(shadowRoot, "audio");
@@ -928,16 +928,21 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			const durationValue = this.getTrackDuration(track);
 			const durationText = durationValue === void 0 ? "--:--" : this.formatTime(durationValue);
 			button.type = "button";
+			button.part.add("playlist-track");
 			button.setAttribute("aria-label", [
 				display.title,
 				display.artist,
 				durationValue === void 0 ? "unknown duration" : durationText
 			].filter(Boolean).join(", "));
+			item.part.add("playlist-item");
 			title.className = "playlist-title";
+			title.part.add("playlist-title");
 			title.textContent = display.title;
 			artist.className = "playlist-artist";
+			artist.part.add("playlist-artist");
 			artist.textContent = display.artist;
 			duration.className = "playlist-duration";
+			duration.part.add("playlist-duration");
 			duration.textContent = durationText;
 			button.append(title, artist, duration);
 			if (index === this.index) button.setAttribute("aria-current", "true");

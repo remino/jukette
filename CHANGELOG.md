@@ -10,6 +10,11 @@
 
 ## HEAD
 
+- Library
+    - Add stable `::part()` hooks for styling the shadow UI.
+- Site
+    - Document the supported Jukette styling surface.
+
 ## v0.2.0
 
 - Repo
