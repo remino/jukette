@@ -465,6 +465,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 					min-inline-size: 0;
 				}
 
+				.progress {
+					display: grid;
+					gap: 0;
+				}
+
 				.title,
 				.meta {
 					overflow: hidden;
@@ -680,12 +685,15 @@ export class JukettePlayerElement extends HTMLElementBase {
 					<div class="title"></div>
 					<div class="meta"></div>
 				</div>
-				<div class="seek">
-					<input class="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
-					<div class="time" aria-live="off">
-						<span class="elapsed">0:00</span>
-						<span class="remaining">-0:00</span>
-						<span class="total">0:00</span>
+				<div class="progress">
+					<div class="status" role="status" aria-live="polite"></div>
+					<div class="seek">
+						<input class="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+						<div class="time" aria-live="off">
+							<span class="elapsed">0:00</span>
+							<span class="remaining">-0:00</span>
+							<span class="total">0:00</span>
+						</div>
 					</div>
 				</div>
 				<div class="controls">
@@ -695,7 +703,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 					<input class="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 					<button class="playlist-toggle" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 				</div>
-				<div class="status" role="status" aria-live="polite"></div>
 				<iframe class="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
 				<audio preload="metadata"></audio>
 				<ol class="playlist"></ol>
