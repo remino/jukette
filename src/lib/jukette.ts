@@ -70,6 +70,8 @@ const ATTR_TITLE = 'title'
 const ATTR_ARTIST = 'artist'
 const ATTR_TYPE = 'type'
 const SOUNDCLOUD_API_SRC = 'https://w.soundcloud.com/player/api.js'
+const SOUNDCLOUD_LOAD_TIMEOUT = 10000
+const SOUNDCLOUD_PLAY_TIMEOUT = 5000
 const HTMLElementBase =
 	globalThis.HTMLElement ?? (class {} as typeof HTMLElement)
 let soundCloudApiPromise: Promise<SoundCloudApi> | null = null
@@ -218,11 +220,12 @@ interface SoundCloudAdapterCallbacks {
 }
 
 class SoundCloudAdapter {
+	private currentIsStale: () => boolean = () => false
 	private eventsBound = false
+	private loadId = 0
 	private loadedDuration = 0
 	private loadedSrc = ''
-	private readyPromise: Promise<void> | null = null
-	private resolveReady: (() => void) | null = null
+	private resolvePlay: ((played: boolean) => void) | null = null
 	private widget: SoundCloudWidget | null = null
 
 	constructor(
@@ -249,6 +252,7 @@ class SoundCloudAdapter {
 	}
 
 	async load(src: string, isStale: () => boolean): Promise<boolean> {
+		this.currentIsStale = isStale
 		const widget = await this.getWidget(isStale)
 		if (!widget || isStale()) return false
 		if (this.loadedSrc === src) {
@@ -256,17 +260,29 @@ class SoundCloudAdapter {
 			return true
 		}
 
-		this.readyPromise = new Promise((resolve) => {
-			this.resolveReady = resolve
+		const loadId = (this.loadId += 1)
+		this.loadedDuration = 0
+		const loaded = await new Promise<boolean>((resolve) => {
+			let settled = false
+			const timeout = window.setTimeout(
+				() => settle(false),
+				SOUNDCLOUD_LOAD_TIMEOUT,
+			)
+			const settle = (ready: boolean) => {
+				if (settled) return
+
+				settled = true
+				window.clearTimeout(timeout)
+				resolve(ready)
+			}
+
 			widget.load(src, {
 				auto_play: false,
-				callback: resolve,
+				callback: () => settle(true),
 			})
-			window.setTimeout(resolve, 1800)
 		})
 
-		await this.readyPromise
-		if (isStale()) return false
+		if (!loaded || isStale() || loadId !== this.loadId) return false
 
 		this.loadedSrc = src
 		this.emitDuration(widget, isStale)
@@ -274,14 +290,37 @@ class SoundCloudAdapter {
 	}
 
 	pause(): void {
+		this.resolvePlay?.(false)
+		this.resolvePlay = null
 		this.widget?.pause()
 	}
 
-	play(): void {
-		this.widget?.play()
+	async play(isStale: () => boolean): Promise<boolean> {
+		this.currentIsStale = isStale
+		if (!this.widget || isStale()) return false
+
+		return new Promise<boolean>((resolve) => {
+			let settled = false
+			const timeout = window.setTimeout(
+				() => settle(false),
+				SOUNDCLOUD_PLAY_TIMEOUT,
+			)
+			const settle = (played: boolean) => {
+				if (settled) return
+
+				settled = true
+				window.clearTimeout(timeout)
+				this.resolvePlay = null
+				resolve(played)
+			}
+
+			this.resolvePlay = settle
+			this.widget?.play()
+		})
 	}
 
 	requestPosition(isStale: () => boolean): void {
+		this.currentIsStale = isStale
 		this.widget?.getPosition((position) => {
 			if (!isStale()) {
 				this.callbacks.onProgress(position / 1000)
@@ -308,36 +347,32 @@ class SoundCloudAdapter {
 
 		const widget = api.Widget(this.iframe)
 		this.widget = widget
-		this.bindEvents(api, widget, isStale)
+		this.bindEvents(api, widget)
 		widget.bind(api.Widget.Events.READY, () => {
-			if (isStale() || widget !== this.widget) return
+			if (this.isStale() || widget !== this.widget) return
 
 			widget.getDuration((duration) => {
-				if (isStale() || widget !== this.widget) return
+				if (this.isStale() || widget !== this.widget) return
 				this.loadedDuration = duration / 1000
 				this.callbacks.onDuration(this.loadedDuration)
 			})
-			this.requestPosition(isStale)
-			this.resolveReady?.()
+			this.requestPosition(this.currentIsStale)
 		})
 
 		return widget
 	}
 
-	private bindEvents(
-		api: SoundCloudApi,
-		widget: SoundCloudWidget,
-		isStale: () => boolean,
-	): void {
+	private bindEvents(api: SoundCloudApi, widget: SoundCloudWidget): void {
 		if (this.eventsBound) return
 		this.eventsBound = true
 
 		widget.bind(api.Widget.Events.PLAY, () => {
-			if (isStale() || widget !== this.widget) return
+			if (this.isStale() || widget !== this.widget) return
+			this.resolvePlay?.(true)
 			this.callbacks.onPlay()
 		})
 		widget.bind(api.Widget.Events.PLAY_PROGRESS, (event) => {
-			if (isStale() || widget !== this.widget) return
+			if (this.isStale() || widget !== this.widget) return
 
 			if (event && typeof event === 'object') {
 				if (
@@ -356,13 +391,17 @@ class SoundCloudAdapter {
 			}
 		})
 		widget.bind(api.Widget.Events.PAUSE, () => {
-			if (isStale() || widget !== this.widget) return
+			if (this.isStale() || widget !== this.widget) return
 			this.callbacks.onPause()
 		})
 		widget.bind(api.Widget.Events.FINISH, () => {
-			if (isStale() || widget !== this.widget) return
+			if (this.isStale() || widget !== this.widget) return
 			this.callbacks.onFinish()
 		})
+	}
+
+	private isStale(): boolean {
+		return this.currentIsStale()
 	}
 
 	private emitDuration(
@@ -1531,24 +1570,38 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.playButton.disabled = true
 		this.setStatus('Loading SoundCloud')
 		const isStale = () => trackLoadId !== this.trackLoadId
-		const loaded = await this.soundCloudAdapter?.load(track.src, isStale)
+		let loaded: boolean
+		try {
+			loaded =
+				(await this.soundCloudAdapter?.load(track.src, isStale)) ??
+				false
+		} catch {
+			loaded = false
+		}
 
-		if (!loaded || isStale()) {
+		if (isStale()) return
+		if (!loaded) {
 			this.playButton.disabled = false
 			this.setStatus('SoundCloud unavailable')
 			return
 		}
 
 		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value))
-		this.playButton.disabled = false
 		if (this.restartOnNextPlay) {
 			this.soundCloudAdapter?.seek(0)
 			this.soundCloudPosition = 0
 			this.syncProgress(0, this.duration)
 		}
 		this.restartOnNextPlay = false
-		this.soundCloudAdapter?.play()
-		this.playing = true
+		this.setStatus('Starting SoundCloud')
+		const played = await this.soundCloudAdapter?.play(isStale)
+		if (isStale()) return
+		if (!played) {
+			this.playButton.disabled = false
+			this.setStatus('SoundCloud did not start')
+			return
+		}
+		this.playButton.disabled = false
 	}
 
 	private loadSoundCloudTrack(track: JuketteTrack): void {
