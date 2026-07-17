@@ -24,6 +24,7 @@ By Rémino Rem
 - [Tracks](#tracks)
 - [API](#api)
 - [Styling](#styling)
+- [Roadmap](#roadmap)
 - [Development](#development)
 - [Release](#release)
 - [Contributing](#contributing)
@@ -351,6 +352,15 @@ jukette-player::part(playlist-track) {
 	padding-block: 0.5rem;
 }
 ```
+
+[Back to top](#)
+
+---
+
+## Roadmap
+
+Forward-looking work lives in [ROADMAP.md](./ROADMAP.md). For now, that covers
+the planned SoundCloud addon direction without expanding `jukette` core again.
 
 [Back to top](#)
 
