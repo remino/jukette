@@ -8,7 +8,6 @@ var ATTR_PLAYLIST = "playlist";
 var ATTR_PLAYLIST_OPEN = "playlist-open";
 var ATTR_PRELOAD = "preload";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
-var ATTR_PRELOAD_SOUNDCLOUD = "preload-soundcloud";
 var ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
 var ATTR_MIDI_OSCILLATOR = "midi-oscillator";
 var ATTR_TRACK_INDEX = "track-index";
@@ -495,7 +494,7 @@ var MidiPlayableTrack = class extends JukettePlayableTrack {
 };
 //#endregion
 //#region src/lib/jukette-player.css?inline
-var jukette_player_default = ":host {\n	--jukette-control-size: 2em;\n	display: block;\n	font: inherit;\n	color: inherit;\n}\n\n* {\n	box-sizing: border-box;\n}\n\n.player {\n	border: 1px solid currentColor;\n	display: grid;\n	gap: 0.5lh;\n	padding: 0.5rlh 1em;\n}\n\n.track {\n	display: grid;\n	min-inline-size: 0;\n}\n\n.progress {\n	display: grid;\n	gap: 0;\n}\n\n.title,\n.meta {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.title {\n	font-weight: 700;\n}\n\n.meta,\n.status,\n.time {\n	opacity: 0.75;\n}\n\n.status {\n	min-block-size: 1lh;\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.controls {\n	align-items: center;\n	display: grid;\n	gap: 0.5lh 0.5em;\n	grid-template-areas: 'previous play next volume playlist';\n	grid-template-columns:\n		repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr)\n		var(--jukette-control-size);\n}\n\n.previous {\n	grid-area: previous;\n}\n\n.play {\n	grid-area: play;\n}\n\n.next {\n	grid-area: next;\n}\n\n.volume {\n	grid-area: volume;\n}\n\n.playlist-toggle {\n	grid-area: playlist;\n}\n\nbutton {\n	align-items: center;\n	appearance: none;\n	background: transparent;\n	border: 1px solid currentColor;\n	block-size: var(--jukette-control-size);\n	color: inherit;\n	cursor: pointer;\n	display: inline-grid;\n	font: inherit;\n	inline-size: var(--jukette-control-size);\n	justify-content: center;\n	padding: 0;\n}\n\nbutton:focus-visible {\n	outline: 2px solid currentColor;\n	outline-offset: 0;\n	outline-radius: 0;\n}\n\nbutton:active {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton[aria-pressed='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton:disabled {\n	cursor: default;\n	opacity: 0.45;\n}\n\ninput[type='range'] {\n	accent-color: currentColor;\n}\n\n.seek {\n	display: grid;\n}\n\n.time {\n	display: grid;\n	gap: 0.5em;\n	grid-template-columns: repeat(3, 1fr);\n	font-variant-numeric: tabular-nums;\n}\n\n.time span:nth-child(2) {\n	text-align: center;\n}\n\n.time span:nth-child(3) {\n	text-align: end;\n}\n\n.playlist {\n	border-block-start: 1px solid currentColor;\n	counter-reset: jukette-playlist;\n	display: none;\n	gap: 0.5lh 0;\n	list-style: none;\n	margin: 0;\n	padding: 1lh 0 0.5lh;\n}\n\n:host([playlist-open]) .playlist {\n	display: grid;\n}\n\n.playlist li {\n	align-items: start;\n	counter-increment: jukette-playlist;\n	display: grid;\n}\n\n.playlist li button {\n	padding-inline: 0.5em;\n}\n\n.playlist li button::before {\n	content: counter(jukette-playlist) '.';\n	grid-column: 1;\n	grid-row: 1 / span 2;\n	font-variant-numeric: tabular-nums;\n	text-align: end;\n}\n\n.playlist li button[aria-current='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\n.playlist button {\n	align-items: start;\n	block-size: auto;\n	border: 0;\n	display: grid;\n	gap: 0 0.5em;\n	grid-template-columns: 2ch minmax(0, 1fr) auto;\n	inline-size: 100%;\n	text-align: start;\n}\n\n.playlist-title,\n.playlist-artist {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.playlist-title {\n	font-weight: 700;\n	grid-column: 2;\n}\n\n.playlist-artist,\n.playlist-duration {\n	opacity: 0.75;\n}\n\n.playlist-duration {\n	align-self: center;\n	font-variant-numeric: tabular-nums;\n	grid-column: 3;\n	grid-row: 1 / span 2;\n	white-space: nowrap;\n}\n\n.playlist-artist {\n	grid-column: 2;\n}\n\n.soundcloud {\n	border: 0;\n	block-size: 166px;\n	display: none;\n	inline-size: 100%;\n}\n\naudio {\n	display: none;\n}\n\n@media (max-width: 34em) {\n	.controls {\n		grid-template-areas:\n			'volume volume volume volume volume'\n			'previous play next spacer playlist';\n		grid-template-columns:\n			repeat(3, var(--jukette-control-size)) minmax(0, 1fr)\n			var(--jukette-control-size);\n		justify-content: start;\n	}\n}\n";
+var jukette_player_default = ":host {\n	--jukette-control-size: 2em;\n	display: block;\n	font: inherit;\n	color: inherit;\n}\n\n* {\n	box-sizing: border-box;\n}\n\n.player {\n	border: 1px solid currentColor;\n	display: grid;\n	gap: 0.5lh;\n	padding: 0.5rlh 1em;\n}\n\n.track {\n	display: grid;\n	min-inline-size: 0;\n}\n\n.progress {\n	display: grid;\n	gap: 0;\n}\n\n.title,\n.meta {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.title {\n	font-weight: 700;\n}\n\n.meta,\n.status,\n.time {\n	opacity: 0.75;\n}\n\n.status {\n	min-block-size: 1lh;\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.controls {\n	align-items: center;\n	display: grid;\n	gap: 0.5lh 0.5em;\n	grid-template-areas: 'previous play next volume playlist';\n	grid-template-columns:\n		repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr)\n		var(--jukette-control-size);\n}\n\n.previous {\n	grid-area: previous;\n}\n\n.play {\n	grid-area: play;\n}\n\n.next {\n	grid-area: next;\n}\n\n.volume {\n	grid-area: volume;\n}\n\n.playlist-toggle {\n	grid-area: playlist;\n}\n\nbutton {\n	align-items: center;\n	appearance: none;\n	background: transparent;\n	border: 1px solid currentColor;\n	block-size: var(--jukette-control-size);\n	color: inherit;\n	cursor: pointer;\n	display: inline-grid;\n	font: inherit;\n	inline-size: var(--jukette-control-size);\n	justify-content: center;\n	padding: 0;\n}\n\nbutton:focus-visible {\n	outline: 2px solid currentColor;\n	outline-offset: 0;\n	outline-radius: 0;\n}\n\nbutton:active {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton[aria-pressed='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton:disabled {\n	cursor: default;\n	opacity: 0.45;\n}\n\ninput[type='range'] {\n	accent-color: currentColor;\n}\n\n.seek {\n	display: grid;\n}\n\n.time {\n	display: grid;\n	gap: 0.5em;\n	grid-template-columns: repeat(3, 1fr);\n	font-variant-numeric: tabular-nums;\n}\n\n.time span:nth-child(2) {\n	text-align: center;\n}\n\n.time span:nth-child(3) {\n	text-align: end;\n}\n\n.playlist {\n	border-block-start: 1px solid currentColor;\n	counter-reset: jukette-playlist;\n	display: none;\n	gap: 0.5lh 0;\n	list-style: none;\n	margin: 0;\n	padding: 1lh 0 0.5lh;\n}\n\n:host([playlist-open]) .playlist {\n	display: grid;\n}\n\n.playlist li {\n	align-items: start;\n	counter-increment: jukette-playlist;\n	display: grid;\n}\n\n.playlist li button {\n	padding-inline: 0.5em;\n}\n\n.playlist li button::before {\n	content: counter(jukette-playlist) '.';\n	grid-column: 1;\n	grid-row: 1 / span 2;\n	font-variant-numeric: tabular-nums;\n	text-align: end;\n}\n\n.playlist li button[aria-current='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\n.playlist button {\n	align-items: start;\n	block-size: auto;\n	border: 0;\n	display: grid;\n	gap: 0 0.5em;\n	grid-template-columns: 2ch minmax(0, 1fr) auto;\n	inline-size: 100%;\n	text-align: start;\n}\n\n.playlist-title,\n.playlist-artist {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.playlist-title {\n	font-weight: 700;\n	grid-column: 2;\n}\n\n.playlist-artist,\n.playlist-duration {\n	opacity: 0.75;\n}\n\n.playlist-duration {\n	align-self: center;\n	font-variant-numeric: tabular-nums;\n	grid-column: 3;\n	grid-row: 1 / span 2;\n	white-space: nowrap;\n}\n\n.playlist-artist {\n	grid-column: 2;\n}\n\n.soundcloud {\n	border: 0;\n	block-size: 166px;\n	display: block;\n	inline-size: 100%;\n}\n\naudio {\n	display: none;\n}\n\n@media (max-width: 34em) {\n	.controls {\n		grid-template-areas:\n			'volume volume volume volume volume'\n			'previous play next spacer playlist';\n		grid-template-columns:\n			repeat(3, var(--jukette-control-size)) minmax(0, 1fr)\n			var(--jukette-control-size);\n		justify-content: start;\n	}\n}\n";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -531,7 +530,6 @@ var createJukettePlayerDom = (host) => {
 				<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 				<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 			</div>
-			<iframe class="soundcloud" part="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
 			<audio preload="metadata"></audio>
 			<ol class="playlist" part="playlist"></ol>
 		</div>
@@ -539,7 +537,6 @@ var createJukettePlayerDom = (host) => {
 	return {
 		audio: query(shadowRoot, "audio"),
 		elapsedTimeElement: query(shadowRoot, ".elapsed"),
-		iframe: query(shadowRoot, ".soundcloud"),
 		metaElement: query(shadowRoot, ".meta"),
 		nextButton: query(shadowRoot, ".next"),
 		playButton: query(shadowRoot, ".play"),
@@ -780,6 +777,7 @@ var JuketteProgressController = class {
 var SOUNDCLOUD_API_SRC = "https://w.soundcloud.com/player/api.js";
 var SOUNDCLOUD_LOAD_TIMEOUT = 1e4;
 var SOUNDCLOUD_PLAY_TIMEOUT = 5e3;
+var SOUNDCLOUD_READY_TIMEOUT = 1e4;
 var soundCloudApiPromise = null;
 var getSoundCloudApi = async () => {
 	const existingApi = globalThis.SC;
@@ -815,6 +813,8 @@ var SoundCloudAdapter = class {
 	loadedDuration = 0;
 	loadedSrc = "";
 	preparedSrc = "";
+	readyPromise = null;
+	resolveReady = null;
 	resolvePlay = null;
 	silentPause = false;
 	widget = null;
@@ -882,6 +882,13 @@ var SoundCloudAdapter = class {
 		this.emitDuration(widget, isStale);
 		return true;
 	}
+	async waitUntilReady(src, isStale) {
+		this.currentIsStale = isStale;
+		if (!await this.getWidget(isStale) || isStale()) return false;
+		if (this.loadedSrc === src) return true;
+		const ready = await this.readyPromise;
+		return Boolean(ready && !isStale() && this.loadedSrc === src);
+	}
 	pause(options = {}) {
 		if (options.silent) this.silentPause = true;
 		this.resolvePlay?.(false);
@@ -926,6 +933,18 @@ var SoundCloudAdapter = class {
 		const widget = api.Widget(this.iframe);
 		this.widget = widget;
 		this.bindEvents(api, widget);
+		this.readyPromise = new Promise((resolve) => {
+			let settled = false;
+			const timeout = window.setTimeout(() => settle(false), SOUNDCLOUD_READY_TIMEOUT);
+			const settle = (ready) => {
+				if (settled) return;
+				settled = true;
+				window.clearTimeout(timeout);
+				this.resolveReady = null;
+				resolve(ready);
+			};
+			this.resolveReady = settle;
+		});
 		widget.bind(api.Widget.Events.READY, () => {
 			if (this.isStale() || widget !== this.widget) return;
 			this.loadedSrc = this.preparedSrc;
@@ -935,6 +954,7 @@ var SoundCloudAdapter = class {
 				this.callbacks.onDuration(this.loadedDuration);
 			});
 			this.requestPosition(this.currentIsStale);
+			this.resolveReady?.(true);
 		});
 		return widget;
 	}
@@ -1027,10 +1047,10 @@ var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
 	}
 	async play(options) {
 		this.callbacks.onStatus("Loading SoundCloud");
-		if (!(this.adapter.isLoaded(this.track.src) || this.adapter.isPrepared(this.track.src))) {
+		if (!this.adapter.isLoaded(this.track.src)) {
 			let didLoad;
 			try {
-				didLoad = await this.adapter.load(this.track.src, options.isStale);
+				didLoad = this.adapter.isPrepared(this.track.src) ? await this.adapter.waitUntilReady(this.track.src, options.isStale) : await this.adapter.load(this.track.src, options.isStale);
 			} catch {
 				didLoad = false;
 			}
@@ -1072,29 +1092,30 @@ var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
 	}
 };
 //#endregion
-//#region src/lib/player-soundcloud-preloads.ts
-var JuketteSoundCloudPreloadController = class {
+//#region src/lib/player-soundcloud-frames.ts
+var JuketteSoundCloudFrameController = class {
 	options;
-	preloads = /* @__PURE__ */ new Map();
+	frames = /* @__PURE__ */ new Map();
 	constructor(options) {
 		this.options = options;
 	}
 	getPlayableTrack(track) {
 		const key = this.options.getTrackKey(track);
-		const cachedTrack = this.preloads.get(key);
+		const cachedTrack = this.frames.get(key);
 		if (cachedTrack) return cachedTrack;
-		const playableTrack = new SoundCloudPlayableTrack(track, this.preloads.size === 0 ? this.options.baseIframe : this.createIframe(), this.options.createCallbacks(track));
-		this.preloads.set(key, playableTrack);
+		const playableTrack = new SoundCloudPlayableTrack(track, this.createIframe(), this.options.createCallbacks(track));
+		this.frames.set(key, playableTrack);
 		return playableTrack;
 	}
 	sync() {
-		const wantedKeys = /* @__PURE__ */ new Set();
+		const playlistKeys = /* @__PURE__ */ new Set();
 		const currentTrack = this.options.getCurrentTrack();
 		const activeKey = currentTrack && inferTrackType(currentTrack) === "soundcloud" ? this.options.getTrackKey(currentTrack) : "";
-		for (const [index, track] of this.options.getTracks().entries()) {
-			if (!this.trackShouldPreload(track, index)) continue;
+		for (const track of this.options.getTracks()) {
+			if (inferTrackType(track) !== "soundcloud") continue;
 			const key = this.options.getTrackKey(track);
-			wantedKeys.add(key);
+			playlistKeys.add(key);
+			if (!track.preload) continue;
 			this.getPlayableTrack(track).load({
 				metadataPreloadId: this.options.getMetadataPreloadId(),
 				restart: false,
@@ -1102,39 +1123,24 @@ var JuketteSoundCloudPreloadController = class {
 				volume: this.options.getVolume()
 			});
 		}
-		for (const [key, track] of this.preloads) {
+		for (const [key, track] of this.frames) {
 			const active = key === activeKey;
 			track.setActive(active);
-			if (wantedKeys.has(key) || active) continue;
+			if (playlistKeys.has(key) || active) continue;
 			track.stop();
-			if (track.iframe !== this.options.baseIframe) track.iframe.remove();
-			this.preloads.delete(key);
+			track.iframe.remove();
+			this.frames.delete(key);
 		}
 	}
 	deactivateAll() {
-		for (const track of this.preloads.values()) track.setActive(false);
+		for (const track of this.frames.values()) track.setActive(false);
 	}
 	dispose() {
-		for (const track of this.preloads.values()) {
+		for (const track of this.frames.values()) {
 			track.stop();
-			if (track.iframe !== this.options.baseIframe) track.iframe.remove();
+			track.iframe.remove();
 		}
-		this.preloads.clear();
-	}
-	trackShouldPreload(track, index) {
-		if (inferTrackType(track) !== "soundcloud") return false;
-		if (track.preload !== void 0) return track.preload;
-		const preload = this.options.getPreload();
-		if (preload === "none") return false;
-		if (preload === "all") return true;
-		if (preload === "current") return index === this.options.getCurrentIndex();
-		if (preload === "next") {
-			const tracks = this.options.getTracks();
-			const currentIndex = this.options.getCurrentIndex();
-			const nextIndex = tracks.length === 0 ? currentIndex : (currentIndex + 1) % tracks.length;
-			return index === currentIndex || index === nextIndex;
-		}
-		return false;
+		this.frames.clear();
 	}
 	createIframe() {
 		const iframe = document.createElement("iframe");
@@ -1148,17 +1154,12 @@ var JuketteSoundCloudPreloadController = class {
 };
 //#endregion
 //#region src/lib/player.ts
-var normalizeSoundCloudPreload = (value) => {
-	if (value === "none" || value === "current" || value === "next" || value === "all") return value;
-	return "current";
-};
 var JukettePlayerElement = class extends HTMLElementBase {
 	static observedAttributes = [
 		"src",
 		ATTR_PLAYLIST,
 		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
-		ATTR_PRELOAD_SOUNDCLOUD,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
@@ -1166,7 +1167,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	dom;
 	metadataController;
 	progressController;
-	soundCloudPreloadController;
+	soundCloudFrameController;
 	tracks = [];
 	index = 0;
 	desiredPlaying = false;
@@ -1199,14 +1200,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			isSoundCloudTrack: () => inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud",
 			requestSoundCloudPosition: () => this.requestSoundCloudPosition()
 		});
-		this.soundCloudPreloadController = new JuketteSoundCloudPreloadController({
+		this.soundCloudFrameController = new JuketteSoundCloudFrameController({
 			audio: this.dom.audio,
-			baseIframe: this.dom.iframe,
 			createCallbacks: (track) => this.createPlayableCallbacks(track),
-			getCurrentIndex: () => this.index,
 			getCurrentTrack: () => this.currentTrack,
 			getMetadataPreloadId: () => this.metadataController.metadataPreloadId,
-			getPreload: () => this.preloadSoundCloud,
 			getTrackKey: (track) => this.getTrackKey(track),
 			getTracks: () => this.tracks,
 			getVolume: () => Number(this.dom.volumeInput.value),
@@ -1244,15 +1242,15 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.trackObserver?.disconnect();
 		this.stopProgressLoop();
 		this.activePlayableTrack?.stop();
-		this.soundCloudPreloadController.dispose();
+		this.soundCloudFrameController.dispose();
 	}
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (oldValue === newValue) return;
-		if (name === "preload-metadata" || name === "prefer-media-metadata" || name === "preload-soundcloud") {
+		if (name === "preload-metadata" || name === "prefer-media-metadata") {
 			this.renderCurrentTrack();
 			this.renderPlaylist();
 			this.preloadPlaylistMetadata();
-			this.syncSoundCloudPreloads();
+			this.syncSoundCloudFrames();
 			return;
 		}
 		if (name === "playlist-open") {
@@ -1294,12 +1292,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	set preloadMetadata(preload) {
 		this.toggleAttribute(ATTR_PRELOAD_METADATA, preload);
 	}
-	get preloadSoundCloud() {
-		return normalizeSoundCloudPreload(this.getAttribute(ATTR_PRELOAD_SOUNDCLOUD));
-	}
-	set preloadSoundCloud(preload) {
-		this.setAttribute(ATTR_PRELOAD_SOUNDCLOUD, preload);
-	}
 	get preferMediaMetadata() {
 		return this.hasAttribute(ATTR_PREFER_MEDIA_METADATA);
 	}
@@ -1318,7 +1310,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.index = 0;
 		this.renderPlaylist();
 		this.preloadPlaylistMetadata();
-		this.syncSoundCloudPreloads();
+		this.syncSoundCloudFrames();
 		this.loadTrack();
 	}
 	async play() {
@@ -1435,7 +1427,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.index = Number.isInteger(nextIndex) && nextIndex >= 0 ? Math.min(nextIndex, Math.max(0, this.tracks.length - 1)) : Math.min(this.index, Math.max(0, this.tracks.length - 1));
 		this.renderPlaylist();
 		this.preloadPlaylistMetadata();
-		this.syncSoundCloudPreloads();
+		this.syncSoundCloudFrames();
 	}
 	syncChildTracks() {
 		if (this.playlistOverride) return;
@@ -1459,7 +1451,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		return this.getSoundCloudPlayableTrack(track);
 	}
 	getSoundCloudPlayableTrack(track) {
-		return this.soundCloudPreloadController.getPlayableTrack(track);
+		return this.soundCloudFrameController.getPlayableTrack(track);
 	}
 	createPlayableCallbacks(track) {
 		const isCurrentTrack = () => this.currentTrack !== null && this.getTrackKey(this.currentTrack) === this.getTrackKey(track);
@@ -1502,8 +1494,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			}
 		};
 	}
-	syncSoundCloudPreloads() {
-		this.soundCloudPreloadController.sync();
+	syncSoundCloudFrames() {
+		this.soundCloudFrameController.sync();
 	}
 	loadTrack() {
 		this.trackLoadId += 1;
@@ -1533,8 +1525,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.setStatus();
 		this.syncProgress(0, this.duration);
 		this.activePlayableTrack = this.createPlayableTrack(track);
-		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) this.syncSoundCloudPreloads();
-		else this.soundCloudPreloadController.deactivateAll();
+		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) this.syncSoundCloudFrames();
+		else this.soundCloudFrameController.deactivateAll();
 		this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataController.metadataPreloadId,
 			restart: this.restartOnNextPlay,

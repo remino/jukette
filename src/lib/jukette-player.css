@@ -225,7 +225,7 @@ input[type='range'] {
 .soundcloud {
 	border: 0;
 	block-size: 166px;
-	display: none;
+	display: block;
 	inline-size: 100%;
 }
 
