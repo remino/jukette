@@ -25,14 +25,16 @@
       playable track classes so the player element can focus on UI and playlist
       orchestration.
     - Move player DOM setup, playlist rendering, metadata preloading,
-      SoundCloud preload handling, and progress/status display into focused
-      internal controller and helper modules.
+      per-track SoundCloud frame handling, and progress/status display into
+      focused internal controller and helper modules.
     - Import player shadow CSS through Vite's inline CSS pipeline instead of a
       custom generated TypeScript style module.
     - Add a per-track `preload` flag for future playback preparation policies.
-    - Add `preload-soundcloud` / `preloadSoundCloud` to warm SoundCloud tracks
-      with `none`, `current`, `next`, and `all` policies, respecting per-track
-      `preload` overrides.
+    - Use per-track `preload` on SoundCloud entries to create and warm each
+      track's own widget frame instead of a player-level preload policy.
+    - Wait for prepared SoundCloud widgets to report ready before playback so
+      preloaded tracks can start from playlist selection without a second Play
+      click.
     - Keep the active SoundCloud iframe in place when clicking the current
       playlist track again.
 
