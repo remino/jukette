@@ -4,12 +4,12 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 
 <BaseLayout title="Demo" path="/jukette/demo/">
 	<h2>Demo</h2>
-	<jukette-player
-		playlist-open
-		preload-metadata
-		prefer-media-metadata
-		preload-soundcloud="next"
-	>
+	<jukette-player playlist-open preload-metadata prefer-media-metadata>
+		<jukette-track
+			title="Afterlight"
+			artist="Emil Rottmayer"
+			src="https://soundcloud.com/emil-rottmayer/afterlight"
+			preload></jukette-track>
 		<jukette-track
 			title="C-sharp arpeggiator"
 			artist="Jukette"
@@ -22,16 +22,12 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 		<jukette-track
 			title="SoundCloud URL"
 			artist="SoundCloud"
-			src="https://soundcloud.com/forss/flickermood"></jukette-track>
+			src="https://soundcloud.com/forss/flickermood"
+			preload></jukette-track>
 		<jukette-track
 			title="Zen Zen"
 			artist="Vincentaine"
 			src="https://soundcloud.com/vincentaine/zenzen"></jukette-track>
-		<jukette-track
-			title="Afterlight"
-			artist="Emil Rottmayer"
-			src="https://soundcloud.com/emil-rottmayer/afterlight"
-		></jukette-track>
 		<jukette-track
 			title="Oath"
 			artist="T-120"
