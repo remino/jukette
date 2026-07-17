@@ -24,6 +24,9 @@
     - Split native audio, MIDI, and SoundCloud playback behavior into internal
       playable track classes so the player element can focus on UI and playlist
       orchestration.
+    - Move player DOM setup, playlist rendering, metadata preloading,
+      SoundCloud preload handling, and progress/status display into focused
+      internal controller and helper modules.
     - Add a per-track `preload` flag for future playback preparation policies.
     - Add `preload-soundcloud` / `preloadSoundCloud` to warm SoundCloud tracks
       with `none`, `current`, `next`, and `all` policies, respecting per-track

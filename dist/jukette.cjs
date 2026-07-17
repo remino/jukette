@@ -86,9 +86,6 @@ var createJuketteEventDetail = (detail) => ({
 	type: detail.track ? inferTrackType(detail.track) : void 0
 });
 //#endregion
-//#region src/lib/jukette-player.css.generated.ts
-var playerStyles = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.meta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:nowrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{grid-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabular-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{counter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padding:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{display:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;display:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{content:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:end;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:start;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-artist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.playlist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0;block-size:166px;inline-size:100%;display:none}audio{display:none}@media (width<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}";
-//#endregion
 //#region src/lib/text.ts
 var decodeAscii = (bytes) => String.fromCharCode(...bytes);
 var decodeIso88591 = (bytes) => String.fromCharCode(...bytes);
@@ -107,60 +104,6 @@ var decodeTextBytes = (bytes, encoding) => {
 var cleanMetadataText = (value) => {
 	const nullIndex = value.indexOf("\0");
 	return (nullIndex >= 0 ? value.slice(0, nullIndex) : value.trimEnd()).trim();
-};
-//#endregion
-//#region src/lib/metadata.ts
-var readSynchsafeInteger = (data, offset, length = 4) => {
-	let value = 0;
-	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
-	return value;
-};
-var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
-var decodeId3TextFrame = (frameData) => {
-	if (frameData.length < 2) return "";
-	const encoding = frameData[0];
-	const content = frameData.slice(1);
-	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
-	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
-	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
-	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
-};
-var parseAudioFileMetadata = (buffer) => {
-	const data = new Uint8Array(buffer);
-	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
-	const version = data[3];
-	const flags = data[5];
-	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
-	let offset = 10;
-	if (flags & 64 && offset + 4 <= tagEnd) {
-		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
-		offset += extendedHeaderSize;
-	}
-	const metadata = {};
-	while (offset + 10 <= tagEnd) {
-		const frameId = decodeAscii(data.slice(offset, offset + 4));
-		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
-		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
-		const frameStart = offset + 10;
-		const frameEnd = frameStart + frameSize;
-		if (frameSize <= 0 || frameEnd > tagEnd) break;
-		const frameData = data.slice(frameStart, frameEnd);
-		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
-		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
-		offset = frameEnd;
-	}
-	return metadata;
-};
-var parseSoundCloudOEmbedMetadata = (value) => {
-	if (!isRecord(value) || typeof value.title !== "string") return {};
-	const title = value.title.trim();
-	if (!title) return {};
-	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title);
-	if (!match?.groups) return { title };
-	return {
-		artist: match.groups.artist.trim() || void 0,
-		title: match.groups.title.trim() || title
-	};
 };
 //#endregion
 //#region src/lib/midi.ts
@@ -307,6 +250,60 @@ var loadMidiSequence = async (src) => {
 	const response = await fetch(src);
 	if (!response.ok) throw new Error(`Unable to load MIDI file: ${src}`);
 	return parseMidi(await response.arrayBuffer());
+};
+//#endregion
+//#region src/lib/metadata.ts
+var readSynchsafeInteger = (data, offset, length = 4) => {
+	let value = 0;
+	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
+	return value;
+};
+var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
+var decodeId3TextFrame = (frameData) => {
+	if (frameData.length < 2) return "";
+	const encoding = frameData[0];
+	const content = frameData.slice(1);
+	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
+	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
+	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
+	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
+};
+var parseAudioFileMetadata = (buffer) => {
+	const data = new Uint8Array(buffer);
+	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
+	const version = data[3];
+	const flags = data[5];
+	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
+	let offset = 10;
+	if (flags & 64 && offset + 4 <= tagEnd) {
+		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
+		offset += extendedHeaderSize;
+	}
+	const metadata = {};
+	while (offset + 10 <= tagEnd) {
+		const frameId = decodeAscii(data.slice(offset, offset + 4));
+		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
+		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
+		const frameStart = offset + 10;
+		const frameEnd = frameStart + frameSize;
+		if (frameSize <= 0 || frameEnd > tagEnd) break;
+		const frameData = data.slice(frameStart, frameEnd);
+		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
+		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
+		offset = frameEnd;
+	}
+	return metadata;
+};
+var parseSoundCloudOEmbedMetadata = (value) => {
+	if (!isRecord(value) || typeof value.title !== "string") return {};
+	const title = value.title.trim();
+	if (!title) return {};
+	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title);
+	if (!match?.groups) return { title };
+	return {
+		artist: match.groups.artist.trim() || void 0,
+		title: match.groups.title.trim() || title
+	};
 };
 //#endregion
 //#region src/lib/playable-track.ts
@@ -494,6 +491,327 @@ var MidiPlayableTrack = class extends JukettePlayableTrack {
 		this.gain = this.audio.createGain();
 		this.gain.gain.value = this.volume;
 		this.gain.connect(this.audio.destination);
+	}
+};
+//#endregion
+//#region src/lib/jukette-player.css.generated.ts
+var playerStyles = [
+	":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-",
+	"sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:gr",
+	"id}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.me",
+	"ta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:",
+	"700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:n",
+	"owrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous",
+	" play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-contro",
+	"l-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5",
+	"lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{gri",
+	"d-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{",
+	"appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:poin",
+	"ter;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1",
+	"px solid;justify-content:center;align-items:center;padding:0;display:inline-grid",
+	"}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button",
+	":active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r)",
+	" calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255",
+	" - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range",
+	"]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabula",
+	"r-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-",
+	"child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{coun",
+	"ter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padd",
+	"ing:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{dis",
+	"play:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;disp",
+	"lay:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{cont",
+	"ent:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:e",
+	"nd;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(fr",
+	"om currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from curren",
+	"tColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:st",
+	"art;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:",
+	"0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-a",
+	"rtist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{",
+	"grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.p",
+	"laylist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:",
+	"1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0",
+	";block-size:166px;inline-size:100%;display:none}audio{display:none}@media (width",
+	"<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previ",
+	"ous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-con",
+	"trol-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}"
+].join("");
+//#endregion
+//#region src/lib/player-dom.ts
+var query = (root, selector) => {
+	const element = root.querySelector(selector);
+	if (!element) throw new Error(`Missing Jukette element: ${selector}`);
+	return element;
+};
+var createJukettePlayerDom = (host) => {
+	const shadowRoot = host.attachShadow({ mode: "open" });
+	shadowRoot.innerHTML = `
+		<style>${playerStyles}</style>
+
+		<div class="player" part="player">
+			<div class="track" part="track" aria-live="polite">
+				<div class="title" part="title"></div>
+				<div class="meta" part="artist"></div>
+			</div>
+			<div class="progress" part="progress">
+				<div class="status" part="status" role="status" aria-live="polite"></div>
+				<div class="seek" part="seek">
+					<input class="seek-input" part="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
+					<div class="time" part="time" aria-live="off">
+						<span class="elapsed" part="elapsed">0:00</span>
+						<span class="remaining" part="remaining">-0:00</span>
+						<span class="total" part="total">0:00</span>
+					</div>
+				</div>
+			</div>
+			<div class="controls" part="controls">
+				<button class="previous" part="button previous-button" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
+				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
+				<button class="next" part="button next-button" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
+				<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+				<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
+			</div>
+			<iframe class="soundcloud" part="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
+			<audio preload="metadata"></audio>
+			<ol class="playlist" part="playlist"></ol>
+		</div>
+	`;
+	return {
+		audio: query(shadowRoot, "audio"),
+		elapsedTimeElement: query(shadowRoot, ".elapsed"),
+		iframe: query(shadowRoot, ".soundcloud"),
+		metaElement: query(shadowRoot, ".meta"),
+		nextButton: query(shadowRoot, ".next"),
+		playButton: query(shadowRoot, ".play"),
+		playerElement: query(shadowRoot, ".player"),
+		playlistButton: query(shadowRoot, ".playlist-toggle"),
+		playlistElement: query(shadowRoot, ".playlist"),
+		previousButton: query(shadowRoot, ".previous"),
+		remainingTimeElement: query(shadowRoot, ".remaining"),
+		seekInput: query(shadowRoot, ".seek-input"),
+		statusElement: query(shadowRoot, ".status"),
+		titleElement: query(shadowRoot, ".title"),
+		totalTimeElement: query(shadowRoot, ".total"),
+		volumeInput: query(shadowRoot, ".volume")
+	};
+};
+//#endregion
+//#region src/lib/player-metadata.ts
+var JuketteMetadataController = class {
+	options;
+	durations = /* @__PURE__ */ new Map();
+	metadata = /* @__PURE__ */ new Map();
+	preloadId = 0;
+	constructor(options) {
+		this.options = options;
+	}
+	get metadataPreloadId() {
+		return this.preloadId;
+	}
+	getDuration(track) {
+		if (!track) return void 0;
+		return this.durations.get(this.options.getTrackKey(track));
+	}
+	setDuration(track, duration) {
+		if (!track || !Number.isFinite(duration) || duration <= 0) return;
+		const key = this.options.getTrackKey(track);
+		const currentDuration = this.durations.get(key);
+		if (currentDuration !== void 0 && Math.abs(currentDuration - duration) < .5) return;
+		this.durations.set(key, duration);
+		this.options.onPlaylistDisplayChange();
+	}
+	getDisplay(track) {
+		const metadata = this.options.trackPrefersMediaMetadata(track) ? this.metadata.get(this.options.getTrackKey(track)) : void 0;
+		return {
+			artist: metadata?.artist || track.artist || "",
+			title: metadata?.title || track.title || track.src
+		};
+	}
+	setMetadata(track, metadata) {
+		if (!track) return;
+		const nextMetadata = {
+			artist: metadata.artist?.trim() || void 0,
+			title: metadata.title?.trim() || void 0
+		};
+		if (!nextMetadata.artist && !nextMetadata.title) return;
+		const key = this.options.getTrackKey(track);
+		const currentMetadata = this.metadata.get(key);
+		if (currentMetadata !== void 0 && currentMetadata.artist === nextMetadata.artist && currentMetadata.title === nextMetadata.title) return;
+		this.metadata.set(key, nextMetadata);
+		if (this.options.isCurrentTrack(track)) this.options.onCurrentTrackDisplayChange();
+		this.options.onPlaylistDisplayChange();
+	}
+	preloadPlaylistMetadata() {
+		this.preloadId += 1;
+		const tracks = this.options.getTracks();
+		const hasMetadataPreference = tracks.some((track) => this.options.trackPrefersMediaMetadata(track));
+		if (!this.options.getPreloadMetadata() && !hasMetadataPreference) return;
+		const metadataPreloadId = this.preloadId;
+		for (const track of tracks) {
+			const type = inferTrackType(track);
+			const preferMediaMetadata = this.options.trackPrefersMediaMetadata(track);
+			if (type === "audio") {
+				if (this.options.getPreloadMetadata()) this.preloadAudioMetadata(track, metadataPreloadId);
+				if (preferMediaMetadata) this.preloadAudioFileMetadata(track, metadataPreloadId);
+			} else if (type === "midi") {
+				if (this.options.getPreloadMetadata() || preferMediaMetadata) this.preloadMidiMetadata(track, metadataPreloadId);
+			} else if (type === "soundcloud") {
+				if (preferMediaMetadata) this.preloadSoundCloudMetadata(track, metadataPreloadId);
+			}
+		}
+	}
+	preloadAudioMetadata(track, metadataPreloadId) {
+		if (this.getDuration(track) !== void 0) return;
+		if (typeof Audio === "undefined") return;
+		const audio = new Audio();
+		const cleanup = () => {
+			audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+			audio.removeEventListener("error", cleanup);
+			audio.removeAttribute("src");
+			audio.load();
+		};
+		const onLoadedMetadata = () => {
+			if (metadataPreloadId === this.preloadId) this.setDuration(track, audio.duration);
+			cleanup();
+		};
+		audio.preload = "metadata";
+		audio.addEventListener("loadedmetadata", onLoadedMetadata);
+		audio.addEventListener("error", cleanup, { once: true });
+		audio.src = track.src;
+		audio.load();
+	}
+	async preloadAudioFileMetadata(track, metadataPreloadId) {
+		if (!this.options.trackPrefersMediaMetadata(track)) return;
+		if (this.metadata.has(this.options.getTrackKey(track))) return;
+		if (typeof fetch === "undefined") return;
+		try {
+			const response = await fetch(track.src, { headers: { Range: "bytes=0-65535" } });
+			if (!response.ok) return;
+			const metadata = parseAudioFileMetadata(await response.arrayBuffer());
+			if (metadataPreloadId === this.preloadId) this.setMetadata(track, metadata);
+		} catch {}
+	}
+	async preloadMidiMetadata(track, metadataPreloadId) {
+		try {
+			const sequence = await loadMidiSequence(track.src);
+			if (metadataPreloadId === this.preloadId) {
+				if (this.options.getPreloadMetadata()) this.setDuration(track, sequence.duration);
+				if (this.options.trackPrefersMediaMetadata(track)) this.setMidiTrackMetadata(track, sequence);
+			}
+		} catch {}
+	}
+	async preloadSoundCloudMetadata(track, metadataPreloadId) {
+		if (!this.options.trackPrefersMediaMetadata(track)) return;
+		if (this.metadata.has(this.options.getTrackKey(track))) return;
+		if (typeof fetch === "undefined") return;
+		try {
+			const url = new URL("https://soundcloud.com/oembed");
+			url.searchParams.set("format", "json");
+			url.searchParams.set("url", track.src);
+			const response = await fetch(url);
+			if (!response.ok) return;
+			const metadata = parseSoundCloudOEmbedMetadata(await response.json());
+			if (metadataPreloadId === this.preloadId) this.setMetadata(track, metadata);
+		} catch {}
+	}
+	setMidiTrackMetadata(track, sequence) {
+		if (!sequence.metadata?.title) return;
+		this.setMetadata(track, { title: sequence.metadata.title });
+	}
+};
+//#endregion
+//#region src/lib/player-playlist-renderer.ts
+var renderPlaylist = ({ currentIndex, element, formatTime, getDisplay, getDuration, onSelect, tracks }) => {
+	element.replaceChildren(...tracks.map((track, index) => {
+		const display = getDisplay(track);
+		const item = document.createElement("li");
+		const button = document.createElement("button");
+		const title = document.createElement("span");
+		const artist = document.createElement("span");
+		const duration = document.createElement("span");
+		const durationValue = getDuration(track);
+		const durationText = durationValue === void 0 ? "--:--" : formatTime(durationValue);
+		button.type = "button";
+		button.part.add("playlist-track");
+		button.setAttribute("aria-label", [
+			display.title,
+			display.artist,
+			durationValue === void 0 ? "unknown duration" : durationText
+		].filter(Boolean).join(", "));
+		item.part.add("playlist-item");
+		title.className = "playlist-title";
+		title.part.add("playlist-title");
+		title.textContent = display.title;
+		artist.className = "playlist-artist";
+		artist.part.add("playlist-artist");
+		artist.textContent = display.artist;
+		duration.className = "playlist-duration";
+		duration.part.add("playlist-duration");
+		duration.textContent = durationText;
+		button.append(title, artist, duration);
+		if (index === currentIndex) button.setAttribute("aria-current", "true");
+		button.addEventListener("click", () => onSelect(index));
+		item.append(button);
+		return item;
+	}));
+};
+//#endregion
+//#region src/lib/player-time.ts
+var formatTime = (seconds) => {
+	const roundedSeconds = Math.floor(Number.isFinite(seconds) ? Math.max(0, seconds) : 0);
+	const minutes = Math.floor(roundedSeconds / 60);
+	const remainder = roundedSeconds % 60;
+	return `${minutes}:${String(remainder).padStart(2, "0")}`;
+};
+//#endregion
+//#region src/lib/player-progress.ts
+var JuketteProgressController = class {
+	options;
+	progressFrame = 0;
+	constructor(options) {
+		this.options = options;
+	}
+	setStatus(message = "") {
+		this.options.dom.statusElement.textContent = message;
+	}
+	syncProgress(currentTime, duration) {
+		const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
+		const safeCurrentTime = Number.isFinite(currentTime) ? Math.min(Math.max(0, currentTime), safeDuration || Number.MAX_SAFE_INTEGER) : 0;
+		const ratio = safeDuration > 0 ? Math.min(1, Math.max(0, safeCurrentTime / safeDuration)) : 0;
+		this.options.dom.seekInput.value = String(Math.round(ratio * 1e3));
+		this.options.dom.elapsedTimeElement.textContent = formatTime(safeCurrentTime);
+		this.options.dom.remainingTimeElement.textContent = `-${formatTime(Math.max(0, safeDuration - safeCurrentTime))}`;
+		this.options.dom.totalTimeElement.textContent = formatTime(safeDuration);
+	}
+	syncPlayingState() {
+		const playing = this.options.getPlaying();
+		this.options.dom.playButton.textContent = playing ? "Ⅱ" : "▶";
+		this.options.dom.playButton.setAttribute("aria-label", playing ? "Pause" : "Play");
+		if (playing) {
+			this.setStatus();
+			this.start();
+		} else this.stop();
+	}
+	start() {
+		if (this.progressFrame || typeof requestAnimationFrame === "undefined") return;
+		const tick = () => {
+			if (!this.options.getPlaying()) {
+				this.progressFrame = 0;
+				return;
+			}
+			if (this.options.isSoundCloudTrack()) this.options.requestSoundCloudPosition();
+			this.syncProgress(this.options.getCurrentTime(), this.options.getDuration());
+			this.progressFrame = requestAnimationFrame(tick);
+		};
+		this.progressFrame = requestAnimationFrame(tick);
+	}
+	stop() {
+		if (!this.progressFrame || typeof cancelAnimationFrame === "undefined") {
+			this.progressFrame = 0;
+			return;
+		}
+		cancelAnimationFrame(this.progressFrame);
+		this.progressFrame = 0;
+		this.syncProgress(this.options.getCurrentTime(), this.options.getDuration());
 	}
 };
 //#endregion
@@ -793,6 +1111,81 @@ var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
 	}
 };
 //#endregion
+//#region src/lib/player-soundcloud-preloads.ts
+var JuketteSoundCloudPreloadController = class {
+	options;
+	preloads = /* @__PURE__ */ new Map();
+	constructor(options) {
+		this.options = options;
+	}
+	getPlayableTrack(track) {
+		const key = this.options.getTrackKey(track);
+		const cachedTrack = this.preloads.get(key);
+		if (cachedTrack) return cachedTrack;
+		const playableTrack = new SoundCloudPlayableTrack(track, this.preloads.size === 0 ? this.options.baseIframe : this.createIframe(), this.options.createCallbacks(track));
+		this.preloads.set(key, playableTrack);
+		return playableTrack;
+	}
+	sync() {
+		const wantedKeys = /* @__PURE__ */ new Set();
+		const currentTrack = this.options.getCurrentTrack();
+		const activeKey = currentTrack && inferTrackType(currentTrack) === "soundcloud" ? this.options.getTrackKey(currentTrack) : "";
+		for (const [index, track] of this.options.getTracks().entries()) {
+			if (!this.trackShouldPreload(track, index)) continue;
+			const key = this.options.getTrackKey(track);
+			wantedKeys.add(key);
+			this.getPlayableTrack(track).load({
+				metadataPreloadId: this.options.getMetadataPreloadId(),
+				restart: false,
+				silent: key !== activeKey,
+				volume: this.options.getVolume()
+			});
+		}
+		for (const [key, track] of this.preloads) {
+			const active = key === activeKey;
+			track.setActive(active);
+			if (wantedKeys.has(key) || active) continue;
+			track.stop();
+			if (track.iframe !== this.options.baseIframe) track.iframe.remove();
+			this.preloads.delete(key);
+		}
+	}
+	deactivateAll() {
+		for (const track of this.preloads.values()) track.setActive(false);
+	}
+	dispose() {
+		for (const track of this.preloads.values()) {
+			track.stop();
+			if (track.iframe !== this.options.baseIframe) track.iframe.remove();
+		}
+		this.preloads.clear();
+	}
+	trackShouldPreload(track, index) {
+		if (inferTrackType(track) !== "soundcloud") return false;
+		if (track.preload !== void 0) return track.preload;
+		const preload = this.options.getPreload();
+		if (preload === "none") return false;
+		if (preload === "all") return true;
+		if (preload === "current") return index === this.options.getCurrentIndex();
+		if (preload === "next") {
+			const tracks = this.options.getTracks();
+			const currentIndex = this.options.getCurrentIndex();
+			const nextIndex = tracks.length === 0 ? currentIndex : (currentIndex + 1) % tracks.length;
+			return index === currentIndex || index === nextIndex;
+		}
+		return false;
+	}
+	createIframe() {
+		const iframe = document.createElement("iframe");
+		iframe.className = "soundcloud";
+		iframe.part.add("soundcloud");
+		iframe.title = "SoundCloud player";
+		iframe.allow = "autoplay";
+		this.options.playerElement.insertBefore(iframe, this.options.audio);
+		return iframe;
+	}
+};
+//#endregion
 //#region src/lib/player.ts
 var normalizeSoundCloudPreload = (value) => {
 	if (value === "none" || value === "current" || value === "next" || value === "all") return value;
@@ -809,25 +1202,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
 	];
-	audio;
-	iframe;
-	playerElement;
-	playButton;
-	previousButton;
-	nextButton;
-	volumeInput;
-	seekInput;
-	playlistButton;
-	playlistElement;
-	titleElement;
-	metaElement;
-	statusElement;
-	elapsedTimeElement;
-	remainingTimeElement;
-	totalTimeElement;
+	dom;
+	metadataController;
+	progressController;
+	soundCloudPreloadController;
 	tracks = [];
-	trackDurations = /* @__PURE__ */ new Map();
-	trackMetadata = /* @__PURE__ */ new Map();
 	index = 0;
 	desiredPlaying = false;
 	playing = false;
@@ -835,72 +1214,52 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	duration = 0;
 	activePlayableTrack = null;
 	restartOnNextPlay = false;
-	progressFrame = 0;
-	metadataPreloadId = 0;
 	trackObserver = null;
 	playlistOverride = null;
-	soundCloudPreloads = /* @__PURE__ */ new Map();
 	loadedTrackKey = "";
 	constructor() {
 		super();
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
-		const shadowRoot = this.attachShadow({ mode: "open" });
-		shadowRoot.innerHTML = `
-			<style>${playerStyles}</style>
-
-			<div class="player" part="player">
-				<div class="track" part="track" aria-live="polite">
-					<div class="title" part="title"></div>
-					<div class="meta" part="artist"></div>
-				</div>
-				<div class="progress" part="progress">
-					<div class="status" part="status" role="status" aria-live="polite"></div>
-					<div class="seek" part="seek">
-						<input class="seek-input" part="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
-						<div class="time" part="time" aria-live="off">
-							<span class="elapsed" part="elapsed">0:00</span>
-							<span class="remaining" part="remaining">-0:00</span>
-							<span class="total" part="total">0:00</span>
-						</div>
-					</div>
-				</div>
-				<div class="controls" part="controls">
-					<button class="previous" part="button previous-button" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
-					<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
-					<button class="next" part="button next-button" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
-					<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
-					<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
-				</div>
-				<iframe class="soundcloud" part="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
-				<audio preload="metadata"></audio>
-				<ol class="playlist" part="playlist"></ol>
-			</div>
-		`;
-		this.audio = this.query(shadowRoot, "audio");
-		this.iframe = this.query(shadowRoot, ".soundcloud");
-		this.playerElement = this.query(shadowRoot, ".player");
-		this.playButton = this.query(shadowRoot, ".play");
-		this.previousButton = this.query(shadowRoot, ".previous");
-		this.nextButton = this.query(shadowRoot, ".next");
-		this.volumeInput = this.query(shadowRoot, ".volume");
-		this.seekInput = this.query(shadowRoot, ".seek-input");
-		this.playlistButton = this.query(shadowRoot, ".playlist-toggle");
-		this.playlistElement = this.query(shadowRoot, ".playlist");
-		this.titleElement = this.query(shadowRoot, ".title");
-		this.metaElement = this.query(shadowRoot, ".meta");
-		this.statusElement = this.query(shadowRoot, ".status");
-		this.elapsedTimeElement = this.query(shadowRoot, ".elapsed");
-		this.remainingTimeElement = this.query(shadowRoot, ".remaining");
-		this.totalTimeElement = this.query(shadowRoot, ".total");
-		this.playButton.addEventListener("click", () => this.toggle());
-		this.previousButton.addEventListener("click", () => this.previous());
-		this.nextButton.addEventListener("click", () => this.next());
-		this.playlistButton.addEventListener("click", () => this.togglePlaylist());
-		this.volumeInput.addEventListener("input", () => this.syncVolume());
-		this.seekInput.addEventListener("input", () => this.seekFromInput());
-		this.audio.addEventListener("loadedmetadata", () => this.syncAudio());
-		this.audio.addEventListener("timeupdate", () => this.syncAudio());
-		this.audio.addEventListener("ended", () => this.finishTrack());
+		this.dom = createJukettePlayerDom(this);
+		this.metadataController = new JuketteMetadataController({
+			getPreloadMetadata: () => this.preloadMetadata,
+			getTrackKey: (track) => this.getTrackKey(track),
+			getTracks: () => this.tracks,
+			isCurrentTrack: (track) => this.isCurrentTrack(track),
+			onCurrentTrackDisplayChange: () => this.renderCurrentTrack(),
+			onPlaylistDisplayChange: () => this.renderPlaylist(),
+			trackPrefersMediaMetadata: (track) => this.trackPrefersMediaMetadata(track)
+		});
+		this.progressController = new JuketteProgressController({
+			dom: this.dom,
+			getCurrentTime: () => this.getCurrentTime(),
+			getDuration: () => this.duration,
+			getPlaying: () => this.playing,
+			isSoundCloudTrack: () => inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud",
+			requestSoundCloudPosition: () => this.requestSoundCloudPosition()
+		});
+		this.soundCloudPreloadController = new JuketteSoundCloudPreloadController({
+			audio: this.dom.audio,
+			baseIframe: this.dom.iframe,
+			createCallbacks: (track) => this.createPlayableCallbacks(track),
+			getCurrentIndex: () => this.index,
+			getCurrentTrack: () => this.currentTrack,
+			getMetadataPreloadId: () => this.metadataController.metadataPreloadId,
+			getPreload: () => this.preloadSoundCloud,
+			getTrackKey: (track) => this.getTrackKey(track),
+			getTracks: () => this.tracks,
+			getVolume: () => Number(this.dom.volumeInput.value),
+			playerElement: this.dom.playerElement
+		});
+		this.dom.playButton.addEventListener("click", () => this.toggle());
+		this.dom.previousButton.addEventListener("click", () => this.previous());
+		this.dom.nextButton.addEventListener("click", () => this.next());
+		this.dom.playlistButton.addEventListener("click", () => this.togglePlaylist());
+		this.dom.volumeInput.addEventListener("input", () => this.syncVolume());
+		this.dom.seekInput.addEventListener("input", () => this.seekFromInput());
+		this.dom.audio.addEventListener("loadedmetadata", () => this.syncAudio());
+		this.dom.audio.addEventListener("timeupdate", () => this.syncAudio());
+		this.dom.audio.addEventListener("ended", () => this.finishTrack());
 	}
 	connectedCallback() {
 		this.trackObserver?.observe(this, {
@@ -924,6 +1283,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.trackObserver?.disconnect();
 		this.stopProgressLoop();
 		this.activePlayableTrack?.stop();
+		this.soundCloudPreloadController.dispose();
 	}
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (oldValue === newValue) return;
@@ -1009,7 +1369,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const played = await this.activePlayableTrack?.play({
 			isStale: () => trackLoadId !== this.trackLoadId,
 			restart: this.restartOnNextPlay,
-			volume: Number(this.volumeInput.value)
+			volume: Number(this.dom.volumeInput.value)
 		});
 		this.restartOnNextPlay = false;
 		if (trackLoadId !== this.trackLoadId) return;
@@ -1093,7 +1453,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			playlistOpen: this.playlistOpen,
 			track: this.currentTrack,
 			tracks: this.tracks,
-			volume: Number(this.volumeInput.value),
+			volume: Number(this.dom.volumeInput.value),
 			...detail
 		});
 	}
@@ -1104,11 +1464,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			composed: true,
 			detail: this.getJuketteEventDetail(detail)
 		}));
-	}
-	query(root, selector) {
-		const element = root.querySelector(selector);
-		if (!element) throw new Error(`Missing Jukette element: ${selector}`);
-		return element;
 	}
 	syncTracks() {
 		const childTracks = this.getChildTracks();
@@ -1138,23 +1493,18 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	createPlayableTrack(track) {
 		const callbacks = this.createPlayableCallbacks(track);
 		const type = inferTrackType(track);
-		if (type === "audio") return new AudioPlayableTrack(track, this.audio, callbacks);
+		if (type === "audio") return new AudioPlayableTrack(track, this.dom.audio, callbacks);
 		if (type === "midi") return new MidiPlayableTrack(track, callbacks, () => this.midiOscillator);
 		return this.getSoundCloudPlayableTrack(track);
 	}
 	getSoundCloudPlayableTrack(track) {
-		const key = this.getTrackKey(track);
-		const cachedTrack = this.soundCloudPreloads.get(key);
-		if (cachedTrack) return cachedTrack;
-		const playableTrack = new SoundCloudPlayableTrack(track, this.soundCloudPreloads.size === 0 ? this.iframe : this.createSoundCloudIframe(), this.createPlayableCallbacks(track));
-		this.soundCloudPreloads.set(key, playableTrack);
-		return playableTrack;
+		return this.soundCloudPreloadController.getPlayableTrack(track);
 	}
 	createPlayableCallbacks(track) {
 		const isCurrentTrack = () => this.currentTrack !== null && this.getTrackKey(this.currentTrack) === this.getTrackKey(track);
 		return {
 			onDuration: (duration) => {
-				this.setTrackDuration(track, duration);
+				this.metadataController.setDuration(track, duration);
 				if (!isCurrentTrack()) return;
 				this.duration = duration;
 				this.syncProgress(this.getCurrentTime(), this.duration);
@@ -1163,9 +1513,9 @@ var JukettePlayerElement = class extends HTMLElementBase {
 				if (isCurrentTrack()) this.finishTrack();
 			},
 			onMetadata: (metadata, metadataPreloadId) => {
-				if (metadataPreloadId !== void 0 && metadataPreloadId !== this.metadataPreloadId) return;
+				if (metadataPreloadId !== void 0 && metadataPreloadId !== this.metadataController.metadataPreloadId) return;
 				if (!this.trackPrefersMediaMetadata(track)) return;
-				this.setTrackMetadata(track, metadata);
+				this.metadataController.setMetadata(track, metadata);
 			},
 			onPause: () => {
 				if (!isCurrentTrack()) return;
@@ -1191,50 +1541,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			}
 		};
 	}
-	createSoundCloudIframe() {
-		const iframe = document.createElement("iframe");
-		iframe.className = "soundcloud";
-		iframe.part.add("soundcloud");
-		iframe.title = "SoundCloud player";
-		iframe.allow = "autoplay";
-		this.playerElement.insertBefore(iframe, this.audio);
-		return iframe;
-	}
-	trackShouldPreloadSoundCloud(track, index) {
-		if (inferTrackType(track) !== "soundcloud") return false;
-		if (track.preload !== void 0) return track.preload;
-		const preload = this.preloadSoundCloud;
-		if (preload === "none") return false;
-		if (preload === "all") return true;
-		if (preload === "current") return index === this.index;
-		if (preload === "next") {
-			const nextIndex = this.tracks.length === 0 ? this.index : (this.index + 1) % this.tracks.length;
-			return index === this.index || index === nextIndex;
-		}
-		return false;
-	}
 	syncSoundCloudPreloads() {
-		const wantedKeys = /* @__PURE__ */ new Set();
-		const activeKey = this.currentTrack && inferTrackType(this.currentTrack) === "soundcloud" ? this.getTrackKey(this.currentTrack) : "";
-		for (const [index, track] of this.tracks.entries()) {
-			if (!this.trackShouldPreloadSoundCloud(track, index)) continue;
-			const key = this.getTrackKey(track);
-			wantedKeys.add(key);
-			this.getSoundCloudPlayableTrack(track).load({
-				metadataPreloadId: this.metadataPreloadId,
-				restart: false,
-				silent: key !== activeKey,
-				volume: Number(this.volumeInput.value)
-			});
-		}
-		for (const [key, track] of this.soundCloudPreloads) {
-			const active = key === activeKey;
-			track.setActive(active);
-			if (wantedKeys.has(key) || active) continue;
-			track.stop();
-			if (track.iframe !== this.iframe) track.iframe.remove();
-			this.soundCloudPreloads.delete(key);
-		}
+		this.soundCloudPreloadController.sync();
 	}
 	loadTrack() {
 		this.trackLoadId += 1;
@@ -1247,10 +1555,10 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const track = this.currentTrack;
 		if (!track) {
 			this.loadedTrackKey = "";
-			this.titleElement.textContent = "No track";
-			this.metaElement.textContent = "";
-			this.statusElement.textContent = "";
-			this.playButton.disabled = true;
+			this.dom.titleElement.textContent = "No track";
+			this.dom.metaElement.textContent = "";
+			this.dom.statusElement.textContent = "";
+			this.dom.playButton.disabled = true;
 			if (previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
 			return;
 		}
@@ -1259,261 +1567,107 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.loadedTrackKey = trackKey;
 		this.duration = this.getTrackDuration(track) ?? 0;
 		this.dataset.kind = type;
-		this.playButton.disabled = false;
+		this.dom.playButton.disabled = false;
 		this.renderCurrentTrack();
 		this.setStatus();
 		this.syncProgress(0, this.duration);
 		this.activePlayableTrack = this.createPlayableTrack(track);
 		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) this.syncSoundCloudPreloads();
-		else for (const track of this.soundCloudPreloads.values()) track.setActive(false);
+		else this.soundCloudPreloadController.deactivateAll();
 		this.activePlayableTrack.load({
-			metadataPreloadId: this.metadataPreloadId,
+			metadataPreloadId: this.metadataController.metadataPreloadId,
 			restart: this.restartOnNextPlay,
-			volume: Number(this.volumeInput.value)
+			volume: Number(this.dom.volumeInput.value)
 		});
 		this.renderPlaylist();
 		this.syncPlayingState();
 		if (trackKey !== previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
 	}
 	renderPlaylist() {
-		this.playlistElement.replaceChildren(...this.tracks.map((track, index) => {
-			const display = this.getTrackDisplay(track);
-			const item = document.createElement("li");
-			const button = document.createElement("button");
-			const title = document.createElement("span");
-			const artist = document.createElement("span");
-			const duration = document.createElement("span");
-			const durationValue = this.getTrackDuration(track);
-			const durationText = durationValue === void 0 ? "--:--" : this.formatTime(durationValue);
-			button.type = "button";
-			button.part.add("playlist-track");
-			button.setAttribute("aria-label", [
-				display.title,
-				display.artist,
-				durationValue === void 0 ? "unknown duration" : durationText
-			].filter(Boolean).join(", "));
-			item.part.add("playlist-item");
-			title.className = "playlist-title";
-			title.part.add("playlist-title");
-			title.textContent = display.title;
-			artist.className = "playlist-artist";
-			artist.part.add("playlist-artist");
-			artist.textContent = display.artist;
-			duration.className = "playlist-duration";
-			duration.part.add("playlist-duration");
-			duration.textContent = durationText;
-			button.append(title, artist, duration);
-			if (index === this.index) button.setAttribute("aria-current", "true");
-			button.addEventListener("click", () => {
-				this.desiredPlaying = true;
-				this.restartOnNextPlay = true;
-				if (index === this.index) {
-					this.seek(0);
-					this.play();
-					return;
-				}
-				this.index = index;
-				this.loadTrack();
-				this.play();
-			});
-			item.append(button);
-			return item;
-		}));
+		renderPlaylist({
+			currentIndex: this.index,
+			element: this.dom.playlistElement,
+			formatTime,
+			getDisplay: (track) => this.getTrackDisplay(track),
+			getDuration: (track) => this.getTrackDuration(track),
+			onSelect: (index) => this.selectPlaylistTrack(index),
+			tracks: this.tracks
+		});
+	}
+	selectPlaylistTrack(index) {
+		this.desiredPlaying = true;
+		this.restartOnNextPlay = true;
+		if (index === this.index) {
+			this.seek(0);
+			this.play();
+			return;
+		}
+		this.index = index;
+		this.loadTrack();
+		this.play();
 	}
 	getTrackDuration(track) {
-		if (!track) return void 0;
-		return this.trackDurations.get(this.getTrackKey(track));
-	}
-	setTrackDuration(track, duration) {
-		if (!track || !Number.isFinite(duration) || duration <= 0) return;
-		const key = this.getTrackKey(track);
-		const currentDuration = this.trackDurations.get(key);
-		if (currentDuration !== void 0 && Math.abs(currentDuration - duration) < .5) return;
-		this.trackDurations.set(key, duration);
-		this.renderPlaylist();
+		return this.metadataController.getDuration(track);
 	}
 	getTrackKey(track) {
 		return `${inferTrackType(track)}:${track.src}`;
+	}
+	isCurrentTrack(track) {
+		return this.currentTrack !== null && this.getTrackKey(this.currentTrack) === this.getTrackKey(track);
 	}
 	trackPrefersMediaMetadata(track) {
 		return track.preferMediaMetadata ?? this.preferMediaMetadata;
 	}
 	getTrackDisplay(track) {
-		const metadata = this.trackPrefersMediaMetadata(track) ? this.trackMetadata.get(this.getTrackKey(track)) : void 0;
-		return {
-			artist: metadata?.artist || track.artist || "",
-			title: metadata?.title || track.title || track.src
-		};
+		return this.metadataController.getDisplay(track);
 	}
 	renderCurrentTrack() {
 		const track = this.currentTrack;
 		if (!track) return;
 		const display = this.getTrackDisplay(track);
-		this.titleElement.textContent = display.title;
-		this.metaElement.textContent = display.artist || inferTrackType(track);
-	}
-	setTrackMetadata(track, metadata) {
-		if (!track) return;
-		const nextMetadata = {
-			artist: metadata.artist?.trim() || void 0,
-			title: metadata.title?.trim() || void 0
-		};
-		if (!nextMetadata.artist && !nextMetadata.title) return;
-		const key = this.getTrackKey(track);
-		const currentMetadata = this.trackMetadata.get(key);
-		if (currentMetadata !== void 0 && currentMetadata.artist === nextMetadata.artist && currentMetadata.title === nextMetadata.title) return;
-		this.trackMetadata.set(key, nextMetadata);
-		if (this.currentTrack && this.getTrackKey(this.currentTrack) === key) this.renderCurrentTrack();
-		this.renderPlaylist();
+		this.dom.titleElement.textContent = display.title;
+		this.dom.metaElement.textContent = display.artist || inferTrackType(track);
 	}
 	preloadPlaylistMetadata() {
-		this.metadataPreloadId += 1;
-		const hasMetadataPreference = this.tracks.some((track) => this.trackPrefersMediaMetadata(track));
-		if (!this.preloadMetadata && !hasMetadataPreference) return;
-		const metadataPreloadId = this.metadataPreloadId;
-		for (const track of this.tracks) {
-			const type = inferTrackType(track);
-			const preferMediaMetadata = this.trackPrefersMediaMetadata(track);
-			if (type === "audio") {
-				if (this.preloadMetadata) this.preloadAudioMetadata(track, metadataPreloadId);
-				if (preferMediaMetadata) this.preloadAudioFileMetadata(track, metadataPreloadId);
-			} else if (type === "midi") {
-				if (this.preloadMetadata || preferMediaMetadata) this.preloadMidiMetadata(track, metadataPreloadId);
-			} else if (type === "soundcloud") {
-				if (preferMediaMetadata) this.preloadSoundCloudMetadata(track, metadataPreloadId);
-			}
-		}
-	}
-	preloadAudioMetadata(track, metadataPreloadId) {
-		if (this.getTrackDuration(track) !== void 0) return;
-		if (typeof Audio === "undefined") return;
-		const audio = new Audio();
-		const cleanup = () => {
-			audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-			audio.removeEventListener("error", cleanup);
-			audio.removeAttribute("src");
-			audio.load();
-		};
-		const onLoadedMetadata = () => {
-			if (metadataPreloadId === this.metadataPreloadId) this.setTrackDuration(track, audio.duration);
-			cleanup();
-		};
-		audio.preload = "metadata";
-		audio.addEventListener("loadedmetadata", onLoadedMetadata);
-		audio.addEventListener("error", cleanup, { once: true });
-		audio.src = track.src;
-		audio.load();
-	}
-	async preloadAudioFileMetadata(track, metadataPreloadId) {
-		if (!this.trackPrefersMediaMetadata(track)) return;
-		if (this.trackMetadata.has(this.getTrackKey(track))) return;
-		if (typeof fetch === "undefined") return;
-		try {
-			const response = await fetch(track.src, { headers: { Range: "bytes=0-65535" } });
-			if (!response.ok) return;
-			const metadata = parseAudioFileMetadata(await response.arrayBuffer());
-			if (metadataPreloadId === this.metadataPreloadId) this.setTrackMetadata(track, metadata);
-		} catch {}
-	}
-	async preloadMidiMetadata(track, metadataPreloadId) {
-		try {
-			const sequence = await loadMidiSequence(track.src);
-			if (metadataPreloadId === this.metadataPreloadId) {
-				if (this.preloadMetadata) this.setTrackDuration(track, sequence.duration);
-				if (this.trackPrefersMediaMetadata(track)) this.setMidiTrackMetadata(track, sequence);
-			}
-		} catch {}
-	}
-	async preloadSoundCloudMetadata(track, metadataPreloadId) {
-		if (!this.trackPrefersMediaMetadata(track)) return;
-		if (this.trackMetadata.has(this.getTrackKey(track))) return;
-		if (typeof fetch === "undefined") return;
-		try {
-			const url = new URL("https://soundcloud.com/oembed");
-			url.searchParams.set("format", "json");
-			url.searchParams.set("url", track.src);
-			const response = await fetch(url);
-			if (!response.ok) return;
-			const metadata = parseSoundCloudOEmbedMetadata(await response.json());
-			if (metadataPreloadId === this.metadataPreloadId) this.setTrackMetadata(track, metadata);
-		} catch {}
-	}
-	setMidiTrackMetadata(track, sequence) {
-		if (!sequence.metadata?.title) return;
-		this.setTrackMetadata(track, { title: sequence.metadata.title });
+		this.metadataController.preloadPlaylistMetadata();
 	}
 	togglePlaylist() {
 		this.playlistOpen = !this.playlistOpen;
 	}
 	syncPlaylistButton() {
-		this.playlistButton.setAttribute("aria-pressed", String(this.playlistOpen));
+		this.dom.playlistButton.setAttribute("aria-pressed", String(this.playlistOpen));
 	}
 	syncVolume() {
-		this.activePlayableTrack?.setVolume(Number(this.volumeInput.value));
+		this.activePlayableTrack?.setVolume(Number(this.dom.volumeInput.value));
 		this.emitJuketteEvent("jukette:volumechange");
 	}
 	seekFromInput() {
 		if (!this.duration) return;
-		this.seek(Number(this.seekInput.value) / 1e3 * this.duration);
+		this.seek(Number(this.dom.seekInput.value) / 1e3 * this.duration);
 	}
 	syncAudio() {
 		if (this.activePlayableTrack instanceof AudioPlayableTrack) this.activePlayableTrack.syncFromMedia();
 		if (!this.playing) this.setStatus();
 	}
 	syncProgress(currentTime, duration) {
-		const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
-		const safeCurrentTime = Number.isFinite(currentTime) ? Math.min(Math.max(0, currentTime), safeDuration || Number.MAX_SAFE_INTEGER) : 0;
-		const ratio = safeDuration > 0 ? Math.min(1, Math.max(0, safeCurrentTime / safeDuration)) : 0;
-		this.seekInput.value = String(Math.round(ratio * 1e3));
-		this.elapsedTimeElement.textContent = this.formatTime(safeCurrentTime);
-		this.remainingTimeElement.textContent = `-${this.formatTime(Math.max(0, safeDuration - safeCurrentTime))}`;
-		this.totalTimeElement.textContent = this.formatTime(safeDuration);
-	}
-	formatTime(seconds) {
-		const roundedSeconds = Math.floor(Number.isFinite(seconds) ? Math.max(0, seconds) : 0);
-		const minutes = Math.floor(roundedSeconds / 60);
-		const remainder = roundedSeconds % 60;
-		return `${minutes}:${String(remainder).padStart(2, "0")}`;
+		this.progressController.syncProgress(currentTime, duration);
 	}
 	syncPlayingState() {
-		this.playButton.textContent = this.playing ? "Ⅱ" : "▶";
-		this.playButton.setAttribute("aria-label", this.playing ? "Pause" : "Play");
-		if (this.playing) {
-			this.setStatus();
-			this.startProgressLoop();
-		} else this.stopProgressLoop();
+		this.progressController.syncPlayingState();
 	}
 	setStatus(message = "") {
-		this.statusElement.textContent = message;
+		this.progressController.setStatus(message);
 	}
 	finishTrack() {
 		this.emitJuketteEvent("jukette:ended");
 		this.next();
 	}
-	startProgressLoop() {
-		if (this.progressFrame || typeof requestAnimationFrame === "undefined") return;
-		const tick = () => {
-			if (!this.playing) {
-				this.progressFrame = 0;
-				return;
-			}
-			if (inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud") {
-				const trackLoadId = this.trackLoadId;
-				this.activePlayableTrack?.requestPosition(() => trackLoadId !== this.trackLoadId);
-			}
-			this.syncProgress(this.getCurrentTime(), this.duration);
-			this.progressFrame = requestAnimationFrame(tick);
-		};
-		this.progressFrame = requestAnimationFrame(tick);
-	}
 	stopProgressLoop() {
-		if (!this.progressFrame || typeof cancelAnimationFrame === "undefined") {
-			this.progressFrame = 0;
-			return;
-		}
-		cancelAnimationFrame(this.progressFrame);
-		this.progressFrame = 0;
-		this.syncProgress(this.getCurrentTime(), this.duration);
+		this.progressController.stop();
+	}
+	requestSoundCloudPosition() {
+		const trackLoadId = this.trackLoadId;
+		this.activePlayableTrack?.requestPosition(() => trackLoadId !== this.trackLoadId);
 	}
 };
 //#endregion
