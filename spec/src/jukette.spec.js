@@ -8,11 +8,9 @@ import {
 	parseAudioFileMetadata,
 	parseMidi,
 	parsePlaylist,
-	parseSoundCloudOEmbedMetadata,
 	resolveMidiOscillatorType,
 	trackFromElement,
 } from '../../src/lib/jukette'
-import { SoundCloudPlayableTrack } from '../../src/lib/soundcloud-track'
 
 describe('jukette', () => {
 	it('normalizes string tracks', () => {
@@ -52,8 +50,8 @@ describe('jukette', () => {
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
 		expect(inferTrackType({ src: '/track.mid' })).toBe('midi')
-		expect(inferTrackType({ src: 'https://soundcloud.com/a/b' })).toBe(
-			'soundcloud',
+		expect(inferTrackType({ src: 'https://example.com/track' })).toBe(
+			'audio',
 		)
 	})
 
@@ -131,90 +129,6 @@ describe('jukette', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'prefer-media-metadata',
 		)
-		expect(JukettePlayerElement.observedAttributes).not.toContain(
-			'preload-soundcloud',
-		)
-	})
-
-	it('waits for a prepared SoundCloud widget before playing', async () => {
-		const previousSC = globalThis.SC
-		const previousWindow = globalThis.window
-		let played = false
-		let ready = false
-		const listeners = new Map()
-		const widget = {
-			bind(eventName, listener) {
-				listeners.set(eventName, listener)
-			},
-			getDuration(callback) {
-				callback(42000)
-			},
-			getPosition(callback) {
-				callback(0)
-			},
-			load() {},
-			pause() {},
-			play() {
-				played = ready
-				listeners.get('play')?.()
-			},
-			seekTo() {},
-			setVolume() {},
-		}
-
-		globalThis.window = globalThis
-		globalThis.SC = {
-			Widget: Object.assign(() => widget, {
-				Events: {
-					FINISH: 'finish',
-					PAUSE: 'pause',
-					PLAY: 'play',
-					PLAY_PROGRESS: 'playProgress',
-					READY: 'ready',
-				},
-			}),
-		}
-
-		try {
-			const track = new SoundCloudPlayableTrack(
-				{ src: 'https://soundcloud.com/example/track' },
-				{
-					src: '',
-					toggleAttribute() {},
-				},
-				{
-					onDuration() {},
-					onFinish() {},
-					onMetadata() {},
-					onPause() {},
-					onPlay() {},
-					onProgress() {},
-					onStatus() {},
-				},
-			)
-
-			track.load({
-				metadataPreloadId: 1,
-				restart: false,
-				volume: 1,
-			})
-			const playPromise = track.play({
-				isStale: () => false,
-				restart: false,
-				volume: 1,
-			})
-
-			await Promise.resolve()
-			expect(played).toBeFalse()
-
-			ready = true
-			listeners.get('ready')?.()
-			expect(await playPromise).toBeTrue()
-			expect(played).toBeTrue()
-		} finally {
-			globalThis.SC = previousSC
-			globalThis.window = previousWindow
-		}
 	})
 
 	it('ignores non-track elements', () => {
@@ -369,25 +283,6 @@ describe('jukette', () => {
 		expect(parseAudioFileMetadata(bytes.buffer)).toEqual({
 			artist: 'Tagged artist',
 			title: 'Tagged title',
-		})
-	})
-
-	it('parses SoundCloud oEmbed titles', () => {
-		expect(
-			parseSoundCloudOEmbedMetadata({
-				title: 'Flickermood by Forss',
-			}),
-		).toEqual({
-			artist: 'Forss',
-			title: 'Flickermood',
-		})
-
-		expect(
-			parseSoundCloudOEmbedMetadata({
-				title: 'Untitled SoundCloud track',
-			}),
-		).toEqual({
-			title: 'Untitled SoundCloud track',
 		})
 	})
 })

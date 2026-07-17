@@ -13,7 +13,6 @@ export const inferTrackType = (track: Pick<JuketteTrack, 'src' | 'type'>) => {
 	if (track.type) return track.type
 
 	const source = track.src.toLowerCase()
-	if (source.includes('soundcloud.com')) return 'soundcloud'
 	if (/\.(?:mid|midi)(?:[?#].*)?$/.test(source)) return 'midi'
 	return 'audio'
 }
@@ -30,11 +29,7 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 	if (!src) return null
 
 	const type =
-		value.type === 'audio' ||
-		value.type === 'soundcloud' ||
-		value.type === 'midi'
-			? value.type
-			: undefined
+		value.type === 'audio' || value.type === 'midi' ? value.type : undefined
 
 	const track: JuketteTrack = { src }
 

@@ -6,8 +6,6 @@ export interface JuketteProgressControllerOptions {
 	getCurrentTime(): number
 	getDuration(): number
 	getPlaying(): boolean
-	isSoundCloudTrack(): boolean
-	requestSoundCloudPosition(): void
 }
 
 export class JuketteProgressController {
@@ -69,10 +67,6 @@ export class JuketteProgressController {
 			if (!this.options.getPlaying()) {
 				this.progressFrame = 0
 				return
-			}
-
-			if (this.options.isSoundCloudTrack()) {
-				this.options.requestSoundCloudPosition()
 			}
 
 			this.syncProgress(

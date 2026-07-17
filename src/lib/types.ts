@@ -1,4 +1,4 @@
-export type JuketteTrackKind = 'audio' | 'soundcloud' | 'midi'
+export type JuketteTrackKind = 'audio' | 'midi'
 export type JuketteMidiOscillator = OscillatorType | 'auto'
 export type JuketteEventName =
 	| 'jukette:ended'

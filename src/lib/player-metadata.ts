@@ -1,7 +1,4 @@
-import {
-	parseAudioFileMetadata,
-	parseSoundCloudOEmbedMetadata,
-} from './metadata'
+import { parseAudioFileMetadata } from './metadata'
 import { loadMidiSequence } from './midi'
 import { inferTrackType } from './tracks'
 import type { AudioFileMetadata, JuketteTrack, MidiSequence } from './types'
@@ -112,13 +109,6 @@ export class JuketteMetadataController {
 				if (this.options.getPreloadMetadata() || preferMediaMetadata) {
 					void this.preloadMidiMetadata(track, metadataPreloadId)
 				}
-			} else if (type === 'soundcloud') {
-				if (preferMediaMetadata) {
-					void this.preloadSoundCloudMetadata(
-						track,
-						metadataPreloadId,
-					)
-				}
 			}
 		}
 	}
@@ -192,33 +182,6 @@ export class JuketteMetadataController {
 			}
 		} catch {
 			// Leave duration unknown when metadata cannot be preloaded.
-		}
-	}
-
-	private async preloadSoundCloudMetadata(
-		track: JuketteTrack,
-		metadataPreloadId: number,
-	): Promise<void> {
-		if (!this.options.trackPrefersMediaMetadata(track)) return
-		if (this.metadata.has(this.options.getTrackKey(track))) return
-		if (typeof fetch === 'undefined') return
-
-		try {
-			const url = new URL('https://soundcloud.com/oembed')
-			url.searchParams.set('format', 'json')
-			url.searchParams.set('url', track.src)
-
-			const response = await fetch(url)
-			if (!response.ok) return
-
-			const metadata = parseSoundCloudOEmbedMetadata(
-				await response.json(),
-			)
-			if (metadataPreloadId === this.preloadId) {
-				this.setMetadata(track, metadata)
-			}
-		} catch {
-			// Leave authored title and artist in place when oEmbed is unavailable.
 		}
 	}
 

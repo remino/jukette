@@ -1,5 +1,4 @@
 import type { AudioFileMetadata } from './types'
-import { isRecord } from './utils'
 import {
 	cleanMetadataText,
 	decodeAscii,
@@ -82,21 +81,4 @@ export const parseAudioFileMetadata = (
 	}
 
 	return metadata
-}
-
-export const parseSoundCloudOEmbedMetadata = (
-	value: unknown,
-): AudioFileMetadata => {
-	if (!isRecord(value) || typeof value.title !== 'string') return {}
-
-	const title = value.title.trim()
-	if (!title) return {}
-
-	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title)
-	if (!match?.groups) return { title }
-
-	return {
-		artist: match.groups.artist.trim() || undefined,
-		title: match.groups.title.trim() || title,
-	}
 }

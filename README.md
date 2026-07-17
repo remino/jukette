@@ -133,8 +133,9 @@ Or pass a playlist with child track elements:
 		type="midi"
 	></jukette-track>
 	<jukette-track
-		title="Set"
-		src="https://soundcloud.com/example/set"
+		title="Reprise"
+		artist="Local"
+		src="/audio/reprise.ogg"
 	></jukette-track>
 </jukette-player>
 ```
@@ -185,17 +186,17 @@ Track sources are resolved in this order:
 
 `<jukette-track>` attributes and track object fields:
 
-- `src`: required URL for a local audio file, local MIDI file, or SoundCloud URL.
+- `src`: required URL for a local audio file or local MIDI file.
 - `title`: optional display title.
 - `artist`: optional display artist.
-- `type`: optional `audio`, `midi`, or `soundcloud`.
+- `type`: optional `audio` or `midi`.
 - `preload` attribute / `preload` object field: optional per-track playback
   preparation preference.
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
   for the player's media metadata preference.
 
-If `type` is omitted, Jukette infers SoundCloud URLs and `.mid` / `.midi` files.
-Everything else is treated as browser-native audio.
+If `type` is omitted, Jukette infers `.mid` / `.midi` files. Everything else
+is treated as browser-native audio.
 
 MIDI playback uses a small built-in Standard MIDI File parser and Web Audio
 synth. It is intentionally simple and suitable for local MIDI previews, not a
@@ -232,8 +233,7 @@ player.midiOscillator = 'sine'
 
 Use the `preload-metadata` attribute or `preloadMetadata` property to discover
 playlist durations before tracks are played. Jukette preloads metadata for
-browser-native audio and local MIDI tracks. SoundCloud durations are reported
-when the SoundCloud widget has loaded that track.
+browser-native audio and local MIDI tracks.
 
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.
@@ -244,9 +244,8 @@ state. Use `playlistOpen` to read or set whether the playlist panel is expanded.
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3
 ID3 `TIT2` title and `TPE1` artist tags, plus MIDI track/sequence names as
-titles. SoundCloud display metadata is loaded from oEmbed when available. MIDI
-artists stay authored-only. Authored values stay in place when tags are missing,
-unreadable, or unsupported.
+titles. MIDI artists stay authored-only. Authored values stay in place when
+tags are missing, unreadable, or unsupported.
 
 Direct `<jukette-track>` children and JavaScript track objects can override the
 player-level preference per track. Use `prefer-media-metadata` or
@@ -255,9 +254,7 @@ player-level preference per track. Use `prefer-media-metadata` or
 authored display values, or omit it to inherit the player setting.
 
 Use `preload` or `preload: true` to ask Jukette to prepare a track for playback
-when possible. For SoundCloud tracks, Jukette creates and loads that track's
-own hidden widget frame early so a later selection can play through the same
-prepared frame. The flag is track-local and does not change media metadata
+when possible. The flag is track-local and does not change media metadata
 preloading.
 
 Use `midi-oscillator` or `midiOscillator` to choose the built-in MIDI preview
@@ -320,10 +317,6 @@ jukette-player[playlist-open] {
 	border-color: currentColor;
 }
 
-jukette-player[data-kind='soundcloud'] {
-	color: #f50;
-}
-
 jukette-player[data-kind='midi'] {
 	color: #164e63;
 }
@@ -343,7 +336,6 @@ For deeper styling, Jukette exposes stable `::part()` hooks:
   `playlist-button`, `seek-input`, `volume`.
 - Playlist rows: `playlist-item`, `playlist-track`, `playlist-title`,
   `playlist-artist`, `playlist-duration`.
-- SoundCloud iframe: `soundcloud`.
 
 ```css
 jukette-player::part(player) {

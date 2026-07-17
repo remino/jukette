@@ -4,10 +4,7 @@ export {
 	JuketteTrackElement,
 } from './elements'
 export { createJuketteEventDetail } from './events'
-export {
-	parseAudioFileMetadata,
-	parseSoundCloudOEmbedMetadata,
-} from './metadata'
+export { parseAudioFileMetadata } from './metadata'
 export {
 	loadMidiSequence,
 	midiProgramToOscillator,

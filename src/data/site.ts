@@ -1,6 +1,6 @@
 export const site = {
 	description:
-		'White-label jukebox custom element for audio, SoundCloud, and MIDI playlists.',
+		'White-label jukebox custom element for audio and MIDI playlists.',
 	image: '/jukette/share.svg',
 	imageAlt: 'Jukette player controls',
 	readableTitle: 'Jukette',

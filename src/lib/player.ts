@@ -20,10 +20,8 @@ import { createJukettePlayerDom, type JukettePlayerDom } from './player-dom'
 import { JuketteMetadataController } from './player-metadata'
 import { renderPlaylist as renderPlaylistItems } from './player-playlist-renderer'
 import { JuketteProgressController } from './player-progress'
-import { JuketteSoundCloudFrameController } from './player-soundcloud-frames'
 import { formatTime } from './player-time'
 import { JukettePlayableTrack } from './playable-track'
-import { SoundCloudPlayableTrack } from './soundcloud-track'
 import {
 	inferTrackType,
 	normalizeTrack,
@@ -52,7 +50,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly dom: JukettePlayerDom
 	private readonly metadataController: JuketteMetadataController
 	private readonly progressController: JuketteProgressController
-	private readonly soundCloudFrameController: JuketteSoundCloudFrameController
 	private tracks: JuketteTrack[] = []
 	private index = 0
 	private desiredPlaying = false
@@ -90,21 +87,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 			getCurrentTime: () => this.getCurrentTime(),
 			getDuration: () => this.duration,
 			getPlaying: () => this.playing,
-			isSoundCloudTrack: () =>
-				inferTrackType(this.currentTrack ?? { src: '' }) ===
-				'soundcloud',
-			requestSoundCloudPosition: () => this.requestSoundCloudPosition(),
-		})
-		this.soundCloudFrameController = new JuketteSoundCloudFrameController({
-			audio: this.dom.audio,
-			createCallbacks: (track) => this.createPlayableCallbacks(track),
-			getCurrentTrack: () => this.currentTrack,
-			getMetadataPreloadId: () =>
-				this.metadataController.metadataPreloadId,
-			getTrackKey: (track) => this.getTrackKey(track),
-			getTracks: () => this.tracks,
-			getVolume: () => Number(this.dom.volumeInput.value),
-			playerElement: this.dom.playerElement,
 		})
 
 		this.dom.playButton.addEventListener('click', () => this.toggle())
@@ -145,7 +127,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.trackObserver?.disconnect()
 		this.stopProgressLoop()
 		this.activePlayableTrack?.stop()
-		this.soundCloudFrameController.dispose()
 	}
 
 	attributeChangedCallback(
@@ -161,7 +142,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.renderCurrentTrack()
 			this.renderPlaylist()
 			this.preloadPlaylistMetadata()
-			this.syncSoundCloudFrames()
 			return
 		}
 		if (name === ATTR_PLAYLIST_OPEN) {
@@ -239,7 +219,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.index = 0
 		this.renderPlaylist()
 		this.preloadPlaylistMetadata()
-		this.syncSoundCloudFrames()
 		this.loadTrack()
 	}
 
@@ -249,7 +228,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.desiredPlaying = true
 		const trackLoadId = this.trackLoadId
-		const type = inferTrackType(track)
 		const played = await this.activePlayableTrack?.play({
 			isStale: () => trackLoadId !== this.trackLoadId,
 			restart: this.restartOnNextPlay,
@@ -262,7 +240,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		this.syncPlayingState()
-		if (type !== 'soundcloud') this.emitJuketteEvent('jukette:play')
+		if (played) this.emitJuketteEvent('jukette:play')
 	}
 
 	pause(): void {
@@ -399,7 +377,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.renderPlaylist()
 		this.preloadPlaylistMetadata()
-		this.syncSoundCloudFrames()
 	}
 
 	private syncChildTracks(): void {
@@ -426,24 +403,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private createPlayableTrack(track: JuketteTrack): JukettePlayableTrack {
 		const callbacks = this.createPlayableCallbacks(track)
 
-		const type = inferTrackType(track)
-		if (type === 'audio') {
-			return new AudioPlayableTrack(track, this.dom.audio, callbacks)
-		}
-		if (type === 'midi') {
+		if (inferTrackType(track) === 'midi') {
 			return new MidiPlayableTrack(
 				track,
 				callbacks,
 				() => this.midiOscillator,
 			)
 		}
-		return this.getSoundCloudPlayableTrack(track)
-	}
-
-	private getSoundCloudPlayableTrack(
-		track: JuketteTrack,
-	): SoundCloudPlayableTrack {
-		return this.soundCloudFrameController.getPlayableTrack(track)
+		return new AudioPlayableTrack(track, this.dom.audio, callbacks)
 	}
 
 	private createPlayableCallbacks(track: JuketteTrack) {
@@ -503,10 +470,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 	}
 
-	private syncSoundCloudFrames(): void {
-		this.soundCloudFrameController.sync()
-	}
-
 	private loadTrack(): void {
 		this.trackLoadId += 1
 		const previousTrackKey = this.loadedTrackKey
@@ -537,11 +500,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.setStatus()
 		this.syncProgress(0, this.duration)
 		this.activePlayableTrack = this.createPlayableTrack(track)
-		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) {
-			this.syncSoundCloudFrames()
-		} else {
-			this.soundCloudFrameController.deactivateAll()
-		}
 
 		void this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataController.metadataPreloadId,
@@ -666,12 +624,5 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private stopProgressLoop(): void {
 		this.progressController.stop()
-	}
-
-	private requestSoundCloudPosition(): void {
-		const trackLoadId = this.trackLoadId
-		this.activePlayableTrack?.requestPosition(
-			() => trackLoadId !== this.trackLoadId,
-		)
 	}
 }

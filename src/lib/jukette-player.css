@@ -222,13 +222,6 @@ input[type='range'] {
 	grid-column: 2;
 }
 
-.soundcloud {
-	border: 0;
-	block-size: 166px;
-	display: block;
-	inline-size: 100%;
-}
-
 audio {
 	display: none;
 }
