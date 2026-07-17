@@ -3,7 +3,6 @@ import playerStyles from './jukette-player.css?inline'
 export interface JukettePlayerDom {
 	audio: HTMLAudioElement
 	elapsedTimeElement: HTMLElement
-	iframe: HTMLIFrameElement
 	metaElement: HTMLElement
 	nextButton: HTMLButtonElement
 	playButton: HTMLButtonElement
@@ -53,7 +52,6 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 				<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 				<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
 			</div>
-			<iframe class="soundcloud" part="soundcloud" title="SoundCloud player" allow="autoplay"></iframe>
 			<audio preload="metadata"></audio>
 			<ol class="playlist" part="playlist"></ol>
 		</div>
@@ -62,7 +60,6 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 	return {
 		audio: query<HTMLAudioElement>(shadowRoot, 'audio'),
 		elapsedTimeElement: query<HTMLElement>(shadowRoot, '.elapsed'),
-		iframe: query<HTMLIFrameElement>(shadowRoot, '.soundcloud'),
 		metaElement: query<HTMLElement>(shadowRoot, '.meta'),
 		nextButton: query<HTMLButtonElement>(shadowRoot, '.next'),
 		playButton: query<HTMLButtonElement>(shadowRoot, '.play'),

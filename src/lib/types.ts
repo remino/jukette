@@ -1,6 +1,5 @@
 export type JuketteTrackKind = 'audio' | 'soundcloud' | 'midi'
 export type JuketteMidiOscillator = OscillatorType | 'auto'
-export type JuketteSoundCloudPreload = 'none' | 'current' | 'next' | 'all'
 export type JuketteEventName =
 	| 'jukette:ended'
 	| 'jukette:next'

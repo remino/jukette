@@ -26,7 +26,6 @@ export type {
 	JuketteEventDetail,
 	JuketteEventName,
 	JuketteMidiOscillator,
-	JuketteSoundCloudPreload,
 	JuketteTrack,
 	JuketteTrackKind,
 	MidiNote,
