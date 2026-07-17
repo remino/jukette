@@ -493,47 +493,8 @@ var MidiPlayableTrack = class extends JukettePlayableTrack {
 	}
 };
 //#endregion
-//#region src/lib/jukette-player.css.generated.ts
-var playerStyles = [
-	":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-",
-	"sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:gr",
-	"id}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.me",
-	"ta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:",
-	"700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:n",
-	"owrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous",
-	" play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-contro",
-	"l-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5",
-	"lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{gri",
-	"d-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{",
-	"appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:poin",
-	"ter;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1",
-	"px solid;justify-content:center;align-items:center;padding:0;display:inline-grid",
-	"}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button",
-	":active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r)",
-	" calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255",
-	" - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range",
-	"]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabula",
-	"r-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-",
-	"child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{coun",
-	"ter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padd",
-	"ing:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{dis",
-	"play:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;disp",
-	"lay:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{cont",
-	"ent:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:e",
-	"nd;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(fr",
-	"om currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from curren",
-	"tColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:st",
-	"art;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:",
-	"0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-a",
-	"rtist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{",
-	"grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.p",
-	"laylist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:",
-	"1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0",
-	";block-size:166px;inline-size:100%;display:none}audio{display:none}@media (width",
-	"<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previ",
-	"ous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-con",
-	"trol-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}"
-].join("");
+//#region src/lib/jukette-player.css?inline
+var jukette_player_default = ":host {\n	--jukette-control-size: 2em;\n	display: block;\n	font: inherit;\n	color: inherit;\n}\n\n* {\n	box-sizing: border-box;\n}\n\n.player {\n	border: 1px solid currentColor;\n	display: grid;\n	gap: 0.5lh;\n	padding: 0.5rlh 1em;\n}\n\n.track {\n	display: grid;\n	min-inline-size: 0;\n}\n\n.progress {\n	display: grid;\n	gap: 0;\n}\n\n.title,\n.meta {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.title {\n	font-weight: 700;\n}\n\n.meta,\n.status,\n.time {\n	opacity: 0.75;\n}\n\n.status {\n	min-block-size: 1lh;\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.controls {\n	align-items: center;\n	display: grid;\n	gap: 0.5lh 0.5em;\n	grid-template-areas: 'previous play next volume playlist';\n	grid-template-columns:\n		repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr)\n		var(--jukette-control-size);\n}\n\n.previous {\n	grid-area: previous;\n}\n\n.play {\n	grid-area: play;\n}\n\n.next {\n	grid-area: next;\n}\n\n.volume {\n	grid-area: volume;\n}\n\n.playlist-toggle {\n	grid-area: playlist;\n}\n\nbutton {\n	align-items: center;\n	appearance: none;\n	background: transparent;\n	border: 1px solid currentColor;\n	block-size: var(--jukette-control-size);\n	color: inherit;\n	cursor: pointer;\n	display: inline-grid;\n	font: inherit;\n	inline-size: var(--jukette-control-size);\n	justify-content: center;\n	padding: 0;\n}\n\nbutton:focus-visible {\n	outline: 2px solid currentColor;\n	outline-offset: 0;\n	outline-radius: 0;\n}\n\nbutton:active {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton[aria-pressed='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton:disabled {\n	cursor: default;\n	opacity: 0.45;\n}\n\ninput[type='range'] {\n	accent-color: currentColor;\n}\n\n.seek {\n	display: grid;\n}\n\n.time {\n	display: grid;\n	gap: 0.5em;\n	grid-template-columns: repeat(3, 1fr);\n	font-variant-numeric: tabular-nums;\n}\n\n.time span:nth-child(2) {\n	text-align: center;\n}\n\n.time span:nth-child(3) {\n	text-align: end;\n}\n\n.playlist {\n	border-block-start: 1px solid currentColor;\n	counter-reset: jukette-playlist;\n	display: none;\n	gap: 0.5lh 0;\n	list-style: none;\n	margin: 0;\n	padding: 1lh 0 0.5lh;\n}\n\n:host([playlist-open]) .playlist {\n	display: grid;\n}\n\n.playlist li {\n	align-items: start;\n	counter-increment: jukette-playlist;\n	display: grid;\n}\n\n.playlist li button {\n	padding-inline: 0.5em;\n}\n\n.playlist li button::before {\n	content: counter(jukette-playlist) '.';\n	grid-column: 1;\n	grid-row: 1 / span 2;\n	font-variant-numeric: tabular-nums;\n	text-align: end;\n}\n\n.playlist li button[aria-current='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\n.playlist button {\n	align-items: start;\n	block-size: auto;\n	border: 0;\n	display: grid;\n	gap: 0 0.5em;\n	grid-template-columns: 2ch minmax(0, 1fr) auto;\n	inline-size: 100%;\n	text-align: start;\n}\n\n.playlist-title,\n.playlist-artist {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.playlist-title {\n	font-weight: 700;\n	grid-column: 2;\n}\n\n.playlist-artist,\n.playlist-duration {\n	opacity: 0.75;\n}\n\n.playlist-duration {\n	align-self: center;\n	font-variant-numeric: tabular-nums;\n	grid-column: 3;\n	grid-row: 1 / span 2;\n	white-space: nowrap;\n}\n\n.playlist-artist {\n	grid-column: 2;\n}\n\n.soundcloud {\n	border: 0;\n	block-size: 166px;\n	display: none;\n	inline-size: 100%;\n}\n\naudio {\n	display: none;\n}\n\n@media (max-width: 34em) {\n	.controls {\n		grid-template-areas:\n			'volume volume volume volume volume'\n			'previous play next spacer playlist';\n		grid-template-columns:\n			repeat(3, var(--jukette-control-size)) minmax(0, 1fr)\n			var(--jukette-control-size);\n		justify-content: start;\n	}\n}\n";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -544,7 +505,7 @@ var query = (root, selector) => {
 var createJukettePlayerDom = (host) => {
 	const shadowRoot = host.attachShadow({ mode: "open" });
 	shadowRoot.innerHTML = `
-		<style>${playerStyles}</style>
+		<style>${jukette_player_default}</style>
 
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">

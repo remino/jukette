@@ -27,6 +27,8 @@
     - Move player DOM setup, playlist rendering, metadata preloading,
       SoundCloud preload handling, and progress/status display into focused
       internal controller and helper modules.
+    - Import player shadow CSS through Vite's inline CSS pipeline instead of a
+      custom generated TypeScript style module.
     - Add a per-track `preload` flag for future playback preparation policies.
     - Add `preload-soundcloud` / `preloadSoundCloud` to warm SoundCloud tracks
       with `none`, `current`, `next`, and `all` policies, respecting per-track

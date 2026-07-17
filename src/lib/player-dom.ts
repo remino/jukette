@@ -1,4 +1,4 @@
-import { playerStyles } from './jukette-player.css.generated'
+import playerStyles from './jukette-player.css?inline'
 
 export interface JukettePlayerDom {
 	audio: HTMLAudioElement
