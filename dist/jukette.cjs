@@ -1,7 +1,9 @@
 /*! jukette v0.3.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-//#region src/lib/jukette.ts
-var ATTR_SRC = "src";
+//#region src/lib/dom.ts
+var HTMLElementBase = globalThis.HTMLElement ?? class {};
+//#endregion
+//#region src/lib/attributes.ts
 var ATTR_PLAYLIST = "playlist";
 var ATTR_PLAYLIST_OPEN = "playlist-open";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
@@ -11,11 +13,8 @@ var ATTR_TRACK_INDEX = "track-index";
 var ATTR_TITLE = "title";
 var ATTR_ARTIST = "artist";
 var ATTR_TYPE = "type";
-var SOUNDCLOUD_API_SRC = "https://w.soundcloud.com/player/api.js";
-var SOUNDCLOUD_LOAD_TIMEOUT = 1e4;
-var SOUNDCLOUD_PLAY_TIMEOUT = 5e3;
-var HTMLElementBase = globalThis.HTMLElement ?? class {};
-var soundCloudApiPromise = null;
+//#endregion
+//#region src/lib/utils.ts
 var isRecord = (value) => typeof value === "object" && value !== null;
 var normalizeBooleanAttribute = (value) => {
 	if (value === null) return void 0;
@@ -23,6 +22,8 @@ var normalizeBooleanAttribute = (value) => {
 	if (normalizedValue === "" || normalizedValue === "true") return true;
 	if (normalizedValue === "false") return false;
 };
+//#endregion
+//#region src/lib/tracks.ts
 var inferTrackType = (track) => {
 	if (track.type) return track.type;
 	const source = track.src.toLowerCase();
@@ -30,11 +31,6 @@ var inferTrackType = (track) => {
 	if (/\.(?:mid|midi)(?:[?#].*)?$/.test(source)) return "midi";
 	return "audio";
 };
-var createJuketteEventDetail = (detail) => ({
-	...detail,
-	tracks: [...detail.tracks],
-	type: detail.track ? inferTrackType(detail.track) : void 0
-});
 var normalizeTrack = (value) => {
 	if (typeof value === "string") {
 		const src = value.trim();
@@ -64,6 +60,440 @@ var parsePlaylist = (value) => {
 		return value.split("\n").map((item) => normalizeTrack(item)).filter((item) => item !== null);
 	}
 };
+var trackFromElement = (element) => {
+	if (element.localName !== "jukette-track") return null;
+	return normalizeTrack({
+		artist: element.getAttribute("artist") ?? void 0,
+		preferMediaMetadata: element.getAttribute("prefer-media-metadata") ?? void 0,
+		src: element.getAttribute("src") ?? "",
+		title: element.getAttribute("title") ?? void 0,
+		type: element.getAttribute("type") ?? void 0
+	});
+};
+//#endregion
+//#region src/lib/events.ts
+var createJuketteEventDetail = (detail) => ({
+	...detail,
+	tracks: [...detail.tracks],
+	type: detail.track ? inferTrackType(detail.track) : void 0
+});
+//#endregion
+//#region src/lib/jukette-player.css.generated.ts
+var playerStyles = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.meta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:nowrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{grid-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabular-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{counter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padding:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{display:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;display:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{content:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:end;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:start;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-artist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.playlist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0;block-size:166px;inline-size:100%;display:none}:host([data-kind=soundcloud]) .soundcloud{display:block}audio{display:none}@media (width<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}";
+//#endregion
+//#region src/lib/text.ts
+var decodeAscii = (bytes) => String.fromCharCode(...bytes);
+var decodeIso88591 = (bytes) => String.fromCharCode(...bytes);
+var decodeUtf16Be = (bytes) => {
+	const codeUnits = [];
+	for (let index = 0; index + 1 < bytes.length; index += 2) codeUnits.push(bytes[index] << 8 | bytes[index + 1]);
+	return String.fromCharCode(...codeUnits);
+};
+var decodeTextBytes = (bytes, encoding) => {
+	try {
+		return new TextDecoder(encoding).decode(bytes);
+	} catch {
+		return encoding === "iso-8859-1" ? decodeIso88591(bytes) : decodeAscii(bytes);
+	}
+};
+var cleanMetadataText = (value) => {
+	const nullIndex = value.indexOf("\0");
+	return (nullIndex >= 0 ? value.slice(0, nullIndex) : value.trimEnd()).trim();
+};
+//#endregion
+//#region src/lib/metadata.ts
+var readSynchsafeInteger = (data, offset, length = 4) => {
+	let value = 0;
+	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
+	return value;
+};
+var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
+var decodeId3TextFrame = (frameData) => {
+	if (frameData.length < 2) return "";
+	const encoding = frameData[0];
+	const content = frameData.slice(1);
+	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
+	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
+	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
+	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
+};
+var parseAudioFileMetadata = (buffer) => {
+	const data = new Uint8Array(buffer);
+	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
+	const version = data[3];
+	const flags = data[5];
+	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
+	let offset = 10;
+	if (flags & 64 && offset + 4 <= tagEnd) {
+		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
+		offset += extendedHeaderSize;
+	}
+	const metadata = {};
+	while (offset + 10 <= tagEnd) {
+		const frameId = decodeAscii(data.slice(offset, offset + 4));
+		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
+		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
+		const frameStart = offset + 10;
+		const frameEnd = frameStart + frameSize;
+		if (frameSize <= 0 || frameEnd > tagEnd) break;
+		const frameData = data.slice(frameStart, frameEnd);
+		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
+		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
+		offset = frameEnd;
+	}
+	return metadata;
+};
+var parseSoundCloudOEmbedMetadata = (value) => {
+	if (!isRecord(value) || typeof value.title !== "string") return {};
+	const title = value.title.trim();
+	if (!title) return {};
+	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title);
+	if (!match?.groups) return { title };
+	return {
+		artist: match.groups.artist.trim() || void 0,
+		title: match.groups.title.trim() || title
+	};
+};
+//#endregion
+//#region src/lib/midi.ts
+var MidiReader = class {
+	data;
+	offset = 0;
+	constructor(data) {
+		this.data = data;
+	}
+	get done() {
+		return this.offset >= this.data.length;
+	}
+	read(length) {
+		const value = this.data.slice(this.offset, this.offset + length);
+		this.offset += length;
+		return value;
+	}
+	unread(length = 1) {
+		this.offset = Math.max(0, this.offset - length);
+	}
+	readText(length) {
+		return String.fromCharCode(...this.read(length));
+	}
+	readU8() {
+		return this.data[this.offset++] ?? 0;
+	}
+	readU16() {
+		return this.readU8() << 8 | this.readU8();
+	}
+	readU32() {
+		return this.readU8() << 24 | this.readU8() << 16 | this.readU8() << 8 | this.readU8();
+	}
+	readVar() {
+		let value = 0;
+		let byte;
+		do {
+			byte = this.readU8();
+			value = value << 7 | byte & 127;
+		} while (byte & 128);
+		return value;
+	}
+};
+var midiNoteFrequency = (note) => 440 * Math.pow(2, (note - 69) / 12);
+var decodeMidiText = (bytes) => cleanMetadataText(decodeTextBytes(bytes, "utf-8"));
+var normalizeMidiOscillator = (value) => {
+	if (value === "sine" || value === "square" || value === "sawtooth" || value === "triangle") return value;
+	return "auto";
+};
+var midiProgramToOscillator = (program) => {
+	if (program === void 0) return "triangle";
+	if (program >= 16 && program <= 23) return "sine";
+	if (program >= 32 && program <= 39) return "square";
+	if (program >= 80 && program <= 87) return "square";
+	if (program >= 56 && program <= 87) return "sawtooth";
+	return "triangle";
+};
+var resolveMidiOscillatorType = (oscillator, program) => oscillator === "auto" ? midiProgramToOscillator(program) : oscillator;
+var parseMidi = (buffer) => {
+	const reader = new MidiReader(new Uint8Array(buffer));
+	if (reader.readText(4) !== "MThd") throw new Error("Invalid MIDI header.");
+	const headerLength = reader.readU32();
+	reader.readU16();
+	const trackCount = reader.readU16();
+	const division = reader.readU16();
+	if (headerLength > 6) reader.read(headerLength - 6);
+	if (division & 32768) throw new Error("SMPTE MIDI timing is not supported.");
+	const ticksPerBeat = division;
+	const notes = [];
+	const metadata = {};
+	let program;
+	let tempo = 5e5;
+	let duration = 0;
+	for (let trackIndex = 0; trackIndex < trackCount && !reader.done; trackIndex++) {
+		if (reader.readText(4) !== "MTrk") break;
+		const trackReader = new MidiReader(reader.read(reader.readU32()));
+		const activeNotes = /* @__PURE__ */ new Map();
+		let runningStatus = 0;
+		let seconds = 0;
+		while (!trackReader.done) {
+			const delta = trackReader.readVar();
+			seconds += delta * tempo / ticksPerBeat / 1e6;
+			let status = trackReader.readU8();
+			if (status < 128) {
+				trackReader.unread();
+				status = runningStatus;
+			} else runningStatus = status;
+			if (status === 255) {
+				const type = trackReader.readU8();
+				const length = trackReader.readVar();
+				if (type === 81 && length === 3) {
+					const bytes = trackReader.read(3);
+					tempo = bytes[0] << 16 | bytes[1] << 8 | bytes[2];
+				} else if (type === 3) {
+					const title = decodeMidiText(trackReader.read(length));
+					if (!metadata.title && title) metadata.title = title;
+				} else trackReader.read(length);
+				continue;
+			}
+			if (status === 240 || status === 247) {
+				trackReader.read(trackReader.readVar());
+				continue;
+			}
+			const command = status & 240;
+			if (command === 192) {
+				const nextProgram = trackReader.readU8();
+				if (program === void 0) program = nextProgram;
+				continue;
+			}
+			if (command === 208) {
+				trackReader.readU8();
+				continue;
+			}
+			const note = trackReader.readU8();
+			const velocity = trackReader.readU8();
+			if (command === 144 && velocity > 0) activeNotes.set(note, {
+				start: seconds,
+				velocity: velocity / 127
+			});
+			else if (command === 128 || command === 144) {
+				const active = activeNotes.get(note);
+				if (active) {
+					notes.push({
+						duration: Math.max(.03, seconds - active.start),
+						frequency: midiNoteFrequency(note),
+						start: active.start,
+						velocity: active.velocity
+					});
+					activeNotes.delete(note);
+				}
+			}
+			duration = Math.max(duration, seconds);
+		}
+	}
+	const sequenceMetadata = {};
+	if (metadata.title) sequenceMetadata.title = metadata.title;
+	if (program !== void 0) sequenceMetadata.program = program;
+	return {
+		duration: Math.max(duration, 1),
+		metadata: sequenceMetadata.title || sequenceMetadata.program !== void 0 ? sequenceMetadata : void 0,
+		notes
+	};
+};
+var loadMidiSequence = async (src) => {
+	const response = await fetch(src);
+	if (!response.ok) throw new Error(`Unable to load MIDI file: ${src}`);
+	return parseMidi(await response.arrayBuffer());
+};
+//#endregion
+//#region src/lib/playable-track.ts
+var JukettePlayableTrack = class {
+	track;
+	callbacks;
+	durationValue = 0;
+	constructor(track, callbacks) {
+		this.track = track;
+		this.callbacks = callbacks;
+	}
+	get currentTime() {
+		return 0;
+	}
+	get duration() {
+		return this.durationValue;
+	}
+	load(_options) {}
+	seek(_seconds) {}
+	setVolume(_volume) {}
+	stop() {
+		this.pause({ silent: true });
+	}
+	requestPosition(_isStale) {}
+};
+//#endregion
+//#region src/lib/audio-track.ts
+var AudioPlayableTrack = class extends JukettePlayableTrack {
+	audio;
+	constructor(track, audio, callbacks) {
+		super(track, callbacks);
+		this.audio = audio;
+	}
+	get currentTime() {
+		return this.audio.currentTime;
+	}
+	get duration() {
+		return Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
+	}
+	load(options) {
+		this.callbacks.onStatus("Loading audio");
+		this.audio.src = this.track.src;
+		this.audio.volume = options.volume;
+		this.audio.load();
+		this.audio.currentTime = 0;
+		this.preloadFileMetadata(options.metadataPreloadId);
+	}
+	async play(options) {
+		this.callbacks.onStatus("Starting audio");
+		await this.audio.play();
+		return !options.isStale();
+	}
+	pause() {
+		this.audio.pause();
+	}
+	seek(seconds) {
+		this.audio.currentTime = seconds;
+	}
+	setVolume(volume) {
+		this.audio.volume = volume;
+	}
+	stop() {
+		this.audio.pause();
+		this.audio.removeAttribute("src");
+	}
+	syncFromMedia() {
+		this.durationValue = this.duration;
+		this.callbacks.onDuration(this.durationValue);
+		this.callbacks.onProgress(this.audio.currentTime, this.durationValue);
+	}
+	async preloadFileMetadata(metadataPreloadId) {
+		if (typeof fetch === "undefined") return;
+		try {
+			const response = await fetch(this.track.src, { headers: { Range: "bytes=0-65535" } });
+			if (!response.ok) return;
+			this.callbacks.onMetadata(parseAudioFileMetadata(await response.arrayBuffer()), metadataPreloadId);
+		} catch {}
+	}
+};
+//#endregion
+//#region src/lib/midi-track.ts
+var MidiPlayableTrack = class extends JukettePlayableTrack {
+	getOscillator;
+	audio = null;
+	gain = null;
+	pausedAt = 0;
+	sequence = null;
+	sources = [];
+	startedAt = 0;
+	timer = 0;
+	volume = 1;
+	constructor(track, callbacks, getOscillator) {
+		super(track, callbacks);
+		this.getOscillator = getOscillator;
+	}
+	get currentTime() {
+		return this.timer ? (performance.now() - this.startedAt) / 1e3 + this.pausedAt : this.pausedAt;
+	}
+	load(_options) {
+		this.callbacks.onStatus("Ready");
+		window.setTimeout(() => {
+			if (!this.timer) this.callbacks.onStatus();
+		}, 700);
+	}
+	async play(options) {
+		if (!this.sequence) {
+			this.callbacks.onStatus("Loading MIDI");
+			this.sequence = await loadMidiSequence(this.track.src);
+			if (options.isStale()) return false;
+			this.durationValue = this.sequence.duration;
+			this.callbacks.onDuration(this.durationValue);
+			if (this.sequence.metadata?.title) this.callbacks.onMetadata({ title: this.sequence.metadata.title });
+			this.callbacks.onProgress(this.pausedAt, this.durationValue);
+		}
+		if (options.restart) {
+			this.pausedAt = 0;
+			this.callbacks.onProgress(0, this.durationValue);
+		}
+		this.volume = options.volume;
+		this.stopSources();
+		if (options.isStale()) return false;
+		this.startedAt = performance.now();
+		this.ensureAudio();
+		if (!this.audio || !this.gain || !this.sequence) return false;
+		if (this.audio.state === "suspended") await this.audio.resume();
+		const startOffset = this.pausedAt;
+		const startTime = this.audio.currentTime + .03;
+		const oscillatorType = resolveMidiOscillatorType(this.getOscillator(), this.sequence.metadata?.program);
+		this.sources = this.sequence.notes.filter((note) => note.start + note.duration > startOffset).map((note) => {
+			const oscillator = this.audio.createOscillator();
+			const envelope = this.audio.createGain();
+			const relativeStart = Math.max(0, note.start - startOffset);
+			const clippedOffset = Math.max(0, startOffset - note.start);
+			const clippedDuration = Math.max(.03, note.duration - clippedOffset);
+			const noteStart = startTime + relativeStart;
+			const noteEnd = noteStart + clippedDuration;
+			oscillator.type = oscillatorType;
+			oscillator.frequency.value = note.frequency;
+			envelope.gain.setValueAtTime(0, noteStart);
+			envelope.gain.linearRampToValueAtTime(note.velocity * .18, noteStart + .01);
+			envelope.gain.setValueAtTime(note.velocity * .16, Math.max(noteStart + .02, noteEnd - .04));
+			envelope.gain.linearRampToValueAtTime(0, noteEnd);
+			oscillator.connect(envelope);
+			envelope.connect(this.gain);
+			oscillator.start(noteStart);
+			oscillator.stop(noteEnd + .02);
+			return oscillator;
+		});
+		this.timer = window.setTimeout(() => this.callbacks.onFinish(), Math.max(0, this.durationValue - startOffset) * 1e3);
+		return true;
+	}
+	pause() {
+		this.pausedAt = this.currentTime;
+		this.stopSources();
+	}
+	seek(seconds) {
+		this.pausedAt = Math.max(0, seconds);
+		this.callbacks.onProgress(this.pausedAt, this.durationValue);
+	}
+	setVolume(volume) {
+		this.volume = volume;
+		if (this.gain) this.gain.gain.value = volume;
+	}
+	stop() {
+		this.stopSources();
+	}
+	stopSources() {
+		if (this.timer) {
+			window.clearTimeout(this.timer);
+			this.timer = 0;
+		}
+		for (const source of this.sources) try {
+			source.stop();
+		} catch {}
+		this.sources = [];
+	}
+	ensureAudio() {
+		if (this.audio && this.gain) return;
+		const AudioContextConstructor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+		if (!AudioContextConstructor) {
+			this.callbacks.onStatus("MIDI playback needs Web Audio");
+			return;
+		}
+		this.audio = new AudioContextConstructor();
+		this.gain = this.audio.createGain();
+		this.gain.gain.value = this.volume;
+		this.gain.connect(this.audio.destination);
+	}
+};
+//#endregion
+//#region src/lib/soundcloud.ts
+var SOUNDCLOUD_API_SRC = "https://w.soundcloud.com/player/api.js";
+var SOUNDCLOUD_LOAD_TIMEOUT = 1e4;
+var SOUNDCLOUD_PLAY_TIMEOUT = 5e3;
+var soundCloudApiPromise = null;
 var getSoundCloudApi = async () => {
 	const existingApi = globalThis.SC;
 	if (existingApi?.Widget) return existingApi;
@@ -87,24 +517,17 @@ var getSoundCloudApi = async () => {
 	});
 	return soundCloudApiPromise;
 };
-var trackFromElement = (element) => {
-	if (element.localName !== "jukette-track") return null;
-	return normalizeTrack({
-		artist: element.getAttribute(ATTR_ARTIST) ?? void 0,
-		preferMediaMetadata: element.getAttribute(ATTR_PREFER_MEDIA_METADATA) ?? void 0,
-		src: element.getAttribute(ATTR_SRC) ?? "",
-		title: element.getAttribute(ATTR_TITLE) ?? void 0,
-		type: element.getAttribute(ATTR_TYPE) ?? void 0
-	});
-};
 var SoundCloudAdapter = class {
 	iframe;
 	callbacks;
 	currentIsStale = () => false;
 	eventsBound = false;
 	loadId = 0;
+	loadingPromise = null;
+	loadingSrc = "";
 	loadedDuration = 0;
 	loadedSrc = "";
+	preparedSrc = "";
 	resolvePlay = null;
 	silentPause = false;
 	widget = null;
@@ -115,6 +538,12 @@ var SoundCloudAdapter = class {
 	get hasWidget() {
 		return this.widget !== null;
 	}
+	isLoaded(src) {
+		return this.loadedSrc === src;
+	}
+	isPrepared(src) {
+		return this.preparedSrc === src && this.widget !== null;
+	}
 	getPlayerUrl(src) {
 		const url = new URL("https://w.soundcloud.com/player/");
 		url.searchParams.set("url", src);
@@ -123,7 +552,11 @@ var SoundCloudAdapter = class {
 		return url.toString();
 	}
 	prepare(src) {
-		if (!this.widget && !this.iframe.src) this.iframe.src = this.getPlayerUrl(src);
+		if (this.widget) return;
+		const playerUrl = this.getPlayerUrl(src);
+		this.preparedSrc = src;
+		if (this.iframe.src !== playerUrl) this.iframe.src = playerUrl;
+		this.getWidget(() => false);
 	}
 	async load(src, isStale) {
 		this.currentIsStale = isStale;
@@ -133,9 +566,12 @@ var SoundCloudAdapter = class {
 			this.emitDuration(widget, isStale);
 			return true;
 		}
+		if (this.loadingSrc === src && this.loadingPromise) return this.loadingPromise;
 		const loadId = this.loadId += 1;
 		this.loadedDuration = 0;
-		if (!await new Promise((resolve) => {
+		this.preparedSrc = src;
+		this.loadingSrc = src;
+		this.loadingPromise = new Promise((resolve) => {
 			let settled = false;
 			const timeout = window.setTimeout(() => settle(false), SOUNDCLOUD_LOAD_TIMEOUT);
 			const settle = (ready) => {
@@ -148,7 +584,13 @@ var SoundCloudAdapter = class {
 				auto_play: false,
 				callback: () => settle(true)
 			});
-		}) || isStale() || loadId !== this.loadId) return false;
+		});
+		const loaded = await this.loadingPromise;
+		if (this.loadingSrc === src) {
+			this.loadingPromise = null;
+			this.loadingSrc = "";
+		}
+		if (!loaded || isStale() || loadId !== this.loadId) return false;
 		this.loadedSrc = src;
 		this.emitDuration(widget, isStale);
 		return true;
@@ -199,6 +641,7 @@ var SoundCloudAdapter = class {
 		this.bindEvents(api, widget);
 		widget.bind(api.Widget.Events.READY, () => {
 			if (this.isStale() || widget !== this.widget) return;
+			this.loadedSrc = this.preparedSrc;
 			widget.getDuration((duration) => {
 				if (this.isStale() || widget !== this.widget) return;
 				this.loadedDuration = duration / 1e3;
@@ -249,9 +692,98 @@ var SoundCloudAdapter = class {
 		});
 	}
 };
+//#endregion
+//#region src/lib/soundcloud-track.ts
+var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
+	adapter;
+	position = 0;
+	positionRequested = false;
+	constructor(track, iframe, callbacks) {
+		super(track, callbacks);
+		this.adapter = new SoundCloudAdapter(iframe, {
+			onDuration: (duration) => {
+				this.durationValue = duration;
+				this.callbacks.onDuration(duration);
+				this.callbacks.onProgress(this.position, this.durationValue);
+			},
+			onFinish: () => this.callbacks.onFinish(),
+			onPause: () => this.callbacks.onPause(),
+			onPlay: () => this.callbacks.onPlay(),
+			onPositionRequestComplete: () => {
+				this.positionRequested = false;
+			},
+			onProgress: (position) => {
+				this.position = position;
+				this.positionRequested = false;
+				this.callbacks.onProgress(this.position, this.durationValue);
+			},
+			onRelativeProgress: (relativePosition) => {
+				if (this.durationValue <= 0) return;
+				this.position = relativePosition * this.durationValue;
+				this.callbacks.onProgress(this.position, this.durationValue);
+			}
+		});
+	}
+	get currentTime() {
+		return this.position;
+	}
+	load(_options) {
+		this.position = 0;
+		this.callbacks.onProgress(0, this.durationValue);
+		this.callbacks.onStatus("Preparing SoundCloud");
+		this.adapter.prepare(this.track.src);
+	}
+	async play(options) {
+		this.callbacks.onStatus("Loading SoundCloud");
+		if (!(this.adapter.isLoaded(this.track.src) || this.adapter.isPrepared(this.track.src))) {
+			let didLoad;
+			try {
+				didLoad = await this.adapter.load(this.track.src, options.isStale);
+			} catch {
+				didLoad = false;
+			}
+			if (options.isStale()) return false;
+			if (!didLoad) {
+				this.callbacks.onStatus("SoundCloud unavailable");
+				return false;
+			}
+		}
+		this.adapter.setVolume(options.volume);
+		if (options.restart) this.seek(0);
+		this.callbacks.onStatus("Starting SoundCloud");
+		const played = await this.adapter.play(options.isStale);
+		if (options.isStale()) return false;
+		if (!played) {
+			this.callbacks.onStatus("SoundCloud did not start");
+			return false;
+		}
+		return true;
+	}
+	pause(options = {}) {
+		this.adapter.pause(options);
+	}
+	seek(seconds) {
+		this.position = Math.max(0, seconds);
+		this.adapter.seek(this.position);
+		this.callbacks.onProgress(this.position, this.durationValue);
+	}
+	setVolume(volume) {
+		this.adapter.setVolume(volume);
+	}
+	requestPosition(isStale) {
+		if (this.positionRequested) return;
+		this.positionRequested = true;
+		window.setTimeout(() => {
+			if (!isStale()) this.positionRequested = false;
+		}, 500);
+		this.adapter.requestPosition(isStale);
+	}
+};
+//#endregion
+//#region src/lib/player.ts
 var JukettePlayerElement = class extends HTMLElementBase {
 	static observedAttributes = [
-		ATTR_SRC,
+		"src",
 		ATTR_PLAYLIST,
 		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
@@ -282,16 +814,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	playing = false;
 	trackLoadId = 0;
 	duration = 0;
-	midiTimer = 0;
-	midiStartedAt = 0;
-	midiPausedAt = 0;
-	midiAudio = null;
-	midiGain = null;
-	midiSequence = null;
-	midiSources = [];
-	soundCloudAdapter = null;
-	soundCloudPosition = 0;
-	soundCloudPositionRequested = false;
+	activePlayableTrack = null;
 	restartOnNextPlay = false;
 	progressFrame = 0;
 	metadataPreloadId = 0;
@@ -303,244 +826,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
 		const shadowRoot = this.attachShadow({ mode: "open" });
 		shadowRoot.innerHTML = `
-			<style>
-				:host {
-					--jukette-control-size: 2em;
-					display: block;
-					font: inherit;
-					color: inherit;
-				}
-
-				* {
-					box-sizing: border-box;
-				}
-
-				.player {
-					border: 1px solid currentColor;
-					display: grid;
-					gap: 0.5lh;
-					padding: 0.5rlh 1em;
-				}
-
-				.track {
-					display: grid;
-					min-inline-size: 0;
-				}
-
-				.progress {
-					display: grid;
-					gap: 0;
-				}
-
-				.title,
-				.meta {
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-				}
-
-				.title {
-					font-weight: 700;
-				}
-
-				.meta,
-				.status,
-				.time {
-					opacity: 0.75;
-				}
-
-				.status {
-					min-block-size: 1lh;
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-				}
-
-				.controls {
-					align-items: center;
-					display: grid;
-					gap: 0.5lh 0.5em;
-					grid-template-areas: "previous play next volume playlist";
-					grid-template-columns: repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);
-				}
-
-				.previous {
-					grid-area: previous;
-				}
-
-				.play {
-					grid-area: play;
-				}
-
-				.next {
-					grid-area: next;
-				}
-
-				.volume {
-					grid-area: volume;
-				}
-
-				.playlist-toggle {
-					grid-area: playlist;
-				}
-
-				button {
-					align-items: center;
-					appearance: none;
-					background: transparent;
-					border: 1px solid currentColor;
-					block-size: var(--jukette-control-size);
-					color: inherit;
-					cursor: pointer;
-					display: inline-grid;
-					font: inherit;
-					inline-size: var(--jukette-control-size);
-					justify-content: center;
-					padding: 0;
-				}
-
-				button:focus-visible {
-					outline: 2px solid currentColor;
-					outline-offset: 0;
-					outline-radius: 0;
-				}
-
-				button:active {
-					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-				}
-
-				button[aria-pressed="true"] {
-					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-				}
-
-				button:disabled {
-					cursor: default;
-					opacity: 0.45;
-				}
-
-				input[type="range"] {
-					accent-color: currentColor;
-				}
-
-				.seek {
-					display: grid;
-				}
-
-				.time {
-					display: grid;
-					gap: 0.5em;
-					grid-template-columns: repeat(3, 1fr);
-					font-variant-numeric: tabular-nums;
-				}
-
-				.time span:nth-child(2) {
-					text-align: center;
-				}
-
-				.time span:nth-child(3) {
-					text-align: end;
-				}
-
-				.playlist {
-					border-block-start: 1px solid currentColor;
-					counter-reset: jukette-playlist;
-					display: none;
-					gap: 0.5lh 0;
-					list-style: none;
-					margin: 0;
-					padding: 1lh 0 0.5lh;
-				}
-
-				:host([playlist-open]) .playlist {
-					display: grid;
-				}
-
-				.playlist li {
-					align-items: start;
-					counter-increment: jukette-playlist;
-					display: grid;
-				}
-
-				.playlist li button {
-					padding-inline: 0.5em;
-				}
-
-				.playlist li button::before {
-					content: counter(jukette-playlist) ".";
-					grid-column: 1;
-					grid-row: 1 / span 2;
-					font-variant-numeric: tabular-nums;
-					text-align: end;
-				}
-
-				.playlist li button[aria-current="true"] {
-					background: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-					color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
-				}
-
-				.playlist button {
-					align-items: start;
-					block-size: auto;
-					border: 0;
-					display: grid;
-					gap: 0 0.5em;
-					grid-template-columns: 2ch minmax(0, 1fr) auto;
-					inline-size: 100%;
-					text-align: start;
-				}
-
-				.playlist-title,
-				.playlist-artist {
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-				}
-
-				.playlist-title {
-					font-weight: 700;
-					grid-column: 2;
-				}
-
-				.playlist-artist,
-				.playlist-duration {
-					opacity: 0.75;
-				}
-
-				.playlist-duration {
-					align-self: center;
-					font-variant-numeric: tabular-nums;
-					grid-column: 3;
-					grid-row: 1 / span 2;
-					white-space: nowrap;
-				}
-
-				.playlist-artist {
-					grid-column: 2;
-				}
-
-				.soundcloud {
-					border: 0;
-					block-size: 166px;
-					display: none;
-					inline-size: 100%;
-				}
-
-				audio {
-					display: none;
-				}
-
-				@media (max-width: 34em) {
-					.controls {
-						grid-template-areas:
-							"volume volume volume volume volume"
-							"previous play next . playlist";
-						grid-template-columns: repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);
-						justify-content: start;
-					}
-				}
-			</style>
+			<style>${playerStyles}</style>
 
 			<div class="player" part="player">
 				<div class="track" part="track" aria-live="polite">
@@ -585,48 +871,14 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.elapsedTimeElement = this.query(shadowRoot, ".elapsed");
 		this.remainingTimeElement = this.query(shadowRoot, ".remaining");
 		this.totalTimeElement = this.query(shadowRoot, ".total");
-		this.soundCloudAdapter = new SoundCloudAdapter(this.iframe, {
-			onDuration: (duration) => {
-				this.duration = duration;
-				this.setTrackDuration(this.currentTrack, duration);
-				this.syncProgress(this.soundCloudPosition, this.duration);
-			},
-			onFinish: () => this.finishTrack(),
-			onPause: () => {
-				const wasPlaying = this.playing || this.desiredPlaying;
-				this.desiredPlaying = false;
-				this.playing = false;
-				this.syncPlayingState();
-				if (wasPlaying) this.emitJuketteEvent("jukette:pause");
-			},
-			onPlay: () => {
-				this.desiredPlaying = true;
-				this.playing = true;
-				this.syncPlayingState();
-				this.emitJuketteEvent("jukette:play");
-			},
-			onPositionRequestComplete: () => {
-				this.soundCloudPositionRequested = false;
-			},
-			onProgress: (position) => {
-				this.soundCloudPosition = position;
-				this.soundCloudPositionRequested = false;
-				this.syncProgress(this.soundCloudPosition, this.duration);
-			},
-			onRelativeProgress: (relativePosition) => {
-				if (this.duration <= 0) return;
-				this.soundCloudPosition = relativePosition * this.duration;
-				this.syncProgress(this.soundCloudPosition, this.duration);
-			}
-		});
 		this.playButton.addEventListener("click", () => this.toggle());
 		this.previousButton.addEventListener("click", () => this.previous());
 		this.nextButton.addEventListener("click", () => this.next());
 		this.playlistButton.addEventListener("click", () => this.togglePlaylist());
 		this.volumeInput.addEventListener("input", () => this.syncVolume());
 		this.seekInput.addEventListener("input", () => this.seekFromInput());
-		this.audio.addEventListener("loadedmetadata", () => this.syncFromMedia());
-		this.audio.addEventListener("timeupdate", () => this.syncFromMedia());
+		this.audio.addEventListener("loadedmetadata", () => this.syncAudio());
+		this.audio.addEventListener("timeupdate", () => this.syncAudio());
 		this.audio.addEventListener("ended", () => this.finishTrack());
 	}
 	connectedCallback() {
@@ -634,7 +886,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			attributeFilter: [
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
-				ATTR_SRC,
+				"src",
 				ATTR_TITLE,
 				ATTR_TYPE
 			],
@@ -649,17 +901,17 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	disconnectedCallback() {
 		this.trackObserver?.disconnect();
 		this.stopProgressLoop();
-		this.stopMidi();
+		this.activePlayableTrack?.stop();
 	}
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (oldValue === newValue) return;
-		if (name === ATTR_PRELOAD_METADATA || name === ATTR_PREFER_MEDIA_METADATA) {
+		if (name === "preload-metadata" || name === "prefer-media-metadata") {
 			this.renderCurrentTrack();
 			this.renderPlaylist();
 			this.preloadPlaylistMetadata();
 			return;
 		}
-		if (name === ATTR_PLAYLIST_OPEN) {
+		if (name === "playlist-open") {
 			const open = newValue !== null;
 			this.syncPlaylistButton();
 			this.emitJuketteEvent("jukette:playlisttoggle", { open });
@@ -724,14 +976,14 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.desiredPlaying = true;
 		const trackLoadId = this.trackLoadId;
 		const type = inferTrackType(track);
-		if (type === "audio") {
-			this.setStatus("Starting audio");
-			await this.audio.play();
-			if (trackLoadId !== this.trackLoadId) return;
-			this.playing = true;
-		} else if (type === "midi") await this.playMidi(trackLoadId);
-		else if (type === "soundcloud") await this.playSoundCloud(trackLoadId);
-		else this.playing = true;
+		const played = await this.activePlayableTrack?.play({
+			isStale: () => trackLoadId !== this.trackLoadId,
+			restart: this.restartOnNextPlay,
+			volume: Number(this.volumeInput.value)
+		});
+		this.restartOnNextPlay = false;
+		if (trackLoadId !== this.trackLoadId) return;
+		if (played) this.playing = true;
 		this.syncPlayingState();
 		if (type !== "soundcloud") this.emitJuketteEvent("jukette:play");
 	}
@@ -739,9 +991,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const wasPlaying = this.playing || this.desiredPlaying;
 		this.setStatus();
 		this.desiredPlaying = false;
-		if (inferTrackType(this.currentTrack ?? { src: "" }) === "audio") this.audio.pause();
-		else if (inferTrackType(this.currentTrack ?? { src: "" }) === "midi") this.pauseMidi();
-		else if (inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud") this.soundCloudAdapter?.pause();
+		this.activePlayableTrack?.pause();
 		this.playing = false;
 		this.syncPlayingState();
 		if (wasPlaying) this.emitJuketteEvent("jukette:pause");
@@ -792,14 +1042,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const track = this.currentTrack;
 		if (!track) return;
 		this.setStatus("Seeking");
-		if (inferTrackType(track) === "audio") this.audio.currentTime = seconds;
-		else if (inferTrackType(track) === "midi") {
-			this.midiPausedAt = Math.max(0, seconds);
-			if (this.playing) this.playMidi();
-		} else if (inferTrackType(track) === "soundcloud") {
-			this.soundCloudPosition = Math.max(0, seconds);
-			this.soundCloudAdapter?.seek(seconds);
-		}
+		this.activePlayableTrack?.seek(seconds);
+		if (this.playing && inferTrackType(track) === "midi") this.play();
 		this.syncProgress(seconds, this.duration);
 		this.emitJuketteEvent("jukette:seek");
 		window.setTimeout(() => {
@@ -807,12 +1051,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		}, 500);
 	}
 	getCurrentTime() {
-		const track = this.currentTrack;
-		if (!track) return 0;
-		if (inferTrackType(track) === "audio") return this.audio.currentTime;
-		if (inferTrackType(track) === "midi") return this.playing ? (performance.now() - this.midiStartedAt) / 1e3 + this.midiPausedAt : this.midiPausedAt;
-		if (inferTrackType(track) === "soundcloud") return this.soundCloudPosition;
-		return 0;
+		if (!this.currentTrack) return 0;
+		return this.activePlayableTrack?.currentTime ?? 0;
 	}
 	getJuketteEventDetail(detail = {}) {
 		return createJuketteEventDetail({
@@ -843,7 +1083,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	syncTracks() {
 		const childTracks = this.getChildTracks();
 		const attributeTracks = parsePlaylist(this.getAttribute(ATTR_PLAYLIST));
-		const singleTrack = normalizeTrack(this.getAttribute(ATTR_SRC) ?? void 0);
+		const singleTrack = normalizeTrack(this.getAttribute("src") ?? void 0);
 		this.tracks = this.playlistOverride ?? (childTracks.length > 0 ? childTracks : attributeTracks.length > 0 ? attributeTracks : singleTrack ? [singleTrack] : []);
 		const nextIndex = Number(this.getAttribute(ATTR_TRACK_INDEX));
 		this.index = Number.isInteger(nextIndex) && nextIndex >= 0 ? Math.min(nextIndex, Math.max(0, this.tracks.length - 1)) : Math.min(this.index, Math.max(0, this.tracks.length - 1));
@@ -864,19 +1104,49 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	getChildTracks() {
 		return Array.from(this.children).map((element) => trackFromElement(element)).filter((track) => track !== null);
 	}
+	createPlayableTrack(track) {
+		const callbacks = {
+			onDuration: (duration) => {
+				this.duration = duration;
+				this.setTrackDuration(track, duration);
+				this.syncProgress(this.getCurrentTime(), this.duration);
+			},
+			onFinish: () => this.finishTrack(),
+			onMetadata: (metadata, metadataPreloadId) => {
+				if (metadataPreloadId !== void 0 && metadataPreloadId !== this.metadataPreloadId) return;
+				if (!this.trackPrefersMediaMetadata(track)) return;
+				this.setTrackMetadata(track, metadata);
+			},
+			onPause: () => {
+				const wasPlaying = this.playing || this.desiredPlaying;
+				this.desiredPlaying = false;
+				this.playing = false;
+				this.syncPlayingState();
+				if (wasPlaying) this.emitJuketteEvent("jukette:pause");
+			},
+			onPlay: () => {
+				this.desiredPlaying = true;
+				this.playing = true;
+				this.syncPlayingState();
+				this.emitJuketteEvent("jukette:play");
+			},
+			onProgress: (currentTime, duration) => {
+				this.syncProgress(currentTime, duration);
+			},
+			onStatus: (message = "") => this.setStatus(message)
+		};
+		const type = inferTrackType(track);
+		if (type === "audio") return new AudioPlayableTrack(track, this.audio, callbacks);
+		if (type === "midi") return new MidiPlayableTrack(track, callbacks, () => this.midiOscillator);
+		return new SoundCloudPlayableTrack(track, this.iframe, callbacks);
+	}
 	loadTrack() {
 		this.trackLoadId += 1;
 		const previousTrackKey = this.loadedTrackKey;
-		this.stopMidi();
-		this.audio.pause();
-		this.audio.removeAttribute("src");
-		this.soundCloudAdapter?.pause({ silent: true });
-		this.soundCloudPosition = 0;
-		this.soundCloudPositionRequested = false;
+		this.activePlayableTrack?.stop();
+		this.activePlayableTrack = null;
 		this.playing = false;
 		this.duration = 0;
-		this.midiSequence = null;
-		this.midiPausedAt = 0;
 		this.syncProgress(0, 0);
 		const track = this.currentTrack;
 		if (!track) {
@@ -897,22 +1167,12 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.renderCurrentTrack();
 		this.setStatus();
 		this.syncProgress(0, this.duration);
-		if (type === "audio") {
-			this.setStatus("Loading audio");
-			this.audio.src = track.src;
-			this.audio.volume = Number(this.volumeInput.value);
-			this.audio.load();
-			this.audio.currentTime = 0;
-			this.preloadAudioFileMetadata(track, this.metadataPreloadId);
-		} else if (type === "soundcloud") {
-			this.setStatus("Preparing SoundCloud");
-			this.loadSoundCloudTrack(track);
-		} else {
-			this.setStatus("Ready");
-			window.setTimeout(() => {
-				if (!this.playing) this.setStatus();
-			}, 700);
-		}
+		this.activePlayableTrack = this.createPlayableTrack(track);
+		this.activePlayableTrack.load({
+			metadataPreloadId: this.metadataPreloadId,
+			restart: this.restartOnNextPlay,
+			volume: Number(this.volumeInput.value)
+		});
 		this.renderPlaylist();
 		this.syncPlayingState();
 		if (trackKey !== previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
@@ -1086,19 +1346,15 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.playlistButton.setAttribute("aria-pressed", String(this.playlistOpen));
 	}
 	syncVolume() {
-		this.audio.volume = Number(this.volumeInput.value);
-		if (this.midiGain) this.midiGain.gain.value = Number(this.volumeInput.value);
-		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value));
+		this.activePlayableTrack?.setVolume(Number(this.volumeInput.value));
 		this.emitJuketteEvent("jukette:volumechange");
 	}
 	seekFromInput() {
 		if (!this.duration) return;
 		this.seek(Number(this.seekInput.value) / 1e3 * this.duration);
 	}
-	syncFromMedia() {
-		this.duration = Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
-		this.setTrackDuration(this.currentTrack, this.duration);
-		this.syncProgress(this.audio.currentTime, this.duration);
+	syncAudio() {
+		if (this.activePlayableTrack instanceof AudioPlayableTrack) this.activePlayableTrack.syncFromMedia();
 		if (!this.playing) this.setStatus();
 	}
 	syncProgress(currentTime, duration) {
@@ -1131,90 +1387,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.emitJuketteEvent("jukette:ended");
 		this.next();
 	}
-	async playMidi(trackLoadId = this.trackLoadId) {
-		const track = this.currentTrack;
-		if (!track) return;
-		if (!this.midiSequence) {
-			this.setStatus("Loading MIDI");
-			this.midiSequence = await loadMidiSequence(track.src);
-			if (trackLoadId !== this.trackLoadId) return;
-			this.duration = this.midiSequence.duration;
-			this.setTrackDuration(track, this.duration);
-			if (this.trackPrefersMediaMetadata(track)) this.setMidiTrackMetadata(track, this.midiSequence);
-			this.syncProgress(this.midiPausedAt, this.duration);
-		}
-		this.stopMidi();
-		if (trackLoadId !== this.trackLoadId) return;
-		this.playing = true;
-		this.midiStartedAt = performance.now();
-		this.ensureMidiAudio();
-		if (!this.midiAudio || !this.midiGain || !this.midiSequence) return;
-		if (this.midiAudio.state === "suspended") await this.midiAudio.resume();
-		const startOffset = this.midiPausedAt;
-		const startTime = this.midiAudio.currentTime + .03;
-		const oscillatorType = resolveMidiOscillatorType(this.midiOscillator, this.midiSequence.metadata?.program);
-		this.midiSources = this.midiSequence.notes.filter((note) => note.start + note.duration > startOffset).map((note) => {
-			const oscillator = this.midiAudio.createOscillator();
-			const envelope = this.midiAudio.createGain();
-			const relativeStart = Math.max(0, note.start - startOffset);
-			const clippedOffset = Math.max(0, startOffset - note.start);
-			const clippedDuration = Math.max(.03, note.duration - clippedOffset);
-			const noteStart = startTime + relativeStart;
-			const noteEnd = noteStart + clippedDuration;
-			oscillator.type = oscillatorType;
-			oscillator.frequency.value = note.frequency;
-			envelope.gain.setValueAtTime(0, noteStart);
-			envelope.gain.linearRampToValueAtTime(note.velocity * .18, noteStart + .01);
-			envelope.gain.setValueAtTime(note.velocity * .16, Math.max(noteStart + .02, noteEnd - .04));
-			envelope.gain.linearRampToValueAtTime(0, noteEnd);
-			oscillator.connect(envelope);
-			envelope.connect(this.midiGain);
-			oscillator.start(noteStart);
-			oscillator.stop(noteEnd + .02);
-			return oscillator;
-		});
-		this.midiTimer = window.setTimeout(() => this.finishTrack(), Math.max(0, this.duration - startOffset) * 1e3);
-	}
-	async playSoundCloud(trackLoadId = this.trackLoadId) {
-		const track = this.currentTrack;
-		if (!track) return;
-		this.playButton.disabled = true;
-		this.setStatus("Loading SoundCloud");
-		const isStale = () => trackLoadId !== this.trackLoadId;
-		let loaded;
-		try {
-			loaded = await this.soundCloudAdapter?.load(track.src, isStale) ?? false;
-		} catch {
-			loaded = false;
-		}
-		if (isStale()) return;
-		if (!loaded) {
-			this.playButton.disabled = false;
-			this.setStatus("SoundCloud unavailable");
-			return;
-		}
-		this.soundCloudAdapter?.setVolume(Number(this.volumeInput.value));
-		if (this.restartOnNextPlay) {
-			this.soundCloudAdapter?.seek(0);
-			this.soundCloudPosition = 0;
-			this.syncProgress(0, this.duration);
-		}
-		this.restartOnNextPlay = false;
-		this.setStatus("Starting SoundCloud");
-		const played = await this.soundCloudAdapter?.play(isStale);
-		if (isStale()) return;
-		if (!played) {
-			this.playButton.disabled = false;
-			this.setStatus("SoundCloud did not start");
-			return;
-		}
-		this.playButton.disabled = false;
-	}
-	loadSoundCloudTrack(track) {
-		this.soundCloudPosition = 0;
-		this.syncProgress(0, this.getTrackDuration(track) ?? 0);
-		this.soundCloudAdapter?.prepare(track.src);
-	}
 	startProgressLoop() {
 		if (this.progressFrame || typeof requestAnimationFrame === "undefined") return;
 		const tick = () => {
@@ -1222,7 +1394,10 @@ var JukettePlayerElement = class extends HTMLElementBase {
 				this.progressFrame = 0;
 				return;
 			}
-			if (inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud") this.requestSoundCloudPosition();
+			if (inferTrackType(this.currentTrack ?? { src: "" }) === "soundcloud") {
+				const trackLoadId = this.trackLoadId;
+				this.activePlayableTrack?.requestPosition(() => trackLoadId !== this.trackLoadId);
+			}
 			this.syncProgress(this.getCurrentTime(), this.duration);
 			this.progressFrame = requestAnimationFrame(tick);
 		};
@@ -1237,256 +1412,9 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.progressFrame = 0;
 		this.syncProgress(this.getCurrentTime(), this.duration);
 	}
-	requestSoundCloudPosition() {
-		if (!this.soundCloudAdapter || this.soundCloudPositionRequested) return;
-		this.soundCloudPositionRequested = true;
-		const trackLoadId = this.trackLoadId;
-		window.setTimeout(() => {
-			if (trackLoadId === this.trackLoadId) this.soundCloudPositionRequested = false;
-		}, 500);
-		this.soundCloudAdapter.requestPosition(() => trackLoadId !== this.trackLoadId);
-	}
-	pauseMidi() {
-		this.midiPausedAt = this.getCurrentTime();
-		this.stopMidi();
-	}
-	stopMidi() {
-		if (this.midiTimer) {
-			window.clearTimeout(this.midiTimer);
-			this.midiTimer = 0;
-		}
-		for (const source of this.midiSources) try {
-			source.stop();
-		} catch {}
-		this.midiSources = [];
-	}
-	ensureMidiAudio() {
-		if (this.midiAudio && this.midiGain) return;
-		const AudioContextConstructor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-		if (!AudioContextConstructor) {
-			this.setStatus("MIDI playback needs Web Audio");
-			return;
-		}
-		this.midiAudio = new AudioContextConstructor();
-		this.midiGain = this.midiAudio.createGain();
-		this.midiGain.gain.value = Number(this.volumeInput.value);
-		this.midiGain.connect(this.midiAudio.destination);
-	}
 };
-var decodeAscii = (bytes) => String.fromCharCode(...bytes);
-var decodeIso88591 = (bytes) => String.fromCharCode(...bytes);
-var decodeUtf16Be = (bytes) => {
-	const codeUnits = [];
-	for (let index = 0; index + 1 < bytes.length; index += 2) codeUnits.push(bytes[index] << 8 | bytes[index + 1]);
-	return String.fromCharCode(...codeUnits);
-};
-var decodeTextBytes = (bytes, encoding) => {
-	try {
-		return new TextDecoder(encoding).decode(bytes);
-	} catch {
-		return encoding === "iso-8859-1" ? decodeIso88591(bytes) : decodeAscii(bytes);
-	}
-};
-var cleanMetadataText = (value) => {
-	const nullIndex = value.indexOf("\0");
-	return (nullIndex >= 0 ? value.slice(0, nullIndex) : value.trimEnd()).trim();
-};
-var readSynchsafeInteger = (data, offset, length = 4) => {
-	let value = 0;
-	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
-	return value;
-};
-var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
-var decodeId3TextFrame = (frameData) => {
-	if (frameData.length < 2) return "";
-	const encoding = frameData[0];
-	const content = frameData.slice(1);
-	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
-	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
-	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
-	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
-};
-var parseAudioFileMetadata = (buffer) => {
-	const data = new Uint8Array(buffer);
-	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
-	const version = data[3];
-	const flags = data[5];
-	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
-	let offset = 10;
-	if (flags & 64 && offset + 4 <= tagEnd) {
-		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
-		offset += extendedHeaderSize;
-	}
-	const metadata = {};
-	while (offset + 10 <= tagEnd) {
-		const frameId = decodeAscii(data.slice(offset, offset + 4));
-		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
-		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
-		const frameStart = offset + 10;
-		const frameEnd = frameStart + frameSize;
-		if (frameSize <= 0 || frameEnd > tagEnd) break;
-		const frameData = data.slice(frameStart, frameEnd);
-		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
-		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
-		offset = frameEnd;
-	}
-	return metadata;
-};
-var parseSoundCloudOEmbedMetadata = (value) => {
-	if (!isRecord(value) || typeof value.title !== "string") return {};
-	const title = value.title.trim();
-	if (!title) return {};
-	const match = /^(?<title>.+?) by (?<artist>.+)$/.exec(title);
-	if (!match?.groups) return { title };
-	return {
-		artist: match.groups.artist.trim() || void 0,
-		title: match.groups.title.trim() || title
-	};
-};
-var MidiReader = class {
-	data;
-	offset = 0;
-	constructor(data) {
-		this.data = data;
-	}
-	get done() {
-		return this.offset >= this.data.length;
-	}
-	read(length) {
-		const value = this.data.slice(this.offset, this.offset + length);
-		this.offset += length;
-		return value;
-	}
-	unread(length = 1) {
-		this.offset = Math.max(0, this.offset - length);
-	}
-	readText(length) {
-		return String.fromCharCode(...this.read(length));
-	}
-	readU8() {
-		return this.data[this.offset++] ?? 0;
-	}
-	readU16() {
-		return this.readU8() << 8 | this.readU8();
-	}
-	readU32() {
-		return this.readU8() << 24 | this.readU8() << 16 | this.readU8() << 8 | this.readU8();
-	}
-	readVar() {
-		let value = 0;
-		let byte;
-		do {
-			byte = this.readU8();
-			value = value << 7 | byte & 127;
-		} while (byte & 128);
-		return value;
-	}
-};
-var midiNoteFrequency = (note) => 440 * Math.pow(2, (note - 69) / 12);
-var decodeMidiText = (bytes) => cleanMetadataText(decodeTextBytes(bytes, "utf-8"));
-var normalizeMidiOscillator = (value) => {
-	if (value === "sine" || value === "square" || value === "sawtooth" || value === "triangle") return value;
-	return "auto";
-};
-var midiProgramToOscillator = (program) => {
-	if (program === void 0) return "triangle";
-	if (program >= 16 && program <= 23) return "sine";
-	if (program >= 32 && program <= 39) return "square";
-	if (program >= 80 && program <= 87) return "square";
-	if (program >= 56 && program <= 87) return "sawtooth";
-	return "triangle";
-};
-var resolveMidiOscillatorType = (oscillator, program) => oscillator === "auto" ? midiProgramToOscillator(program) : oscillator;
-var parseMidi = (buffer) => {
-	const reader = new MidiReader(new Uint8Array(buffer));
-	if (reader.readText(4) !== "MThd") throw new Error("Invalid MIDI header.");
-	const headerLength = reader.readU32();
-	reader.readU16();
-	const trackCount = reader.readU16();
-	const division = reader.readU16();
-	if (headerLength > 6) reader.read(headerLength - 6);
-	if (division & 32768) throw new Error("SMPTE MIDI timing is not supported.");
-	const ticksPerBeat = division;
-	const notes = [];
-	const metadata = {};
-	let program;
-	let tempo = 5e5;
-	let duration = 0;
-	for (let trackIndex = 0; trackIndex < trackCount && !reader.done; trackIndex++) {
-		if (reader.readText(4) !== "MTrk") break;
-		const trackReader = new MidiReader(reader.read(reader.readU32()));
-		const activeNotes = /* @__PURE__ */ new Map();
-		let runningStatus = 0;
-		let seconds = 0;
-		while (!trackReader.done) {
-			const delta = trackReader.readVar();
-			seconds += delta * tempo / ticksPerBeat / 1e6;
-			let status = trackReader.readU8();
-			if (status < 128) {
-				trackReader.unread();
-				status = runningStatus;
-			} else runningStatus = status;
-			if (status === 255) {
-				const type = trackReader.readU8();
-				const length = trackReader.readVar();
-				if (type === 81 && length === 3) {
-					const bytes = trackReader.read(3);
-					tempo = bytes[0] << 16 | bytes[1] << 8 | bytes[2];
-				} else if (type === 3) {
-					const title = decodeMidiText(trackReader.read(length));
-					if (!metadata.title && title) metadata.title = title;
-				} else trackReader.read(length);
-				continue;
-			}
-			if (status === 240 || status === 247) {
-				trackReader.read(trackReader.readVar());
-				continue;
-			}
-			const command = status & 240;
-			if (command === 192) {
-				const nextProgram = trackReader.readU8();
-				if (program === void 0) program = nextProgram;
-				continue;
-			}
-			if (command === 208) {
-				trackReader.readU8();
-				continue;
-			}
-			const note = trackReader.readU8();
-			const velocity = trackReader.readU8();
-			if (command === 144 && velocity > 0) activeNotes.set(note, {
-				start: seconds,
-				velocity: velocity / 127
-			});
-			else if (command === 128 || command === 144) {
-				const active = activeNotes.get(note);
-				if (active) {
-					notes.push({
-						duration: Math.max(.03, seconds - active.start),
-						frequency: midiNoteFrequency(note),
-						start: active.start,
-						velocity: active.velocity
-					});
-					activeNotes.delete(note);
-				}
-			}
-			duration = Math.max(duration, seconds);
-		}
-	}
-	const sequenceMetadata = {};
-	if (metadata.title) sequenceMetadata.title = metadata.title;
-	if (program !== void 0) sequenceMetadata.program = program;
-	return {
-		duration: Math.max(duration, 1),
-		metadata: sequenceMetadata.title || sequenceMetadata.program !== void 0 ? sequenceMetadata : void 0,
-		notes
-	};
-};
-var loadMidiSequence = async (src) => {
-	const response = await fetch(src);
-	if (!response.ok) throw new Error(`Unable to load MIDI file: ${src}`);
-	return parseMidi(await response.arrayBuffer());
-};
+//#endregion
+//#region src/lib/elements.ts
 var defineJuketteElement = () => {
 	if (typeof customElements === "undefined") return;
 	if (!customElements.get("jukette-track")) customElements.define("jukette-track", JuketteTrackElement);

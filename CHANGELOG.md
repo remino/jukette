@@ -11,6 +11,20 @@
 
 ## HEAD
 
+- Library
+    - Initialize the prepared SoundCloud iframe early and play the current
+      embedded track directly, avoiding a redundant `widget.load()` before the
+      first playback.
+    - Split track parsing, metadata parsing, MIDI parsing, SoundCloud widget
+      control, shared types, and constants into focused `src/lib` modules.
+    - Move player shadow styles into `src/lib/jukette-player.css` and generate
+      a minified inline style module for builds and tests.
+    - Move `JukettePlayerElement` and custom-element registration out of the
+      public `jukette.ts` entrypoint.
+    - Split native audio, MIDI, and SoundCloud playback behavior into internal
+      playable track classes so the player element can focus on UI and playlist
+      orchestration.
+
 ## v0.3.0
 
 - Library

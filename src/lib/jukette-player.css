@@ -1,0 +1,250 @@
+:host {
+	--jukette-control-size: 2em;
+	display: block;
+	font: inherit;
+	color: inherit;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+.player {
+	border: 1px solid currentColor;
+	display: grid;
+	gap: 0.5lh;
+	padding: 0.5rlh 1em;
+}
+
+.track {
+	display: grid;
+	min-inline-size: 0;
+}
+
+.progress {
+	display: grid;
+	gap: 0;
+}
+
+.title,
+.meta {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.title {
+	font-weight: 700;
+}
+
+.meta,
+.status,
+.time {
+	opacity: 0.75;
+}
+
+.status {
+	min-block-size: 1lh;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.controls {
+	align-items: center;
+	display: grid;
+	gap: 0.5lh 0.5em;
+	grid-template-areas: 'previous play next volume playlist';
+	grid-template-columns:
+		repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr)
+		var(--jukette-control-size);
+}
+
+.previous {
+	grid-area: previous;
+}
+
+.play {
+	grid-area: play;
+}
+
+.next {
+	grid-area: next;
+}
+
+.volume {
+	grid-area: volume;
+}
+
+.playlist-toggle {
+	grid-area: playlist;
+}
+
+button {
+	align-items: center;
+	appearance: none;
+	background: transparent;
+	border: 1px solid currentColor;
+	block-size: var(--jukette-control-size);
+	color: inherit;
+	cursor: pointer;
+	display: inline-grid;
+	font: inherit;
+	inline-size: var(--jukette-control-size);
+	justify-content: center;
+	padding: 0;
+}
+
+button:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 0;
+	outline-radius: 0;
+}
+
+button:active {
+	background: rgb(
+		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)
+	);
+	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+}
+
+button[aria-pressed='true'] {
+	background: rgb(
+		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)
+	);
+	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+}
+
+button:disabled {
+	cursor: default;
+	opacity: 0.45;
+}
+
+input[type='range'] {
+	accent-color: currentColor;
+}
+
+.seek {
+	display: grid;
+}
+
+.time {
+	display: grid;
+	gap: 0.5em;
+	grid-template-columns: repeat(3, 1fr);
+	font-variant-numeric: tabular-nums;
+}
+
+.time span:nth-child(2) {
+	text-align: center;
+}
+
+.time span:nth-child(3) {
+	text-align: end;
+}
+
+.playlist {
+	border-block-start: 1px solid currentColor;
+	counter-reset: jukette-playlist;
+	display: none;
+	gap: 0.5lh 0;
+	list-style: none;
+	margin: 0;
+	padding: 1lh 0 0.5lh;
+}
+
+:host([playlist-open]) .playlist {
+	display: grid;
+}
+
+.playlist li {
+	align-items: start;
+	counter-increment: jukette-playlist;
+	display: grid;
+}
+
+.playlist li button {
+	padding-inline: 0.5em;
+}
+
+.playlist li button::before {
+	content: counter(jukette-playlist) '.';
+	grid-column: 1;
+	grid-row: 1 / span 2;
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.playlist li button[aria-current='true'] {
+	background: rgb(
+		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)
+	);
+	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));
+}
+
+.playlist button {
+	align-items: start;
+	block-size: auto;
+	border: 0;
+	display: grid;
+	gap: 0 0.5em;
+	grid-template-columns: 2ch minmax(0, 1fr) auto;
+	inline-size: 100%;
+	text-align: start;
+}
+
+.playlist-title,
+.playlist-artist {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.playlist-title {
+	font-weight: 700;
+	grid-column: 2;
+}
+
+.playlist-artist,
+.playlist-duration {
+	opacity: 0.75;
+}
+
+.playlist-duration {
+	align-self: center;
+	font-variant-numeric: tabular-nums;
+	grid-column: 3;
+	grid-row: 1 / span 2;
+	white-space: nowrap;
+}
+
+.playlist-artist {
+	grid-column: 2;
+}
+
+.soundcloud {
+	border: 0;
+	block-size: 166px;
+	display: none;
+	inline-size: 100%;
+}
+
+:host([data-kind='soundcloud']) .soundcloud {
+	display: block;
+}
+
+audio {
+	display: none;
+}
+
+@media (max-width: 34em) {
+	.controls {
+		grid-template-areas:
+			'volume volume volume volume volume'
+			'previous play next spacer playlist';
+		grid-template-columns:
+			repeat(3, var(--jukette-control-size)) minmax(0, 1fr)
+			var(--jukette-control-size);
+		justify-content: start;
+	}
+}
