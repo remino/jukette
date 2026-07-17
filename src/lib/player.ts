@@ -4,7 +4,9 @@ import {
 	ATTR_PLAYLIST,
 	ATTR_PLAYLIST_OPEN,
 	ATTR_PREFER_MEDIA_METADATA,
+	ATTR_PRELOAD,
 	ATTR_PRELOAD_METADATA,
+	ATTR_PRELOAD_SOUNDCLOUD,
 	ATTR_SRC,
 	ATTR_TITLE,
 	ATTR_TRACK_INDEX,
@@ -33,9 +35,25 @@ import type {
 	JuketteEventDetail,
 	JuketteEventName,
 	JuketteMidiOscillator,
+	JuketteSoundCloudPreload,
 	JuketteTrack,
 	MidiSequence,
 } from './types'
+
+const normalizeSoundCloudPreload = (
+	value: string | null,
+): JuketteSoundCloudPreload => {
+	if (
+		value === 'none' ||
+		value === 'current' ||
+		value === 'next' ||
+		value === 'all'
+	) {
+		return value
+	}
+
+	return 'current'
+}
 
 export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
@@ -43,6 +61,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST,
 		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
+		ATTR_PRELOAD_SOUNDCLOUD,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
@@ -50,6 +69,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private readonly audio: HTMLAudioElement
 	private readonly iframe: HTMLIFrameElement
+	private readonly playerElement: HTMLElement
 	private readonly playButton: HTMLButtonElement
 	private readonly previousButton: HTMLButtonElement
 	private readonly nextButton: HTMLButtonElement
@@ -77,6 +97,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private metadataPreloadId = 0
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
+	private soundCloudPreloads = new Map<string, SoundCloudPlayableTrack>()
 	private loadedTrackKey = ''
 
 	constructor() {
@@ -123,6 +144,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.audio = this.query<HTMLAudioElement>(shadowRoot, 'audio')
 		this.iframe = this.query<HTMLIFrameElement>(shadowRoot, '.soundcloud')
+		this.playerElement = this.query<HTMLElement>(shadowRoot, '.player')
 		this.playButton = this.query<HTMLButtonElement>(shadowRoot, '.play')
 		this.previousButton = this.query<HTMLButtonElement>(
 			shadowRoot,
@@ -170,6 +192,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			attributeFilter: [
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
+				ATTR_PRELOAD,
 				ATTR_SRC,
 				ATTR_TITLE,
 				ATTR_TYPE,
@@ -197,11 +220,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (oldValue === newValue) return
 		if (
 			name === ATTR_PRELOAD_METADATA ||
-			name === ATTR_PREFER_MEDIA_METADATA
+			name === ATTR_PREFER_MEDIA_METADATA ||
+			name === ATTR_PRELOAD_SOUNDCLOUD
 		) {
 			this.renderCurrentTrack()
 			this.renderPlaylist()
 			this.preloadPlaylistMetadata()
+			this.syncSoundCloudPreloads()
 			return
 		}
 		if (name === ATTR_PLAYLIST_OPEN) {
@@ -255,6 +280,16 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.toggleAttribute(ATTR_PRELOAD_METADATA, preload)
 	}
 
+	get preloadSoundCloud(): JuketteSoundCloudPreload {
+		return normalizeSoundCloudPreload(
+			this.getAttribute(ATTR_PRELOAD_SOUNDCLOUD),
+		)
+	}
+
+	set preloadSoundCloud(preload: JuketteSoundCloudPreload) {
+		this.setAttribute(ATTR_PRELOAD_SOUNDCLOUD, preload)
+	}
+
 	get preferMediaMetadata(): boolean {
 		return this.hasAttribute(ATTR_PREFER_MEDIA_METADATA)
 	}
@@ -279,6 +314,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.index = 0
 		this.renderPlaylist()
 		this.preloadPlaylistMetadata()
+		this.syncSoundCloudPreloads()
 		this.loadTrack()
 	}
 
@@ -444,6 +480,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.renderPlaylist()
 		this.preloadPlaylistMetadata()
+		this.syncSoundCloudPreloads()
 	}
 
 	private syncChildTracks(): void {
@@ -468,13 +505,58 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private createPlayableTrack(track: JuketteTrack): JukettePlayableTrack {
-		const callbacks = {
+		const callbacks = this.createPlayableCallbacks(track)
+
+		const type = inferTrackType(track)
+		if (type === 'audio') {
+			return new AudioPlayableTrack(track, this.audio, callbacks)
+		}
+		if (type === 'midi') {
+			return new MidiPlayableTrack(
+				track,
+				callbacks,
+				() => this.midiOscillator,
+			)
+		}
+		return this.getSoundCloudPlayableTrack(track)
+	}
+
+	private getSoundCloudPlayableTrack(
+		track: JuketteTrack,
+	): SoundCloudPlayableTrack {
+		const key = this.getTrackKey(track)
+		const cachedTrack = this.soundCloudPreloads.get(key)
+		if (cachedTrack) return cachedTrack
+
+		const iframe =
+			this.soundCloudPreloads.size === 0
+				? this.iframe
+				: this.createSoundCloudIframe()
+		const playableTrack = new SoundCloudPlayableTrack(
+			track,
+			iframe,
+			this.createPlayableCallbacks(track),
+		)
+		this.soundCloudPreloads.set(key, playableTrack)
+		return playableTrack
+	}
+
+	private createPlayableCallbacks(track: JuketteTrack) {
+		const isCurrentTrack = () =>
+			this.currentTrack !== null &&
+			this.getTrackKey(this.currentTrack) === this.getTrackKey(track)
+
+		return {
 			onDuration: (duration: number) => {
-				this.duration = duration
 				this.setTrackDuration(track, duration)
+				if (!isCurrentTrack()) return
+
+				this.duration = duration
 				this.syncProgress(this.getCurrentTime(), this.duration)
 			},
-			onFinish: () => this.finishTrack(),
+			onFinish: () => {
+				if (isCurrentTrack()) this.finishTrack()
+			},
 			onMetadata: (
 				metadata: AudioFileMetadata,
 				metadataPreloadId?: number,
@@ -489,6 +571,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 				this.setTrackMetadata(track, metadata)
 			},
 			onPause: () => {
+				if (!isCurrentTrack()) return
+
 				const wasPlaying = this.playing || this.desiredPlaying
 				this.desiredPlaying = false
 				this.playing = false
@@ -496,29 +580,85 @@ export class JukettePlayerElement extends HTMLElementBase {
 				if (wasPlaying) this.emitJuketteEvent('jukette:pause')
 			},
 			onPlay: () => {
+				if (!isCurrentTrack()) return
+
 				this.desiredPlaying = true
 				this.playing = true
 				this.syncPlayingState()
 				this.emitJuketteEvent('jukette:play')
 			},
 			onProgress: (currentTime: number, duration: number) => {
+				if (!isCurrentTrack()) return
 				this.syncProgress(currentTime, duration)
 			},
-			onStatus: (message = '') => this.setStatus(message),
+			onStatus: (message = '') => {
+				if (isCurrentTrack()) this.setStatus(message)
+			},
+		}
+	}
+
+	private createSoundCloudIframe(): HTMLIFrameElement {
+		const iframe = document.createElement('iframe')
+		iframe.className = 'soundcloud'
+		iframe.part.add('soundcloud')
+		iframe.title = 'SoundCloud player'
+		iframe.allow = 'autoplay'
+		this.playerElement.insertBefore(iframe, this.audio)
+		return iframe
+	}
+
+	private trackShouldPreloadSoundCloud(
+		track: JuketteTrack,
+		index: number,
+	): boolean {
+		if (inferTrackType(track) !== 'soundcloud') return false
+		if (track.preload !== undefined) return track.preload
+
+		const preload = this.preloadSoundCloud
+		if (preload === 'none') return false
+		if (preload === 'all') return true
+		if (preload === 'current') return index === this.index
+		if (preload === 'next') {
+			const nextIndex =
+				this.tracks.length === 0
+					? this.index
+					: (this.index + 1) % this.tracks.length
+			return index === this.index || index === nextIndex
 		}
 
-		const type = inferTrackType(track)
-		if (type === 'audio') {
-			return new AudioPlayableTrack(track, this.audio, callbacks)
+		return false
+	}
+
+	private syncSoundCloudPreloads(): void {
+		const wantedKeys = new Set<string>()
+		const activeKey =
+			this.currentTrack &&
+			inferTrackType(this.currentTrack) === 'soundcloud'
+				? this.getTrackKey(this.currentTrack)
+				: ''
+		for (const [index, track] of this.tracks.entries()) {
+			if (!this.trackShouldPreloadSoundCloud(track, index)) continue
+
+			const key = this.getTrackKey(track)
+			wantedKeys.add(key)
+			const playableTrack = this.getSoundCloudPlayableTrack(track)
+			void playableTrack.load({
+				metadataPreloadId: this.metadataPreloadId,
+				restart: false,
+				silent: key !== activeKey,
+				volume: Number(this.volumeInput.value),
+			})
 		}
-		if (type === 'midi') {
-			return new MidiPlayableTrack(
-				track,
-				callbacks,
-				() => this.midiOscillator,
-			)
+
+		for (const [key, track] of this.soundCloudPreloads) {
+			const active = key === activeKey
+			track.setActive(active)
+			if (wantedKeys.has(key) || active) continue
+
+			track.stop()
+			if (track.iframe !== this.iframe) track.iframe.remove()
+			this.soundCloudPreloads.delete(key)
 		}
-		return new SoundCloudPlayableTrack(track, this.iframe, callbacks)
 	}
 
 	private loadTrack(): void {
@@ -551,6 +691,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.setStatus()
 		this.syncProgress(0, this.duration)
 		this.activePlayableTrack = this.createPlayableTrack(track)
+		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) {
+			this.syncSoundCloudPreloads()
+		} else {
+			for (const track of this.soundCloudPreloads.values()) {
+				track.setActive(false)
+			}
+		}
 
 		void this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataPreloadId,
@@ -613,6 +760,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 				button.addEventListener('click', () => {
 					this.desiredPlaying = true
 					this.restartOnNextPlay = true
+					if (index === this.index) {
+						this.seek(0)
+						void this.play()
+						return
+					}
+
 					this.index = index
 					this.loadTrack()
 					void this.play()

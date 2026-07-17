@@ -4,7 +4,12 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 
 <BaseLayout title="Demo" path="/jukette/demo/">
 	<h2>Demo</h2>
-	<jukette-player playlist-open preload-metadata prefer-media-metadata>
+	<jukette-player
+		playlist-open
+		preload-metadata
+		prefer-media-metadata
+		preload-soundcloud="next"
+	>
 		<jukette-track
 			title="C-sharp arpeggiator"
 			artist="Jukette"

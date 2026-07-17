@@ -229,10 +229,6 @@ input[type='range'] {
 	inline-size: 100%;
 }
 
-:host([data-kind='soundcloud']) .soundcloud {
-	display: block;
-}
-
 audio {
 	display: none;
 }

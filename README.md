@@ -161,6 +161,7 @@ object.
 		"artist": "Example",
 		"src": "/audio/two.ogg",
 		"type": "audio",
+		"preload": true,
 		"preferMediaMetadata": false
 	}
 ]
@@ -188,6 +189,8 @@ Track sources are resolved in this order:
 - `title`: optional display title.
 - `artist`: optional display artist.
 - `type`: optional `audio`, `midi`, or `soundcloud`.
+- `preload` attribute / `preload` object field: optional per-track playback
+  preparation preference.
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
   for the player's media metadata preference.
 
@@ -223,6 +226,7 @@ console.log(player.totalTracks)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 player.playlistOpen = true
 player.preloadMetadata = true
+player.preloadSoundCloud = 'next'
 player.preferMediaMetadata = true
 player.midiOscillator = 'sine'
 ```
@@ -231,6 +235,10 @@ Use the `preload-metadata` attribute or `preloadMetadata` property to discover
 playlist durations before tracks are played. Jukette preloads metadata for
 browser-native audio and local MIDI tracks. SoundCloud durations are reported
 when the SoundCloud widget has loaded that track.
+
+Use the `preload-soundcloud` attribute or `preloadSoundCloud` property to warm
+SoundCloud widgets before playback. Supported values are `none`, `current`,
+`next`, and `all`. The default is `current`.
 
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.
@@ -250,6 +258,11 @@ player-level preference per track. Use `prefer-media-metadata` or
 `preferMediaMetadata: true` to force metadata display for that track, use
 `prefer-media-metadata="false"` or `preferMediaMetadata: false` to force
 authored display values, or omit it to inherit the player setting.
+
+Use `preload` or `preload: true` to ask Jukette to prepare a track for playback
+when possible. Use `preload="false"` or `preload: false` to opt that track out
+of player-level preparation policies such as `preload-soundcloud="all"`. The
+flag is a track-level preference and does not change media metadata preloading.
 
 Use `midi-oscillator` or `midiOscillator` to choose the built-in MIDI preview
 oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and

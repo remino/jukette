@@ -33,6 +33,21 @@ describe('jukette', () => {
 		).toEqual({ preferMediaMetadata: false, src: '/track.mp3' })
 	})
 
+	it('normalizes track preload preferences', () => {
+		expect(
+			normalizeTrack({
+				preload: true,
+				src: '/track.mp3',
+			}),
+		).toEqual({ preload: true, src: '/track.mp3' })
+		expect(
+			normalizeTrack({
+				preload: 'false',
+				src: '/track.mp3',
+			}),
+		).toEqual({ preload: false, src: '/track.mp3' })
+	})
+
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
 		expect(inferTrackType({ src: '/track.mid' })).toBe('midi')
@@ -83,6 +98,7 @@ describe('jukette', () => {
 					{
 						artist: 'Example',
 						'prefer-media-metadata': 'false',
+						preload: 'true',
 						src: '/one.mp3',
 						title: 'One',
 						type: 'audio',
@@ -94,6 +110,7 @@ describe('jukette', () => {
 		expect(trackFromElement(element)).toEqual({
 			artist: 'Example',
 			preferMediaMetadata: false,
+			preload: true,
 			src: '/one.mp3',
 			title: 'One',
 			type: 'audio',
@@ -103,6 +120,9 @@ describe('jukette', () => {
 	it('observes preload metadata option changes', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'preload-metadata',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'preload-soundcloud',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'playlist-open',

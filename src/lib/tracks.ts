@@ -1,6 +1,7 @@
 import {
 	ATTR_ARTIST,
 	ATTR_PREFER_MEDIA_METADATA,
+	ATTR_PRELOAD,
 	ATTR_SRC,
 	ATTR_TITLE,
 	ATTR_TYPE,
@@ -48,6 +49,12 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 			track.preferMediaMetadata = preferMediaMetadata
 		}
 	}
+	if (typeof value.preload === 'boolean') {
+		track.preload = value.preload
+	} else if (typeof value.preload === 'string') {
+		const preload = normalizeBooleanAttribute(value.preload)
+		if (preload !== undefined) track.preload = preload
+	}
 	if (typeof value.title === 'string') track.title = value.title
 	if (type) track.type = type
 
@@ -78,6 +85,7 @@ export const trackFromElement = (element: Element): JuketteTrack | null => {
 		artist: element.getAttribute(ATTR_ARTIST) ?? undefined,
 		preferMediaMetadata:
 			element.getAttribute(ATTR_PREFER_MEDIA_METADATA) ?? undefined,
+		preload: element.getAttribute(ATTR_PRELOAD) ?? undefined,
 		src: element.getAttribute(ATTR_SRC) ?? '',
 		title: element.getAttribute(ATTR_TITLE) ?? undefined,
 		type: element.getAttribute(ATTR_TYPE) ?? undefined,

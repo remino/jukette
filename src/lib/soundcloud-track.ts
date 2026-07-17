@@ -14,7 +14,7 @@ export class SoundCloudPlayableTrack extends JukettePlayableTrack {
 
 	constructor(
 		track: JuketteTrack,
-		iframe: HTMLIFrameElement,
+		readonly iframe: HTMLIFrameElement,
 		callbacks: PlayableTrackCallbacks,
 	) {
 		super(track, callbacks)
@@ -47,10 +47,14 @@ export class SoundCloudPlayableTrack extends JukettePlayableTrack {
 		return this.position
 	}
 
-	load(_options: PlayableTrackLoadOptions): void {
+	setActive(active: boolean): void {
+		this.iframe.toggleAttribute('data-active', active)
+	}
+
+	load(options: PlayableTrackLoadOptions): void {
 		this.position = 0
 		this.callbacks.onProgress(0, this.durationValue)
-		this.callbacks.onStatus('Preparing SoundCloud')
+		if (!options.silent) this.callbacks.onStatus('Preparing SoundCloud')
 		this.adapter.prepare(this.track.src)
 	}
 

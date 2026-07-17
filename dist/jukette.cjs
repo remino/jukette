@@ -6,7 +6,9 @@ var HTMLElementBase = globalThis.HTMLElement ?? class {};
 //#region src/lib/attributes.ts
 var ATTR_PLAYLIST = "playlist";
 var ATTR_PLAYLIST_OPEN = "playlist-open";
+var ATTR_PRELOAD = "preload";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
+var ATTR_PRELOAD_SOUNDCLOUD = "preload-soundcloud";
 var ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
 var ATTR_MIDI_OSCILLATOR = "midi-oscillator";
 var ATTR_TRACK_INDEX = "track-index";
@@ -47,6 +49,11 @@ var normalizeTrack = (value) => {
 		const preferMediaMetadata = normalizeBooleanAttribute(value.preferMediaMetadata);
 		if (preferMediaMetadata !== void 0) track.preferMediaMetadata = preferMediaMetadata;
 	}
+	if (typeof value.preload === "boolean") track.preload = value.preload;
+	else if (typeof value.preload === "string") {
+		const preload = normalizeBooleanAttribute(value.preload);
+		if (preload !== void 0) track.preload = preload;
+	}
 	if (typeof value.title === "string") track.title = value.title;
 	if (type) track.type = type;
 	return track;
@@ -65,6 +72,7 @@ var trackFromElement = (element) => {
 	return normalizeTrack({
 		artist: element.getAttribute("artist") ?? void 0,
 		preferMediaMetadata: element.getAttribute("prefer-media-metadata") ?? void 0,
+		preload: element.getAttribute("preload") ?? void 0,
 		src: element.getAttribute("src") ?? "",
 		title: element.getAttribute("title") ?? void 0,
 		type: element.getAttribute("type") ?? void 0
@@ -79,7 +87,7 @@ var createJuketteEventDetail = (detail) => ({
 });
 //#endregion
 //#region src/lib/jukette-player.css.generated.ts
-var playerStyles = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.meta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:nowrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{grid-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabular-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{counter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padding:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{display:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;display:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{content:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:end;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:start;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-artist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.playlist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0;block-size:166px;inline-size:100%;display:none}:host([data-kind=soundcloud]) .soundcloud{display:block}audio{display:none}@media (width<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}";
+var playerStyles = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.progress{gap:0;display:grid}.title,.meta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:700}.meta,.status,.time{opacity:.75}.status{text-overflow:ellipsis;white-space:nowrap;min-block-size:1lh;overflow:hidden}.controls{grid-template-areas:\"previous play next volume playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr) var(--jukette-control-size);align-items:center;gap:.5lh .5em;display:grid}.previous{grid-area:previous}.play{grid-area:play}.next{grid-area:next}.volume{grid-area:volume}.playlist-toggle{grid-area:playlist}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabular-nums;grid-template-columns:repeat(3,1fr);gap:.5em;display:grid}.time span:nth-child(2){text-align:center}.time span:nth-child(3){text-align:end}.playlist{counter-reset:jukette-playlist;border-block-start:1px solid;gap:.5lh 0;margin:0;padding:1lh 0 .5lh;list-style:none;display:none}:host([playlist-open]) .playlist{display:grid}.playlist li{counter-increment:jukette-playlist;align-items:start;display:grid}.playlist li button{padding-inline:.5em}.playlist li button:before{content:counter(jukette-playlist) \".\";font-variant-numeric:tabular-nums;text-align:end;grid-area:1/1/span 2}.playlist li button[aria-current=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}.playlist button{text-align:start;border:0;grid-template-columns:2ch minmax(0,1fr) auto;align-items:start;gap:0 .5em;block-size:auto;inline-size:100%;display:grid}.playlist-title,.playlist-artist{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.playlist-title{grid-column:2;font-weight:700}.playlist-artist,.playlist-duration{opacity:.75}.playlist-duration{font-variant-numeric:tabular-nums;white-space:nowrap;grid-area:1/3/span 2;align-self:center}.playlist-artist{grid-column:2}.soundcloud{border:0;block-size:166px;inline-size:100%;display:none}audio{display:none}@media (width<=34em){.controls{grid-template-areas:\"volume volume volume volume volume\"\"previous play next spacer playlist\";grid-template-columns:repeat(3, var(--jukette-control-size)) minmax(0, 1fr) var(--jukette-control-size);justify-content:start}}";
 //#endregion
 //#region src/lib/text.ts
 var decodeAscii = (bytes) => String.fromCharCode(...bytes);
@@ -695,11 +703,13 @@ var SoundCloudAdapter = class {
 //#endregion
 //#region src/lib/soundcloud-track.ts
 var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
+	iframe;
 	adapter;
 	position = 0;
 	positionRequested = false;
 	constructor(track, iframe, callbacks) {
 		super(track, callbacks);
+		this.iframe = iframe;
 		this.adapter = new SoundCloudAdapter(iframe, {
 			onDuration: (duration) => {
 				this.durationValue = duration;
@@ -727,10 +737,13 @@ var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
 	get currentTime() {
 		return this.position;
 	}
-	load(_options) {
+	setActive(active) {
+		this.iframe.toggleAttribute("data-active", active);
+	}
+	load(options) {
 		this.position = 0;
 		this.callbacks.onProgress(0, this.durationValue);
-		this.callbacks.onStatus("Preparing SoundCloud");
+		if (!options.silent) this.callbacks.onStatus("Preparing SoundCloud");
 		this.adapter.prepare(this.track.src);
 	}
 	async play(options) {
@@ -781,18 +794,24 @@ var SoundCloudPlayableTrack = class extends JukettePlayableTrack {
 };
 //#endregion
 //#region src/lib/player.ts
+var normalizeSoundCloudPreload = (value) => {
+	if (value === "none" || value === "current" || value === "next" || value === "all") return value;
+	return "current";
+};
 var JukettePlayerElement = class extends HTMLElementBase {
 	static observedAttributes = [
 		"src",
 		ATTR_PLAYLIST,
 		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
+		ATTR_PRELOAD_SOUNDCLOUD,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
 	];
 	audio;
 	iframe;
+	playerElement;
 	playButton;
 	previousButton;
 	nextButton;
@@ -820,6 +839,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	metadataPreloadId = 0;
 	trackObserver = null;
 	playlistOverride = null;
+	soundCloudPreloads = /* @__PURE__ */ new Map();
 	loadedTrackKey = "";
 	constructor() {
 		super();
@@ -858,6 +878,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		`;
 		this.audio = this.query(shadowRoot, "audio");
 		this.iframe = this.query(shadowRoot, ".soundcloud");
+		this.playerElement = this.query(shadowRoot, ".player");
 		this.playButton = this.query(shadowRoot, ".play");
 		this.previousButton = this.query(shadowRoot, ".previous");
 		this.nextButton = this.query(shadowRoot, ".next");
@@ -886,6 +907,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			attributeFilter: [
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
+				ATTR_PRELOAD,
 				"src",
 				ATTR_TITLE,
 				ATTR_TYPE
@@ -905,10 +927,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	}
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (oldValue === newValue) return;
-		if (name === "preload-metadata" || name === "prefer-media-metadata") {
+		if (name === "preload-metadata" || name === "prefer-media-metadata" || name === "preload-soundcloud") {
 			this.renderCurrentTrack();
 			this.renderPlaylist();
 			this.preloadPlaylistMetadata();
+			this.syncSoundCloudPreloads();
 			return;
 		}
 		if (name === "playlist-open") {
@@ -950,6 +973,12 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	set preloadMetadata(preload) {
 		this.toggleAttribute(ATTR_PRELOAD_METADATA, preload);
 	}
+	get preloadSoundCloud() {
+		return normalizeSoundCloudPreload(this.getAttribute(ATTR_PRELOAD_SOUNDCLOUD));
+	}
+	set preloadSoundCloud(preload) {
+		this.setAttribute(ATTR_PRELOAD_SOUNDCLOUD, preload);
+	}
 	get preferMediaMetadata() {
 		return this.hasAttribute(ATTR_PREFER_MEDIA_METADATA);
 	}
@@ -968,6 +997,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.index = 0;
 		this.renderPlaylist();
 		this.preloadPlaylistMetadata();
+		this.syncSoundCloudPreloads();
 		this.loadTrack();
 	}
 	async play() {
@@ -1089,6 +1119,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.index = Number.isInteger(nextIndex) && nextIndex >= 0 ? Math.min(nextIndex, Math.max(0, this.tracks.length - 1)) : Math.min(this.index, Math.max(0, this.tracks.length - 1));
 		this.renderPlaylist();
 		this.preloadPlaylistMetadata();
+		this.syncSoundCloudPreloads();
 	}
 	syncChildTracks() {
 		if (this.playlistOverride) return;
@@ -1105,19 +1136,39 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		return Array.from(this.children).map((element) => trackFromElement(element)).filter((track) => track !== null);
 	}
 	createPlayableTrack(track) {
-		const callbacks = {
+		const callbacks = this.createPlayableCallbacks(track);
+		const type = inferTrackType(track);
+		if (type === "audio") return new AudioPlayableTrack(track, this.audio, callbacks);
+		if (type === "midi") return new MidiPlayableTrack(track, callbacks, () => this.midiOscillator);
+		return this.getSoundCloudPlayableTrack(track);
+	}
+	getSoundCloudPlayableTrack(track) {
+		const key = this.getTrackKey(track);
+		const cachedTrack = this.soundCloudPreloads.get(key);
+		if (cachedTrack) return cachedTrack;
+		const playableTrack = new SoundCloudPlayableTrack(track, this.soundCloudPreloads.size === 0 ? this.iframe : this.createSoundCloudIframe(), this.createPlayableCallbacks(track));
+		this.soundCloudPreloads.set(key, playableTrack);
+		return playableTrack;
+	}
+	createPlayableCallbacks(track) {
+		const isCurrentTrack = () => this.currentTrack !== null && this.getTrackKey(this.currentTrack) === this.getTrackKey(track);
+		return {
 			onDuration: (duration) => {
-				this.duration = duration;
 				this.setTrackDuration(track, duration);
+				if (!isCurrentTrack()) return;
+				this.duration = duration;
 				this.syncProgress(this.getCurrentTime(), this.duration);
 			},
-			onFinish: () => this.finishTrack(),
+			onFinish: () => {
+				if (isCurrentTrack()) this.finishTrack();
+			},
 			onMetadata: (metadata, metadataPreloadId) => {
 				if (metadataPreloadId !== void 0 && metadataPreloadId !== this.metadataPreloadId) return;
 				if (!this.trackPrefersMediaMetadata(track)) return;
 				this.setTrackMetadata(track, metadata);
 			},
 			onPause: () => {
+				if (!isCurrentTrack()) return;
 				const wasPlaying = this.playing || this.desiredPlaying;
 				this.desiredPlaying = false;
 				this.playing = false;
@@ -1125,20 +1176,65 @@ var JukettePlayerElement = class extends HTMLElementBase {
 				if (wasPlaying) this.emitJuketteEvent("jukette:pause");
 			},
 			onPlay: () => {
+				if (!isCurrentTrack()) return;
 				this.desiredPlaying = true;
 				this.playing = true;
 				this.syncPlayingState();
 				this.emitJuketteEvent("jukette:play");
 			},
 			onProgress: (currentTime, duration) => {
+				if (!isCurrentTrack()) return;
 				this.syncProgress(currentTime, duration);
 			},
-			onStatus: (message = "") => this.setStatus(message)
+			onStatus: (message = "") => {
+				if (isCurrentTrack()) this.setStatus(message);
+			}
 		};
-		const type = inferTrackType(track);
-		if (type === "audio") return new AudioPlayableTrack(track, this.audio, callbacks);
-		if (type === "midi") return new MidiPlayableTrack(track, callbacks, () => this.midiOscillator);
-		return new SoundCloudPlayableTrack(track, this.iframe, callbacks);
+	}
+	createSoundCloudIframe() {
+		const iframe = document.createElement("iframe");
+		iframe.className = "soundcloud";
+		iframe.part.add("soundcloud");
+		iframe.title = "SoundCloud player";
+		iframe.allow = "autoplay";
+		this.playerElement.insertBefore(iframe, this.audio);
+		return iframe;
+	}
+	trackShouldPreloadSoundCloud(track, index) {
+		if (inferTrackType(track) !== "soundcloud") return false;
+		if (track.preload !== void 0) return track.preload;
+		const preload = this.preloadSoundCloud;
+		if (preload === "none") return false;
+		if (preload === "all") return true;
+		if (preload === "current") return index === this.index;
+		if (preload === "next") {
+			const nextIndex = this.tracks.length === 0 ? this.index : (this.index + 1) % this.tracks.length;
+			return index === this.index || index === nextIndex;
+		}
+		return false;
+	}
+	syncSoundCloudPreloads() {
+		const wantedKeys = /* @__PURE__ */ new Set();
+		const activeKey = this.currentTrack && inferTrackType(this.currentTrack) === "soundcloud" ? this.getTrackKey(this.currentTrack) : "";
+		for (const [index, track] of this.tracks.entries()) {
+			if (!this.trackShouldPreloadSoundCloud(track, index)) continue;
+			const key = this.getTrackKey(track);
+			wantedKeys.add(key);
+			this.getSoundCloudPlayableTrack(track).load({
+				metadataPreloadId: this.metadataPreloadId,
+				restart: false,
+				silent: key !== activeKey,
+				volume: Number(this.volumeInput.value)
+			});
+		}
+		for (const [key, track] of this.soundCloudPreloads) {
+			const active = key === activeKey;
+			track.setActive(active);
+			if (wantedKeys.has(key) || active) continue;
+			track.stop();
+			if (track.iframe !== this.iframe) track.iframe.remove();
+			this.soundCloudPreloads.delete(key);
+		}
 	}
 	loadTrack() {
 		this.trackLoadId += 1;
@@ -1168,6 +1264,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.setStatus();
 		this.syncProgress(0, this.duration);
 		this.activePlayableTrack = this.createPlayableTrack(track);
+		if (this.activePlayableTrack instanceof SoundCloudPlayableTrack) this.syncSoundCloudPreloads();
+		else for (const track of this.soundCloudPreloads.values()) track.setActive(false);
 		this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataPreloadId,
 			restart: this.restartOnNextPlay,
@@ -1209,6 +1307,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			button.addEventListener("click", () => {
 				this.desiredPlaying = true;
 				this.restartOnNextPlay = true;
+				if (index === this.index) {
+					this.seek(0);
+					this.play();
+					return;
+				}
 				this.index = index;
 				this.loadTrack();
 				this.play();

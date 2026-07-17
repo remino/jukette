@@ -13,6 +13,7 @@ export interface PlayableTrackCallbacks {
 export interface PlayableTrackLoadOptions {
 	metadataPreloadId: number
 	restart: boolean
+	silent?: boolean
 	volume: number
 }
 

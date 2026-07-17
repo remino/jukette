@@ -24,6 +24,12 @@
     - Split native audio, MIDI, and SoundCloud playback behavior into internal
       playable track classes so the player element can focus on UI and playlist
       orchestration.
+    - Add a per-track `preload` flag for future playback preparation policies.
+    - Add `preload-soundcloud` / `preloadSoundCloud` to warm SoundCloud tracks
+      with `none`, `current`, `next`, and `all` policies, respecting per-track
+      `preload` overrides.
+    - Keep the active SoundCloud iframe in place when clicking the current
+      playlist track again.
 
 ## v0.3.0
 
