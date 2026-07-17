@@ -60,16 +60,15 @@ export class SoundCloudPlayableTrack extends JukettePlayableTrack {
 
 	async play(options: PlayableTrackPlayOptions): Promise<boolean> {
 		this.callbacks.onStatus('Loading SoundCloud')
-		const canPlayPreparedTrack =
-			this.adapter.isLoaded(this.track.src) ||
-			this.adapter.isPrepared(this.track.src)
-		if (!canPlayPreparedTrack) {
+		if (!this.adapter.isLoaded(this.track.src)) {
 			let didLoad: boolean
 			try {
-				didLoad = await this.adapter.load(
-					this.track.src,
-					options.isStale,
-				)
+				didLoad = this.adapter.isPrepared(this.track.src)
+					? await this.adapter.waitUntilReady(
+							this.track.src,
+							options.isStale,
+						)
+					: await this.adapter.load(this.track.src, options.isStale)
 			} catch {
 				didLoad = false
 			}

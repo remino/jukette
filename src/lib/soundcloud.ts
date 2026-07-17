@@ -1,6 +1,7 @@
 const SOUNDCLOUD_API_SRC = 'https://w.soundcloud.com/player/api.js'
 const SOUNDCLOUD_LOAD_TIMEOUT = 10000
 const SOUNDCLOUD_PLAY_TIMEOUT = 5000
+const SOUNDCLOUD_READY_TIMEOUT = 10000
 
 interface SoundCloudWidget {
 	bind(eventName: string, listener: (event?: unknown) => void): void
@@ -96,6 +97,8 @@ export class SoundCloudAdapter {
 	private loadedDuration = 0
 	private loadedSrc = ''
 	private preparedSrc = ''
+	private readyPromise: Promise<boolean> | null = null
+	private resolveReady: ((ready: boolean) => void) | null = null
 	private resolvePlay: ((played: boolean) => void) | null = null
 	private silentPause = false
 	private widget: SoundCloudWidget | null = null
@@ -184,6 +187,19 @@ export class SoundCloudAdapter {
 		return true
 	}
 
+	async waitUntilReady(
+		src: string,
+		isStale: () => boolean,
+	): Promise<boolean> {
+		this.currentIsStale = isStale
+		const widget = await this.getWidget(isStale)
+		if (!widget || isStale()) return false
+		if (this.loadedSrc === src) return true
+
+		const ready = await this.readyPromise
+		return Boolean(ready && !isStale() && this.loadedSrc === src)
+	}
+
 	pause(options: { silent?: boolean } = {}): void {
 		if (options.silent) this.silentPause = true
 		this.resolvePlay?.(false)
@@ -245,6 +261,23 @@ export class SoundCloudAdapter {
 		const widget = api.Widget(this.iframe)
 		this.widget = widget
 		this.bindEvents(api, widget)
+		this.readyPromise = new Promise<boolean>((resolve) => {
+			let settled = false
+			const timeout = window.setTimeout(
+				() => settle(false),
+				SOUNDCLOUD_READY_TIMEOUT,
+			)
+			const settle = (ready: boolean) => {
+				if (settled) return
+
+				settled = true
+				window.clearTimeout(timeout)
+				this.resolveReady = null
+				resolve(ready)
+			}
+
+			this.resolveReady = settle
+		})
 		widget.bind(api.Widget.Events.READY, () => {
 			if (this.isStale() || widget !== this.widget) return
 
@@ -255,6 +288,7 @@ export class SoundCloudAdapter {
 				this.callbacks.onDuration(this.loadedDuration)
 			})
 			this.requestPosition(this.currentIsStale)
+			this.resolveReady?.(true)
 		})
 
 		return widget
