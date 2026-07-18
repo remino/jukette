@@ -1,4 +1,4 @@
-/*! @remino/jukette-midi v0.4.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-midi v0.4.2 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 import * as ToneMidiModule from "@tonejs/midi";
 import { JukettePlayableTrack, cleanMetadataText, normalizeMidiOscillator, registerJuketteBackend } from "@remino/jukette-core";
 import * as Tone from "tone";

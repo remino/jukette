@@ -1,4 +1,4 @@
-/*! jukette v0.4.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! jukette v0.4.2 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
