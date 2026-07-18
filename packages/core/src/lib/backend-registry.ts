@@ -8,8 +8,11 @@ import type {
 } from './types'
 
 export interface JuketteBackendPreloadOptions {
+	host: HTMLElement
 	preloadDuration: boolean
 	preloadMetadata: boolean
+	prepare: boolean
+	trackElement: Element | null
 }
 
 export interface JuketteBackendPreloadResult {
@@ -21,6 +24,7 @@ export interface JuketteBackendCreateTrackOptions {
 	audioElement: HTMLAudioElement
 	getMidiOscillator(): JuketteMidiOscillator
 	host: HTMLElement
+	trackElement: Element | null
 }
 
 export interface JuketteBackend {

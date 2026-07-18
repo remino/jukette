@@ -56,6 +56,20 @@ const packageBuilds = {
 			},
 		],
 	},
+	'@remino/jukette-soundcloud': {
+		entries: [
+			{
+				entry: 'src/lib/soundcloud.ts',
+				fileBase: 'soundcloud',
+				name: 'JuketteSoundCloud',
+			},
+			{
+				entry: 'src/lib/soundcloud-auto.ts',
+				fileBase: 'soundcloud-auto',
+				name: 'JuketteSoundCloud',
+			},
+		],
+	},
 	jukette: {
 		entries: [
 			{
@@ -135,6 +149,10 @@ const buildLibrary = async ({
 				'@remino/jukette-midi': resolve(
 					workspaceRoot,
 					'packages/midi/src/lib/midi-entry.ts',
+				),
+				'@remino/jukette-soundcloud': resolve(
+					workspaceRoot,
+					'packages/soundcloud/src/lib/soundcloud.ts',
 				),
 			},
 		},

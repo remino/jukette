@@ -35,6 +35,10 @@
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
       existing verbose aliases available during the `0.x` line.
+    - Reintroduce SoundCloud support as the optional
+      `@remino/jukette-soundcloud` backend addon with per-track widget
+      preparation, oEmbed metadata loading, and selection-time readiness
+      gating.
     - Remove SoundCloud playback from the core library so `jukette-player`
       focuses on browser-native audio and local MIDI tracks.
     - Simplify `jukette-player` into a track selector with a single

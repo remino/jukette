@@ -4,6 +4,7 @@
 		{ "path": "./packages/core/tsconfig.build.json" },
 		{ "path": "./packages/audio/tsconfig.build.json" },
 		{ "path": "./packages/midi/tsconfig.build.json" },
+		{ "path": "./packages/soundcloud/tsconfig.build.json" },
 		{ "path": "./packages/jukette/tsconfig.build.json" },
 		{ "path": "./apps/docs/tsconfig.json" }
 	]

@@ -50,6 +50,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly dom: JukettePlayerDom
 	private readonly metadataController: JuketteMetadataController
 	private readonly progressController: JuketteProgressController
+	private readonly trackElements = new WeakMap<JuketteTrack, Element>()
 	private tracks: JuketteTrack[] = []
 	private index = 0
 	private desiredPlaying = false
@@ -77,7 +78,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.dom = createJukettePlayerDom(this)
 		this.metadataController = new JuketteMetadataController({
+			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
+			getTrackElement: (track) => this.trackElements.get(track) ?? null,
 			getTrackKey: (track) => this.getTrackKey(track),
 			getTracks: () => this.tracks,
 			isCurrentTrack: (track) => this.isCurrentTrack(track),
@@ -348,9 +351,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private getChildTracks(): JuketteTrack[] {
-		return Array.from(this.children)
-			.map((element) => trackFromElement(element))
-			.filter((track): track is JuketteTrack => track !== null)
+		return Array.from(this.children).flatMap((element) => {
+			const track = trackFromElement(element)
+			if (!track) return []
+			this.trackElements.set(track, element)
+			return [track]
+		})
 	}
 
 	private createPlayableTrack(
@@ -364,6 +370,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			audioElement: this.dom.audio,
 			getMidiOscillator: () => this.midiOscillator,
 			host: this,
+			trackElement: this.trackElements.get(track) ?? null,
 		})
 	}
 
@@ -394,7 +401,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 				) {
 					return
 				}
-				if (!this.trackPrefersMediaMetadata(track)) return
 				this.metadataController.setMetadata(track, metadata)
 			},
 			onPause: () => {

@@ -1,6 +1,8 @@
 import type { AudioFileMetadata, JuketteTrack } from './types';
 export interface JuketteMetadataControllerOptions {
+    getHost(): HTMLElement;
     getPreloadMetadata(): boolean;
+    getTrackElement(track: JuketteTrack): Element | null;
     getTrackKey(track: JuketteTrack): string;
     getTracks(): JuketteTrack[];
     isCurrentTrack(track: JuketteTrack): boolean;

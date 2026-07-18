@@ -1,0 +1,45 @@
+{
+	"name": "@remino/jukette-soundcloud",
+	"version": "0.3.0",
+	"description": "SoundCloud backend addon for jukette.",
+	"type": "module",
+	"license": "ISC",
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"homepage": "https://remino.net/jukette/",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"main": "./dist/soundcloud.cjs",
+	"module": "./dist/soundcloud.mjs",
+	"types": "./dist/soundcloud.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/soundcloud.d.ts",
+			"import": "./dist/soundcloud.mjs",
+			"require": "./dist/soundcloud.cjs"
+		},
+		"./auto": {
+			"types": "./dist/soundcloud-auto.d.ts",
+			"import": "./dist/soundcloud-auto.mjs",
+			"require": "./dist/soundcloud-auto.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"sideEffects": [
+		"./dist/soundcloud-auto.*",
+		"./src/lib/soundcloud-auto.ts"
+	],
+	"dependencies": {
+		"@remino/jukette-core": "0.3.0"
+	},
+	"scripts": {
+		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.build.json --noEmit"
+	}
+}

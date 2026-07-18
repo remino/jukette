@@ -92,7 +92,7 @@ TypeScript declarations are included with the package.
 Optional modular packages:
 
 ```sh
-npm install jukette @remino/jukette-midi
+npm install jukette @remino/jukette-midi @remino/jukette-soundcloud
 ```
 
 - `jukette`: convenience package with `@remino/jukette-core` and
@@ -102,12 +102,15 @@ npm install jukette @remino/jukette-midi
   audio backend.
 - `@remino/jukette-midi` and `@remino/jukette-midi/auto`: optional MIDI
   backend.
+- `@remino/jukette-soundcloud` and `@remino/jukette-soundcloud/auto`:
+  optional SoundCloud backend.
 
 Typical addon usage:
 
 ```js
 import 'jukette/auto'
 import '@remino/jukette-midi/auto'
+import '@remino/jukette-soundcloud/auto'
 ```
 
 ### Direct download
@@ -155,6 +158,13 @@ Or pass a playlist with child track elements:
 		type="midi"
 	></jukette-track>
 	<jukette-track
+		title="Flickermood"
+		artist="Forss"
+		src="https://soundcloud.com/forss/flickermood"
+		type="soundcloud"
+		preload
+	></jukette-track>
+	<jukette-track
 		title="Reprise"
 		artist="Local"
 		src="/audio/reprise.ogg"
@@ -172,6 +182,7 @@ addons for other track types:
 ```js
 import 'jukette/auto'
 import '@remino/jukette-midi/auto'
+import '@remino/jukette-soundcloud/auto'
 ```
 
 [Back to top](#)
@@ -220,7 +231,8 @@ Track sources are resolved in this order:
 
 `<jukette-track>` attributes and track object fields:
 
-- `src`: required URL for a local audio file or local MIDI file.
+- `src`: required URL for a local audio file, local MIDI file, or public
+  SoundCloud track URL when `type="soundcloud"` is used.
 - `title`: optional display title.
 - `artist`: optional display artist.
 - `type`: optional backend-owned track type such as `audio`, `midi`, or
@@ -240,6 +252,11 @@ audio tracks unless their source looks like MIDI.
 MIDI playback uses `@tonejs/midi` for parsing and a compact Tone.js synth for
 browser playback. It is intentionally simple and suitable for local MIDI
 previews, not a full General MIDI instrument set.
+
+SoundCloud playback is available through the optional
+`@remino/jukette-soundcloud` addon. Selecting a SoundCloud track prepares the
+hidden widget and oEmbed metadata first, then enables Play once the widget is
+ready to accept playback calls.
 
 If a selected track type has no registered backend, Jukette leaves the track
 selected, keeps playback controls disabled, and surfaces that the track type is
@@ -277,9 +294,11 @@ Core and addon imports:
 import { defineElement } from '@remino/jukette-core'
 import { register as registerAudio } from '@remino/jukette-audio'
 import { register as registerMidi } from '@remino/jukette-midi'
+import { register as registerSoundCloud } from '@remino/jukette-soundcloud'
 
 registerAudio()
 registerMidi()
+registerSoundCloud()
 defineElement()
 ```
 
@@ -315,7 +334,8 @@ authored display values, or omit it to inherit the player setting.
 
 Use `preload` or `preload: true` to ask Jukette to prepare a track for playback
 when possible. The flag is track-local and does not change media metadata
-preloading.
+preloading. For SoundCloud tracks, it also opts that track into early widget
+preparation before the user selects it.
 
 Use `midi-oscillator` or `midiOscillator` to choose the Tone.js MIDI preview
 oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and

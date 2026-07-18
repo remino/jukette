@@ -2,8 +2,11 @@ import { JukettePlayableTrack } from './playable-track';
 import type { PlayableTrackCallbacks } from './playable-track';
 import type { AudioFileMetadata, JuketteMidiOscillator, JuketteTrack, JuketteTrackKind } from './types';
 export interface JuketteBackendPreloadOptions {
+    host: HTMLElement;
     preloadDuration: boolean;
     preloadMetadata: boolean;
+    prepare: boolean;
+    trackElement: Element | null;
 }
 export interface JuketteBackendPreloadResult {
     duration?: number;
@@ -13,6 +16,7 @@ export interface JuketteBackendCreateTrackOptions {
     audioElement: HTMLAudioElement;
     getMidiOscillator(): JuketteMidiOscillator;
     host: HTMLElement;
+    trackElement: Element | null;
 }
 export interface JuketteBackend {
     createPlayableTrack(track: JuketteTrack, callbacks: PlayableTrackCallbacks, options: JuketteBackendCreateTrackOptions): JukettePlayableTrack;

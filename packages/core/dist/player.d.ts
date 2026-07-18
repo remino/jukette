@@ -5,6 +5,7 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private readonly dom;
     private readonly metadataController;
     private readonly progressController;
+    private readonly trackElements;
     private tracks;
     private index;
     private desiredPlaying;

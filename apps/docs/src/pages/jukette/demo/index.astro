@@ -15,9 +15,15 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 			artist="Jukette"
 			src="/jukette/demo-scale.mid"
 			type="midi"></jukette-track>
+		<jukette-track
+			title="Flickermood"
+			artist="Forss"
+			src="https://soundcloud.com/forss/flickermood"
+			type="soundcloud"></jukette-track>
 	</jukette-player>
 	<script>
 		import 'jukette/auto'
 		import '@remino/jukette-midi/auto'
+		import '@remino/jukette-soundcloud/auto'
 	</script>
 </BaseLayout>

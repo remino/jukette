@@ -22,6 +22,12 @@ export default defineConfig({
 			'@remino/jukette-midi/auto': resolvePath(
 				'./packages/midi/src/lib/midi-auto.ts',
 			),
+			'@remino/jukette-soundcloud': resolvePath(
+				'./packages/soundcloud/src/lib/soundcloud.ts',
+			),
+			'@remino/jukette-soundcloud/auto': resolvePath(
+				'./packages/soundcloud/src/lib/soundcloud-auto.ts',
+			),
 			jukette: resolvePath('./packages/jukette/src/lib/jukette.ts'),
 			'jukette/auto': resolvePath('./packages/jukette/src/lib/auto.ts'),
 		},
@@ -48,6 +54,12 @@ export default defineConfig({
 						),
 						'@remino/jukette-midi/auto': resolvePath(
 							'./packages/midi/src/lib/midi-auto.ts',
+						),
+						'@remino/jukette-soundcloud': resolvePath(
+							'./packages/soundcloud/src/lib/soundcloud.ts',
+						),
+						'@remino/jukette-soundcloud/auto': resolvePath(
+							'./packages/soundcloud/src/lib/soundcloud-auto.ts',
 						),
 						jukette: resolvePath(
 							'./packages/jukette/src/lib/jukette.ts',
@@ -82,6 +94,12 @@ export default defineConfig({
 						),
 						'@remino/jukette-midi/auto': resolvePath(
 							'./packages/midi/src/lib/midi-auto.ts',
+						),
+						'@remino/jukette-soundcloud': resolvePath(
+							'./packages/soundcloud/src/lib/soundcloud.ts',
+						),
+						'@remino/jukette-soundcloud/auto': resolvePath(
+							'./packages/soundcloud/src/lib/soundcloud-auto.ts',
 						),
 						jukette: resolvePath(
 							'./packages/jukette/src/lib/jukette.ts',

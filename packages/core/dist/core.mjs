@@ -185,10 +185,11 @@ var JuketteMetadataController = class {
 		this.options.onPlaylistDisplayChange();
 	}
 	getDisplay(track) {
-		const metadata = this.options.trackPrefersMediaMetadata(track) ? this.metadata.get(this.options.getTrackKey(track)) : void 0;
+		const metadata = this.metadata.get(this.options.getTrackKey(track));
+		const preferMetadata = this.options.trackPrefersMediaMetadata(track);
 		return {
-			artist: metadata?.artist || track.artist || "",
-			title: metadata?.title || track.title || track.src
+			artist: preferMetadata ? metadata?.artist || track.artist || "" : track.artist || metadata?.artist || "",
+			title: preferMetadata ? metadata?.title || track.title || track.src : track.title || metadata?.title || track.src
 		};
 	}
 	setMetadata(track, metadata) {
@@ -209,7 +210,8 @@ var JuketteMetadataController = class {
 		this.preloadId += 1;
 		const tracks = this.options.getTracks();
 		const hasMetadataPreference = tracks.some((track) => this.options.trackPrefersMediaMetadata(track));
-		if (!this.options.getPreloadMetadata() && !hasMetadataPreference) return;
+		const hasPrepareRequests = tracks.some((track) => track.preload);
+		if (!this.options.getPreloadMetadata() && !hasMetadataPreference && !hasPrepareRequests) return;
 		const metadataPreloadId = this.preloadId;
 		for (const track of tracks) this.preloadTrackMetadata(track, metadataPreloadId);
 	}
@@ -218,12 +220,15 @@ var JuketteMetadataController = class {
 		if (!backend?.preloadTrack) return;
 		try {
 			const result = await backend.preloadTrack(track, {
+				host: this.options.getHost(),
 				preloadDuration: this.options.getPreloadMetadata(),
-				preloadMetadata: this.options.trackPrefersMediaMetadata(track)
+				preloadMetadata: this.options.trackPrefersMediaMetadata(track),
+				prepare: Boolean(track.preload),
+				trackElement: this.options.getTrackElement(track)
 			});
 			if (metadataPreloadId !== this.preloadId || !result) return;
-			if (this.options.getPreloadMetadata() && result.duration) this.setDuration(track, result.duration);
-			if (this.options.trackPrefersMediaMetadata(track) && result.metadata) this.setMetadata(track, result.metadata);
+			if (result.duration) this.setDuration(track, result.duration);
+			if (result.metadata) this.setMetadata(track, result.metadata);
 		} catch {}
 	}
 };
@@ -315,6 +320,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	dom;
 	metadataController;
 	progressController;
+	trackElements = /* @__PURE__ */ new WeakMap();
 	tracks = [];
 	index = 0;
 	desiredPlaying = false;
@@ -335,7 +341,9 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
 		this.dom = createJukettePlayerDom(this);
 		this.metadataController = new JuketteMetadataController({
+			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
+			getTrackElement: (track) => this.trackElements.get(track) ?? null,
 			getTrackKey: (track) => this.getTrackKey(track),
 			getTracks: () => this.tracks,
 			isCurrentTrack: (track) => this.isCurrentTrack(track),
@@ -524,7 +532,12 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.loadTrack();
 	}
 	getChildTracks() {
-		return Array.from(this.children).map((element) => trackFromElement(element)).filter((track) => track !== null);
+		return Array.from(this.children).flatMap((element) => {
+			const track = trackFromElement(element);
+			if (!track) return [];
+			this.trackElements.set(track, element);
+			return [track];
+		});
 	}
 	createPlayableTrack(track) {
 		const callbacks = this.createPlayableCallbacks(track);
@@ -533,7 +546,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		return backend.createPlayableTrack(track, callbacks, {
 			audioElement: this.dom.audio,
 			getMidiOscillator: () => this.midiOscillator,
-			host: this
+			host: this,
+			trackElement: this.trackElements.get(track) ?? null
 		});
 	}
 	createPlayableCallbacks(track) {
@@ -550,7 +564,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			},
 			onMetadata: (metadata, metadataPreloadId) => {
 				if (metadataPreloadId !== void 0 && metadataPreloadId !== this.metadataController.metadataPreloadId) return;
-				if (!this.trackPrefersMediaMetadata(track)) return;
 				this.metadataController.setMetadata(track, metadata);
 			},
 			onPause: () => {

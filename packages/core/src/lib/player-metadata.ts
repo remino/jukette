@@ -2,7 +2,9 @@ import { resolveJuketteBackend } from './backend-registry'
 import type { AudioFileMetadata, JuketteTrack } from './types'
 
 export interface JuketteMetadataControllerOptions {
+	getHost(): HTMLElement
 	getPreloadMetadata(): boolean
+	getTrackElement(track: JuketteTrack): Element | null
 	getTrackKey(track: JuketteTrack): string
 	getTracks(): JuketteTrack[]
 	isCurrentTrack(track: JuketteTrack): boolean
@@ -45,13 +47,16 @@ export class JuketteMetadataController {
 	}
 
 	getDisplay(track: JuketteTrack): Required<AudioFileMetadata> {
-		const metadata = this.options.trackPrefersMediaMetadata(track)
-			? this.metadata.get(this.options.getTrackKey(track))
-			: undefined
+		const metadata = this.metadata.get(this.options.getTrackKey(track))
+		const preferMetadata = this.options.trackPrefersMediaMetadata(track)
 
 		return {
-			artist: metadata?.artist || track.artist || '',
-			title: metadata?.title || track.title || track.src,
+			artist: preferMetadata
+				? metadata?.artist || track.artist || ''
+				: track.artist || metadata?.artist || '',
+			title: preferMetadata
+				? metadata?.title || track.title || track.src
+				: track.title || metadata?.title || track.src,
 		}
 	}
 
@@ -87,7 +92,12 @@ export class JuketteMetadataController {
 		const hasMetadataPreference = tracks.some((track) =>
 			this.options.trackPrefersMediaMetadata(track),
 		)
-		if (!this.options.getPreloadMetadata() && !hasMetadataPreference) {
+		const hasPrepareRequests = tracks.some((track) => track.preload)
+		if (
+			!this.options.getPreloadMetadata() &&
+			!hasMetadataPreference &&
+			!hasPrepareRequests
+		) {
 			return
 		}
 
@@ -106,18 +116,18 @@ export class JuketteMetadataController {
 
 		try {
 			const result = await backend.preloadTrack(track, {
+				host: this.options.getHost(),
 				preloadDuration: this.options.getPreloadMetadata(),
 				preloadMetadata: this.options.trackPrefersMediaMetadata(track),
+				prepare: Boolean(track.preload),
+				trackElement: this.options.getTrackElement(track),
 			})
 			if (metadataPreloadId !== this.preloadId || !result) return
 
-			if (this.options.getPreloadMetadata() && result.duration) {
+			if (result.duration) {
 				this.setDuration(track, result.duration)
 			}
-			if (
-				this.options.trackPrefersMediaMetadata(track) &&
-				result.metadata
-			) {
+			if (result.metadata) {
 				this.setMetadata(track, result.metadata)
 			}
 		} catch {
