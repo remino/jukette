@@ -29,7 +29,7 @@ export const renderTrackSelect = ({
 			const artist = display.artist ? ` - ${display.artist}` : ''
 
 			option.value = String(index)
-			option.textContent = `${index + 1}. ${display.title}${artist} (${durationText})`
+			option.textContent = `${display.title}${artist} (${durationText})`
 			return option
 		}),
 	)
