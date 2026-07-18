@@ -1,4 +1,4 @@
-/*! jukette v0.4.3 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! jukette v0.4.4 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 let _remino_jukette_audio = require("@remino/jukette-audio");
 //#region src/lib/jukette.ts
 (0, _remino_jukette_audio.register)();

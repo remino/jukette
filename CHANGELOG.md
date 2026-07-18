@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.4.4](#v044)
 - [v0.4.3](#v043)
 - [v0.4.2](#v042)
 - [v0.4.1](#v041)
@@ -14,6 +15,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.4.4
 
 - Repo
     - Minify inline player CSS in ESM and CommonJS package builds too, not

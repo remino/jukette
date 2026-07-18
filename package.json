@@ -2,7 +2,7 @@
 	"name": "@remino/jukette-monorepo",
 	"private": true,
 	"description": "Workspace root for the jukette packages and docs app.",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"workspaces": [
 		"packages/*",
 		"apps/*"

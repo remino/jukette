@@ -1,4 +1,4 @@
-/*! @remino/jukette-core v0.4.3 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-core v0.4.4 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();
 var registrationListeners = /* @__PURE__ */ new Set();
