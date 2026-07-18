@@ -10,7 +10,10 @@ import {
 	ATTR_TRACK_INDEX,
 	ATTR_TYPE,
 } from './attributes'
-import { resolveJuketteBackend } from './backend-registry'
+import {
+	resolveJuketteBackend,
+	subscribeJuketteBackendRegistrations,
+} from './backend-registry'
 import { HTMLElementBase } from './dom'
 import { createJuketteEventDetail } from './events'
 import { normalizeMidiOscillator } from './midi'
@@ -55,6 +58,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private trackLoadId = 0
 	private duration = 0
 	private activePlayableTrack: JukettePlayableTrack | null = null
+	private backendRegistrationCleanup: (() => void) | null = null
 	private restartOnNextPlay = false
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
@@ -107,6 +111,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	connectedCallback(): void {
+		this.backendRegistrationCleanup = subscribeJuketteBackendRegistrations(
+			() => this.handleBackendRegistration(),
+		)
 		this.trackObserver?.observe(this, {
 			attributeFilter: [
 				ATTR_ARTIST,
@@ -125,6 +132,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	disconnectedCallback(): void {
+		this.backendRegistrationCleanup?.()
+		this.backendRegistrationCleanup = null
 		this.trackObserver?.disconnect()
 		this.stopProgressLoop()
 		this.activePlayableTrack?.stop()
@@ -599,5 +608,16 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private stopProgressLoop(): void {
 		this.progressController.stop()
+	}
+
+	private handleBackendRegistration(): void {
+		this.preloadPlaylistMetadata()
+		this.renderTrackSelect()
+
+		const track = this.currentTrack
+		if (!track || this.activePlayableTrack) return
+		if (!resolveJuketteBackend(track)) return
+
+		this.loadTrack()
 	}
 }

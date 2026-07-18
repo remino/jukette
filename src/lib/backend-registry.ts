@@ -44,6 +44,7 @@ export interface JuketteBackend {
 }
 
 const backends = new Map<JuketteTrackKind, JuketteBackend>()
+const registrationListeners = new Set<(backend: JuketteBackend) => void>()
 
 export const getRegisteredJuketteBackends = (): JuketteBackend[] =>
 	Array.from(backends.values())
@@ -56,11 +57,22 @@ export const registerJuketteBackend = (
 	backend: JuketteBackend,
 ): JuketteBackend => {
 	backends.set(backend.type, backend)
+	for (const listener of registrationListeners) listener(backend)
 	return backend
 }
 
 export const resetJuketteBackends = (): void => {
 	backends.clear()
+	registrationListeners.clear()
+}
+
+export const subscribeJuketteBackendRegistrations = (
+	listener: (backend: JuketteBackend) => void,
+): (() => void) => {
+	registrationListeners.add(listener)
+	return () => {
+		registrationListeners.delete(listener)
+	}
 }
 
 export const resolveJuketteBackend = (

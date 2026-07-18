@@ -4,6 +4,7 @@ export {
 	registerJuketteBackend,
 	resetJuketteBackends,
 	resolveJuketteBackend,
+	subscribeJuketteBackendRegistrations,
 } from './backend-registry'
 export type {
 	JuketteBackend,

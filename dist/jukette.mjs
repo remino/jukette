@@ -57,14 +57,23 @@ var JukettePlayableTrack = class {
 //#endregion
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();
+var registrationListeners = /* @__PURE__ */ new Set();
 var getRegisteredJuketteBackends = () => Array.from(backends.values());
 var getJuketteBackend = (type) => backends.get(type);
 var registerJuketteBackend = (backend) => {
 	backends.set(backend.type, backend);
+	for (const listener of registrationListeners) listener(backend);
 	return backend;
 };
 var resetJuketteBackends = () => {
 	backends.clear();
+	registrationListeners.clear();
+};
+var subscribeJuketteBackendRegistrations = (listener) => {
+	registrationListeners.add(listener);
+	return () => {
+		registrationListeners.delete(listener);
+	};
 };
 var resolveJuketteBackend = (track) => {
 	if (track.type) return getJuketteBackend(track.type);
@@ -2692,6 +2701,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	trackLoadId = 0;
 	duration = 0;
 	activePlayableTrack = null;
+	backendRegistrationCleanup = null;
 	restartOnNextPlay = false;
 	trackObserver = null;
 	playlistOverride = null;
@@ -2728,6 +2738,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.dom.audio.addEventListener("ended", () => this.finishTrack());
 	}
 	connectedCallback() {
+		this.backendRegistrationCleanup = subscribeJuketteBackendRegistrations(() => this.handleBackendRegistration());
 		this.trackObserver?.observe(this, {
 			attributeFilter: [
 				ATTR_ARTIST,
@@ -2745,6 +2756,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.loadTrack();
 	}
 	disconnectedCallback() {
+		this.backendRegistrationCleanup?.();
+		this.backendRegistrationCleanup = null;
 		this.trackObserver?.disconnect();
 		this.stopProgressLoop();
 		this.activePlayableTrack?.stop();
@@ -3091,6 +3104,14 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	stopProgressLoop() {
 		this.progressController.stop();
 	}
+	handleBackendRegistration() {
+		this.preloadPlaylistMetadata();
+		this.renderTrackSelect();
+		const track = this.currentTrack;
+		if (!track || this.activePlayableTrack) return;
+		if (!resolveJuketteBackend(track)) return;
+		this.loadTrack();
+	}
 };
 //#endregion
 //#region src/lib/elements.ts
@@ -3105,4 +3126,4 @@ var defineJuketteElements = defineJuketteElement;
 //#region src/lib/jukette.ts
 registerJuketteAudioBackend();
 //#endregion
-export { JukettePlayerElement, JuketteTrackElement, createJuketteEventDetail, defineJuketteElement, defineJuketteElements, getJuketteBackend, getRegisteredJuketteBackends, inferTrackType, juketteAudioBackend, normalizeTrack, parseAudioFileMetadata, parsePlaylist, registerJuketteAudioBackend, registerJuketteBackend, resetJuketteBackends, resolveJuketteBackend, trackFromElement };
+export { JukettePlayerElement, JuketteTrackElement, createJuketteEventDetail, defineJuketteElement, defineJuketteElements, getJuketteBackend, getRegisteredJuketteBackends, inferTrackType, juketteAudioBackend, normalizeTrack, parseAudioFileMetadata, parsePlaylist, registerJuketteAudioBackend, registerJuketteBackend, resetJuketteBackends, resolveJuketteBackend, subscribeJuketteBackendRegistrations, trackFromElement };

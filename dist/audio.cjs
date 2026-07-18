@@ -25,8 +25,10 @@ var JukettePlayableTrack = class {
 //#endregion
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();
+var registrationListeners = /* @__PURE__ */ new Set();
 var registerJuketteBackend = (backend) => {
 	backends.set(backend.type, backend);
+	for (const listener of registrationListeners) listener(backend);
 	return backend;
 };
 //#endregion

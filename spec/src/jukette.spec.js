@@ -4,6 +4,7 @@ import {
 	JukettePlayerElement,
 	normalizeTrack,
 	parsePlaylist,
+	subscribeJuketteBackendRegistrations,
 	trackFromElement,
 	resetJuketteBackends,
 } from '../../src/lib/core'
@@ -81,6 +82,19 @@ describe('jukette', () => {
 		registerJuketteMidiBackend()
 
 		expect(getJuketteBackend('midi')?.type).toBe('midi')
+	})
+
+	it('notifies listeners when a backend is registered', () => {
+		const listener = jasmine.createSpy('listener')
+		const unsubscribe = subscribeJuketteBackendRegistrations(listener)
+
+		registerJuketteMidiBackend()
+
+		expect(listener).toHaveBeenCalledWith(
+			jasmine.objectContaining({ type: 'midi' }),
+		)
+
+		unsubscribe()
 	})
 
 	it('parses JSON playlists', () => {
