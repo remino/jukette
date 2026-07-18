@@ -1,0 +1,45 @@
+{
+	"name": "@remino/jukette-audio",
+	"version": "0.3.0",
+	"description": "Browser-native audio backend for jukette.",
+	"type": "module",
+	"license": "ISC",
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"homepage": "https://remino.net/jukette/",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"main": "./dist/audio.cjs",
+	"module": "./dist/audio.mjs",
+	"types": "./dist/audio.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/audio.d.ts",
+			"import": "./dist/audio.mjs",
+			"require": "./dist/audio.cjs"
+		},
+		"./auto": {
+			"types": "./dist/audio-auto.d.ts",
+			"import": "./dist/audio-auto.mjs",
+			"require": "./dist/audio-auto.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"sideEffects": [
+		"./dist/audio-auto.*",
+		"./src/lib/audio-auto.ts"
+	],
+	"dependencies": {
+		"@remino/jukette-core": "0.3.0"
+	},
+	"scripts": {
+		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.build.json --noEmit"
+	}
+}

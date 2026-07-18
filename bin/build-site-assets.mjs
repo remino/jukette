@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-const root = process.cwd()
+const root = resolve(import.meta.dirname, '..')
 const generatorPath = fileURLToPath(import.meta.url)
-const demoTonePath = resolve(root, 'public/jukette/demo-tone.mp3')
-const demoMidiPath = resolve(root, 'public/jukette/demo-scale.mid')
+const demoTonePath = resolve(root, 'apps/docs/public/jukette/demo-tone.mp3')
+const demoMidiPath = resolve(root, 'apps/docs/public/jukette/demo-scale.mid')
 
 const fileIsCurrent = async (filePath) => {
 	try {

@@ -1,25 +1,29 @@
 import { readFile } from 'node:fs/promises'
 
 const query = '?inline'
+const cssPattern = /\.css(?:\?inline)?$/
 
 export const resolve = async (specifier, context, nextResolve) => {
-	if (!specifier.endsWith(query)) return nextResolve(specifier, context)
+	if (!specifier.endsWith(query) && !specifier.endsWith('.css')) {
+		return nextResolve(specifier, context)
+	}
 
-	const resolved = await nextResolve(
-		specifier.slice(0, -query.length),
-		context,
-	)
+	const target = specifier.endsWith(query)
+		? specifier.slice(0, -query.length)
+		: specifier
+	const resolved = await nextResolve(target, context)
 
 	return {
 		shortCircuit: true,
-		url: `${resolved.url}${query}`,
+		url: `${resolved.url}${specifier.endsWith(query) ? query : ''}`,
 	}
 }
 
 export const load = async (url, context, nextLoad) => {
-	if (!url.endsWith(query)) return nextLoad(url, context)
+	if (!cssPattern.test(url)) return nextLoad(url, context)
 
-	const source = await readFile(new URL(url.slice(0, -query.length)), 'utf8')
+	const cssUrl = url.endsWith(query) ? url.slice(0, -query.length) : url
+	const source = await readFile(new URL(cssUrl), 'utf8')
 
 	return {
 		format: 'module',

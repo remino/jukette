@@ -11,6 +11,24 @@
 
 ## HEAD
 
+- Repo
+    - Migrate the repository to an npm workspaces monorepo with
+      `packages/jukette`, `packages/core`, `packages/audio`,
+      `packages/midi`, and `apps/docs`.
+    - Publish modular packages as `@remino/jukette-core`,
+      `@remino/jukette-audio`, and `@remino/jukette-midi` while keeping
+      unscoped `jukette` as the convenience bundle.
+    - Move the Astro docs and demo site into the `apps/docs` workspace and
+      update shared build, typecheck, release, and publish tooling to run
+      across the workspace layout in lockstep.
+    - Keep the docs site on the shared `@remino/astro-site-nav` components and
+      leave `SITE_NAV_INCLUDE_ROOT` as the environment-provided source of HTML
+      partials instead of checking partials into this repository.
+    - Add a workspace-local docs `.env` so `SITE_NAV_INCLUDE_ROOT` resolves
+      correctly for the Astro app without extra launch wrappers.
+    - Rename the private workspace root package and add explicit `dev:docs`,
+      `build:packages`, `build:docs`, `preview:docs`, and targeted typecheck
+      scripts so the monorepo entrypoints read more clearly.
 - Library
     - Remove SoundCloud playback from the core library so `jukette-player`
       focuses on browser-native audio and local MIDI tracks.

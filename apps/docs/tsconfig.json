@@ -1,0 +1,21 @@
+{
+	"extends": "astro/tsconfigs/strict",
+	"compilerOptions": {
+		"baseUrl": "../..",
+		"moduleResolution": "bundler",
+		"paths": {
+			"@remino/jukette-core": ["packages/core/src/lib/core.ts"],
+			"@remino/jukette-audio": ["packages/audio/src/lib/audio.ts"],
+			"@remino/jukette-audio/auto": [
+				"packages/audio/src/lib/audio-auto.ts"
+			],
+			"@remino/jukette-midi": ["packages/midi/src/lib/midi-entry.ts"],
+			"@remino/jukette-midi/auto": ["packages/midi/src/lib/midi-auto.ts"],
+			"jukette": ["packages/jukette/src/lib/jukette.ts"],
+			"jukette/auto": ["packages/jukette/src/lib/auto.ts"]
+		},
+		"types": ["astro/client", "node"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.astro"],
+	"exclude": ["dist", "node_modules"]
+}

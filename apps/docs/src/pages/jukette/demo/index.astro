@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro'
+---
+
+<BaseLayout title="Demo" path="/jukette/demo/">
+	<h2>Demo</h2>
+	<jukette-player preload-metadata prefer-media-metadata>
+		<jukette-track
+			title="C-sharp arpeggiator"
+			artist="Jukette"
+			src="/jukette/demo-tone.mp3"
+			preload></jukette-track>
+		<jukette-track
+			title="MIDI scale"
+			artist="Jukette"
+			src="/jukette/demo-scale.mid"
+			type="midi"></jukette-track>
+	</jukette-player>
+	<script>
+		import 'jukette/auto'
+		import '@remino/jukette-midi/auto'
+	</script>
+</BaseLayout>

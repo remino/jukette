@@ -1,0 +1,10 @@
+export declare const ATTR_SRC = "src";
+export declare const ATTR_PLAYLIST = "playlist";
+export declare const ATTR_PRELOAD = "preload";
+export declare const ATTR_PRELOAD_METADATA = "preload-metadata";
+export declare const ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
+export declare const ATTR_MIDI_OSCILLATOR = "midi-oscillator";
+export declare const ATTR_TRACK_INDEX = "track-index";
+export declare const ATTR_TITLE = "title";
+export declare const ATTR_ARTIST = "artist";
+export declare const ATTR_TYPE = "type";

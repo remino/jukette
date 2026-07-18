@@ -9,7 +9,14 @@ const toArray = (value) => (Array.isArray(value) ? value : value ? [value] : [])
 
 export default [
 	{
-		ignores: ['.astro/**', 'deploy/**', 'dist/**', 'node_modules/**'],
+		ignores: [
+			'.astro/**',
+			'apps/**/dist/**',
+			'deploy/**',
+			'dist/**',
+			'node_modules/**',
+			'packages/**/dist/**',
+		],
 	},
 	...toArray(js.configs.recommended),
 	...toArray(tseslint.configs.recommended),
@@ -22,13 +29,13 @@ export default [
 		},
 	},
 	{
-		files: ['src/lib/**/*.ts'],
+		files: ['packages/*/src/lib/**/*.ts'],
 		languageOptions: {
 			globals: globals.browser,
 		},
 	},
 	{
-		files: ['src/assets/**/*.js'],
+		files: ['apps/*/src/assets/**/*.js'],
 		languageOptions: {
 			globals: globals.browser,
 		},
@@ -40,7 +47,7 @@ export default [
 		},
 	},
 	{
-		files: ['src/**/*.astro'],
+		files: ['apps/*/src/**/*.astro'],
 		languageOptions: {
 			parser: astroParser,
 			parserOptions: {

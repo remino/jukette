@@ -1,0 +1,47 @@
+{
+	"name": "@remino/jukette-midi",
+	"version": "0.3.0",
+	"description": "Tone-based MIDI backend for jukette.",
+	"type": "module",
+	"license": "ISC",
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"homepage": "https://remino.net/jukette/",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"main": "./dist/midi.cjs",
+	"module": "./dist/midi.mjs",
+	"types": "./dist/midi-entry.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/midi-entry.d.ts",
+			"import": "./dist/midi.mjs",
+			"require": "./dist/midi.cjs"
+		},
+		"./auto": {
+			"types": "./dist/midi-auto.d.ts",
+			"import": "./dist/midi-auto.mjs",
+			"require": "./dist/midi-auto.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"sideEffects": [
+		"./dist/midi-auto.*",
+		"./src/lib/midi-auto.ts"
+	],
+	"dependencies": {
+		"@remino/jukette-core": "0.3.0",
+		"@tonejs/midi": "^2.0.28",
+		"tone": "^15.1.22"
+	},
+	"scripts": {
+		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.build.json --noEmit"
+	}
+}

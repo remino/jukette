@@ -1,0 +1,57 @@
+{
+	"name": "jukette",
+	"version": "0.3.0",
+	"description": "White-label jukebox custom element for audio, SoundCloud, and MIDI playlists.",
+	"type": "module",
+	"license": "ISC",
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"homepage": "https://remino.net/jukette/",
+	"keywords": [
+		"custom-element",
+		"jukebox",
+		"midi",
+		"soundcloud",
+		"web-components"
+	],
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"browser": "./dist/jukette-auto.min.js",
+	"main": "./dist/jukette.cjs",
+	"module": "./dist/jukette.mjs",
+	"types": "./dist/jukette.d.ts",
+	"unpkg": "./dist/jukette-auto.min.js",
+	"jsdelivr": "./dist/jukette-auto.min.js",
+	"exports": {
+		".": {
+			"types": "./dist/jukette.d.ts",
+			"unpkg": "./dist/jukette-auto.min.js",
+			"import": "./dist/jukette.mjs",
+			"require": "./dist/jukette.cjs"
+		},
+		"./auto": {
+			"types": "./dist/auto.d.ts",
+			"import": "./dist/jukette-auto.mjs",
+			"require": "./dist/jukette-auto.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"sideEffects": [
+		"./dist/jukette-auto.*",
+		"./src/lib/auto.ts"
+	],
+	"dependencies": {
+		"@remino/jukette-audio": "0.3.0",
+		"@remino/jukette-core": "0.3.0"
+	},
+	"scripts": {
+		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.build.json --noEmit"
+	}
+}

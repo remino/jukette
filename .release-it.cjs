@@ -7,7 +7,7 @@ module.exports = {
 		tagName: 'v${version}',
 	},
 	github: {
-		assets: ['dist/*'],
+		assets: ['packages/jukette/dist/*'],
 		autoGenerate: true,
 		release: true,
 		tokenRef: 'RELEASE_IT_GITHUB_TOKEN',
@@ -20,17 +20,17 @@ module.exports = {
 			'npm run format:check',
 		],
 		'after:bump': [
+			'node bin/release-workspace-versions.mjs bump ${version}',
 			'node bin/release-changelog.mjs promote ${version}',
 			'node bin/release-readme.mjs update ${version}',
 			'npm run build',
-			'git add package.json package-lock.json CHANGELOG.md README.md dist',
+			'git add package.json package-lock.json packages/core/package.json packages/audio/package.json packages/midi/package.json packages/jukette/package.json CHANGELOG.md README.md packages/core/dist packages/audio/dist packages/midi/dist packages/jukette/dist',
 		],
-		'before:release':
-			'npm pack --dry-run --cache /private/tmp/jukette-npm-cache',
+		'before:release': 'npm run publish:workspaces:dry-run',
+		'before:github:release': 'npm run publish:workspaces',
 		'after:github:release': 'npm run docs:publish',
 	},
 	npm: {
-		publish: true,
-		publishArgs: ['--access', 'public'],
+		publish: false,
 	},
 }

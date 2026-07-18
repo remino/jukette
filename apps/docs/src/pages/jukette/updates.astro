@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro'
+import { site } from '../../data/site'
+import ChangelogContent from '../../../../../CHANGELOG.md'
+---
+
+<BaseLayout
+	title="Updates"
+	description={`Release notes for ${site.title}.`}
+	path="/jukette/updates/"
+>
+	<ChangelogContent />
+</BaseLayout>

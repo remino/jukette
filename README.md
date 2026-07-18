@@ -89,21 +89,25 @@ defineJuketteElement()
 
 TypeScript declarations are included with the package.
 
-Optional addons:
+Optional modular packages:
 
 ```sh
-npm install jukette
+npm install jukette @remino/jukette-midi
 ```
 
-- `jukette/core`: backendless player infrastructure.
-- `jukette/audio` and `jukette/audio/auto`: browser-native audio backend.
-- `jukette/midi` and `jukette/midi/auto`: optional MIDI backend.
+- `jukette`: convenience package with `@remino/jukette-core` and
+  `@remino/jukette-audio`.
+- `@remino/jukette-core`: backendless player infrastructure.
+- `@remino/jukette-audio` and `@remino/jukette-audio/auto`: browser-native
+  audio backend.
+- `@remino/jukette-midi` and `@remino/jukette-midi/auto`: optional MIDI
+  backend.
 
 Typical addon usage:
 
 ```js
 import 'jukette/auto'
-import 'jukette/midi/auto'
+import '@remino/jukette-midi/auto'
 ```
 
 ### Direct download
@@ -167,7 +171,7 @@ addons for other track types:
 
 ```js
 import 'jukette/auto'
-import 'jukette/midi/auto'
+import '@remino/jukette-midi/auto'
 ```
 
 [Back to top](#)
@@ -266,9 +270,9 @@ player.midiOscillator = 'sine'
 Core and addon imports:
 
 ```js
-import { defineJuketteElement } from 'jukette/core'
-import { registerJuketteAudioBackend } from 'jukette/audio'
-import { registerJuketteMidiBackend } from 'jukette/midi'
+import { defineJuketteElement } from '@remino/jukette-core'
+import { registerJuketteAudioBackend } from '@remino/jukette-audio'
+import { registerJuketteMidiBackend } from '@remino/jukette-midi'
 
 registerJuketteAudioBackend()
 registerJuketteMidiBackend()
@@ -410,8 +414,23 @@ npm run dev
 npm run build
 ```
 
-The library source lives in `src/lib`. The documentation site is built with
-Astro and lives in the rest of `src`.
+This repository is an npm workspaces monorepo:
+
+- `packages/jukette`: publishes `jukette`.
+- `packages/core`: publishes `@remino/jukette-core`.
+- `packages/audio`: publishes `@remino/jukette-audio`.
+- `packages/midi`: publishes `@remino/jukette-midi`.
+- `apps/docs`: Astro docs and demo site.
+
+Root scripts orchestrate builds in dependency order. Use `npm run build`,
+`npm run typecheck`, and `npm test` from the repo root.
+
+Common root shortcuts:
+
+- `npm run dev` or `npm run dev:docs`: start the Astro docs site.
+- `npm run build:packages`: build the publishable packages only.
+- `npm run build:docs`: build the docs app only.
+- `npm run preview:docs`: preview the built docs app.
 
 [Back to top](#)
 
@@ -420,8 +439,10 @@ Astro and lives in the rest of `src`.
 ## Release
 
 Release automation is available through `release-it`. A release runs checks,
-builds, publishes the npm package, pushes the release commit and tag, creates a
-GitHub release, uploads `dist/*`, then publishes docs:
+bumps the root and publishable workspace package versions in lockstep, builds
+the workspace packages, dry-runs publish order, publishes the scoped packages
+first, publishes `jukette` last, creates the GitHub release, and then publishes
+docs:
 
 ```sh
 npm run release:dry-run

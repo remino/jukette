@@ -1,0 +1,33 @@
+{
+	"name": "@remino/jukette-core",
+	"version": "0.3.0",
+	"description": "Backendless core package for the jukette custom element player.",
+	"type": "module",
+	"license": "ISC",
+	"author": {
+		"name": "Rémino Rem",
+		"url": "https://remino.net/"
+	},
+	"homepage": "https://remino.net/jukette/",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"main": "./dist/core.cjs",
+	"module": "./dist/core.mjs",
+	"types": "./dist/core.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/core.d.ts",
+			"import": "./dist/core.mjs",
+			"require": "./dist/core.cjs"
+		}
+	},
+	"files": [
+		"dist/*"
+	],
+	"scripts": {
+		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.build.json --noEmit"
+	}
+}

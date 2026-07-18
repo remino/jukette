@@ -1,5 +1,6 @@
 import {
 	createJuketteEventDetail,
+	getJuketteBackend,
 	inferTrackType,
 	JukettePlayerElement,
 	normalizeTrack,
@@ -7,24 +8,23 @@ import {
 	subscribeJuketteBackendRegistrations,
 	trackFromElement,
 	resetJuketteBackends,
-} from '../../src/lib/core'
-import { AudioPlayableTrack } from '../../src/lib/audio-track'
+} from '@remino/jukette-core'
+import { AudioPlayableTrack } from '../../packages/audio/src/lib/audio-track'
 import {
-	getJuketteBackend,
 	parseAudioFileMetadata,
 	registerJuketteAudioBackend,
-} from '../../src/lib/jukette'
+} from '../../packages/audio/src/lib/audio'
 import {
 	midiProgramToOscillator,
 	normalizeMidiOscillator,
 	parseMidi,
 	registerJuketteMidiBackend,
 	resolveMidiOscillatorType,
-} from '../../src/lib/midi-entry'
+} from '../../packages/midi/src/lib/midi-entry'
 import {
 	midiPlaybackRuntime,
 	warmMidiAudioContext,
-} from '../../src/lib/midi-track'
+} from '../../packages/midi/src/lib/midi-track'
 
 describe('jukette', () => {
 	beforeEach(() => {
@@ -400,7 +400,7 @@ describe('jukette', () => {
 			}),
 		)
 
-		const module = await import('../../src/lib/midi-track')
+		const module = await import('../../packages/midi/src/lib/midi-track')
 		const track = new module.MidiPlayableTrack(
 			{ src: '/track.mid', type: 'midi' },
 			{
