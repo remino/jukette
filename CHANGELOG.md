@@ -35,6 +35,9 @@
       addon direction has either landed or moved into the changelog.
     - Fix lockstep release automation so version bumps and release staging now
       include `@remino/jukette-soundcloud` and the docs workspace manifest.
+    - Make root `typecheck` read-only for release preflight by removing
+      workspace builds from that script and splitting package validation into
+      dedicated non-composite `tsconfig.typecheck.json` files.
 - Library
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the

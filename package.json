@@ -33,9 +33,9 @@
 		"test": "vitest run",
 		"test:run": "vitest run",
 		"test:watch": "vitest",
-		"typecheck": "npm run build --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-core && npm run build --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-audio && npm run build --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-midi && npm run build --workspace @remino/jukette-soundcloud && npm run typecheck --workspace @remino/jukette-soundcloud && npm run build --workspace jukette && npm run typecheck --workspace jukette && npm run typecheck --workspace @remino/jukette-docs",
+		"typecheck": "npm run typecheck --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-soundcloud && npm run typecheck --workspace jukette && npm run typecheck --workspace @remino/jukette-docs",
 		"typecheck:docs": "npm run typecheck --workspace @remino/jukette-docs",
-		"typecheck:packages": "npm run build --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-core && npm run build --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-audio && npm run build --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-midi && npm run build --workspace @remino/jukette-soundcloud && npm run typecheck --workspace @remino/jukette-soundcloud && npm run build --workspace jukette && npm run typecheck --workspace jukette"
+		"typecheck:packages": "npm run typecheck --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-soundcloud && npm run typecheck --workspace jukette"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.4",
