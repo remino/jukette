@@ -7,6 +7,9 @@ import type {
 	JuketteTrack,
 } from '@remino/jukette-core'
 
+const getTrackStartAt = (track: JuketteTrack): number =>
+	Number.isFinite(track.startAt) ? Math.max(0, track.startAt) : 0
+
 export class AudioPlayableTrack extends JukettePlayableTrack {
 	constructor(
 		track: JuketteTrack,
@@ -43,11 +46,15 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 		this.audio.addEventListener('error', onError, { once: true })
 		this.audio.src = this.track.src
 		this.audio.load()
-		this.audio.currentTime = 0
+		this.audio.currentTime = getTrackStartAt(this.track)
+		this.callbacks.onProgress(this.audio.currentTime, this.duration)
 		void this.preloadFileMetadata(options.metadataPreloadId)
 	}
 
 	async play(options: PlayableTrackPlayOptions): Promise<boolean> {
+		if (options.restart) {
+			this.audio.currentTime = getTrackStartAt(this.track)
+		}
 		this.callbacks.onStatus('Starting audio')
 		await this.audio.play()
 		return !options.isStale()

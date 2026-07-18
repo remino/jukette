@@ -20,6 +20,12 @@
     - Preserve live `jukette-player` playback across brief Turbo-style
       disconnect and reconnect cycles by deferring teardown and reusing the
       current prepared track when the same element instance is reattached.
+    - Add per-track `startAt` / `start-at` offsets with fractional-second
+      support so audio, MIDI, and SoundCloud tracks can begin playback from a
+      configured start time and restart from that same offset.
+    - Clarify the SoundCloud preload split: per-track `preload` still controls
+      early widget preparation, while player-level or per-track media metadata
+      preference can still trigger oEmbed metadata fetches before selection.
 
 ## v0.4.4
 

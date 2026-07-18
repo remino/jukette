@@ -27,6 +27,7 @@ export declare class MidiPlayableTrack extends JukettePlayableTrack {
     private timer;
     constructor(track: JuketteTrack, callbacks: PlayableTrackCallbacks, getOscillator: () => JuketteMidiOscillator);
     get currentTime(): number;
+    private get resetOffset();
     load(_options: PlayableTrackLoadOptions): Promise<void>;
     play(options: PlayableTrackPlayOptions): Promise<boolean>;
     pause(): void;

@@ -6,6 +6,7 @@ export interface JuketteTrack {
     artist?: string;
     preferMediaMetadata?: boolean;
     preload?: boolean;
+    startAt?: number;
     src: string;
     type?: JuketteTrackKind;
 }

@@ -66,6 +66,27 @@ describe('jukette helpers', () => {
 		).toEqual({ preload: false, src: '/track.mp3' })
 	})
 
+	it('normalizes track start offsets', () => {
+		expect(
+			normalizeTrack({
+				src: '/track.mp3',
+				startAt: 1.5,
+			}),
+		).toEqual({ src: '/track.mp3', startAt: 1.5 })
+		expect(
+			normalizeTrack({
+				src: '/track.mp3',
+				startAt: '2.25',
+			}),
+		).toEqual({ src: '/track.mp3', startAt: 2.25 })
+		expect(
+			normalizeTrack({
+				src: '/track.mp3',
+				startAt: -3,
+			}),
+		).toEqual({ src: '/track.mp3', startAt: 0 })
+	})
+
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
 		registerMidi()
@@ -146,6 +167,7 @@ describe('jukette helpers', () => {
 						artist: 'Example',
 						'prefer-media-metadata': 'false',
 						preload: 'true',
+						'start-at': '1.5',
 						src: '/one.mp3',
 						title: 'One',
 						type: 'audio',
@@ -158,6 +180,7 @@ describe('jukette helpers', () => {
 			artist: 'Example',
 			preferMediaMetadata: false,
 			preload: true,
+			startAt: 1.5,
 			src: '/one.mp3',
 			title: 'One',
 			type: 'audio',

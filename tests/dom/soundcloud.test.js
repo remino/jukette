@@ -215,6 +215,33 @@ describe('SoundCloud addon', () => {
 		expect(soundCloud.widgets).toHaveLength(1)
 	})
 
+	it('starts SoundCloud tracks from startAt and restarts from that offset', async () => {
+		const soundCloud = stubSoundCloudEnvironment()
+		const ctx = renderPlayer(`
+			<jukette-track src="${soundCloudTrackUrl}" type="soundcloud" start-at="12.5"></jukette-track>
+		`)
+
+		await waitFor(
+			() => soundCloud.widgets.length === 1,
+			'Expected SoundCloud widget to be created.',
+		)
+		soundCloud.widgets[0].widget.emit(soundCloud.events.READY)
+		await waitFor(
+			() => ctx.elements.play.disabled === false,
+			'Expected SoundCloud track to become ready.',
+		)
+
+		expect(soundCloud.widgets[0].widget.seekTo).toHaveBeenCalledWith(12500)
+
+		await ctx.player.play()
+		soundCloud.widgets[0].widget.emit(soundCloud.events.FINISH)
+		await ctx.player.play()
+
+		expect(soundCloud.widgets[0].widget.seekTo).toHaveBeenLastCalledWith(
+			12500,
+		)
+	})
+
 	it('resets a reselected SoundCloud track back to the beginning', async () => {
 		const soundCloud = stubSoundCloudEnvironment()
 		const ctx = renderPlayer(`

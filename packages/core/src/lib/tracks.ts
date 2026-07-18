@@ -2,6 +2,7 @@ import {
 	ATTR_ARTIST,
 	ATTR_PREFER_MEDIA_METADATA,
 	ATTR_PRELOAD,
+	ATTR_START_AT,
 	ATTR_SRC,
 	ATTR_TITLE,
 	ATTR_TYPE,
@@ -9,6 +10,18 @@ import {
 import { getRegisteredJuketteBackends } from './backend-registry'
 import type { JuketteTrack } from './types'
 import { isRecord, normalizeBooleanAttribute } from './utils'
+
+const normalizeStartAt = (value: unknown): number | undefined => {
+	if (typeof value === 'number') {
+		return Number.isFinite(value) ? Math.max(0, value) : undefined
+	}
+
+	if (typeof value !== 'string') return undefined
+	const trimmed = value.trim()
+	if (!trimmed) return undefined
+	const parsed = Number(trimmed)
+	return Number.isFinite(parsed) ? Math.max(0, parsed) : undefined
+}
 
 export const inferTrackType = (track: Pick<JuketteTrack, 'src' | 'type'>) => {
 	if (track.type) return track.type
@@ -55,6 +68,8 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 		const preload = normalizeBooleanAttribute(value.preload)
 		if (preload !== undefined) track.preload = preload
 	}
+	const startAt = normalizeStartAt(value.startAt)
+	if (startAt !== undefined) track.startAt = startAt
 	if (typeof value.title === 'string') track.title = value.title
 	if (typeof value.type === 'string' && value.type.trim()) {
 		track.type = value.type.trim()
@@ -88,6 +103,7 @@ export const trackFromElement = (element: Element): JuketteTrack | null => {
 		preferMediaMetadata:
 			element.getAttribute(ATTR_PREFER_MEDIA_METADATA) ?? undefined,
 		preload: element.getAttribute(ATTR_PRELOAD) ?? undefined,
+		startAt: element.getAttribute(ATTR_START_AT) ?? undefined,
 		src: element.getAttribute(ATTR_SRC) ?? '',
 		title: element.getAttribute(ATTR_TITLE) ?? undefined,
 		type: element.getAttribute(ATTR_TYPE) ?? undefined,

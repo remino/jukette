@@ -18,6 +18,9 @@ const minimumMidiVelocity = 0.05
 const midiSynthLevel = -18
 const minimumMidiNoteDuration = 0.03
 
+const getTrackStartAt = (track: JuketteTrack): number =>
+	Number.isFinite(track.startAt) ? Math.max(0, track.startAt) : 0
+
 type ScheduledMidiNote = {
 	duration: number
 	frequency: number
@@ -82,8 +85,15 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 			: this.pausedAt
 	}
 
+	private get resetOffset(): number {
+		const startAt = getTrackStartAt(this.track)
+		return Math.min(startAt, this.durationValue || startAt)
+	}
+
 	async load(_options: PlayableTrackLoadOptions): Promise<void> {
 		if (this.sequence) {
+			this.pausedAt = this.resetOffset
+			this.callbacks.onProgress(this.pausedAt, this.durationValue)
 			this.callbacks.onReady()
 			this.callbacks.onStatus()
 			return
@@ -95,6 +105,7 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 			const sequence = await loadMidiSequence(this.track.src)
 			this.sequence = sequence
 			this.durationValue = sequence.duration
+			this.pausedAt = this.resetOffset
 			this.callbacks.onDuration(this.durationValue)
 			if (sequence.metadata?.title) {
 				this.callbacks.onMetadata({
@@ -115,14 +126,14 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 		}
 
 		if (options.restart) {
-			this.pausedAt = 0
-			this.callbacks.onProgress(0, this.durationValue)
+			this.pausedAt = this.resetOffset
+			this.callbacks.onProgress(this.pausedAt, this.durationValue)
 		} else if (
 			this.durationValue > 0 &&
 			this.pausedAt >= this.durationValue
 		) {
-			this.pausedAt = 0
-			this.callbacks.onProgress(0, this.durationValue)
+			this.pausedAt = this.resetOffset
+			this.callbacks.onProgress(this.pausedAt, this.durationValue)
 		}
 
 		this.stopPlayback()
@@ -166,7 +177,7 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 	}
 
 	stop(): void {
-		this.pausedAt = 0
+		this.pausedAt = this.resetOffset
 		this.stopPlayback()
 		this.disposePart()
 		this.disposeSynth()

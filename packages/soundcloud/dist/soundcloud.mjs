@@ -144,7 +144,7 @@ var SoundCloudTrackState = class {
 		await this.ensureOEmbed();
 		await this.ensurePrepared();
 		this.widget?.pause();
-		this.seekTo(0);
+		this.seekTo(this.track.startAt ?? 0);
 		this.activeTrack?.trackCallbacks.onMetadata(this.metadata ?? {});
 		if (this.durationSeconds > 0) this.activeTrack?.trackCallbacks.onDuration(this.durationSeconds);
 		this.activeTrack?.trackCallbacks.onProgress(this.positionSeconds, this.durationSeconds);
@@ -155,7 +155,7 @@ var SoundCloudTrackState = class {
 		await this.ensurePrepared();
 		if (options.isStale()) return false;
 		if (!this.widget) return false;
-		if (options.restart || this.durationSeconds > 0 && this.positionSeconds >= this.durationSeconds) this.seekTo(0);
+		if (options.restart || this.durationSeconds > 0 && this.positionSeconds >= this.durationSeconds) this.seekTo(this.track.startAt ?? 0);
 		this.playRequested = true;
 		this.activeTrack?.trackCallbacks.onStatus("Starting SoundCloud");
 		this.widget.play();

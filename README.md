@@ -237,6 +237,8 @@ Track sources are resolved in this order:
 - `artist`: optional display artist.
 - `type`: optional backend-owned track type such as `audio`, `midi`, or
   `soundcloud`.
+- `start-at` / `startAt`: optional per-track start offset in seconds. Accepts
+  fractional seconds.
 - `preload` attribute / `preload` object field: optional per-track playback
   preparation preference.
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override

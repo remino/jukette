@@ -208,6 +208,30 @@ describe('JukettePlayerElement DOM', () => {
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Play')
 	})
 
+	it('starts audio tracks from startAt and restarts from that offset', async () => {
+		const ctx = renderPlayer('')
+		ctx.player.playlist = [
+			{
+				artist: 'Artist',
+				src: '/one.mp3',
+				startAt: 1.5,
+				title: 'One',
+			},
+		]
+
+		expect(ctx.audio.currentTime).toBe(1.5)
+		expect(ctx.elements.timeValue.textContent).toBe('0:01')
+
+		markAudioReady(ctx, 10)
+		await ctx.player.play()
+		expect(ctx.audio.play).toHaveBeenCalledTimes(1)
+
+		ctx.audio.dispatchEvent(new Event('ended'))
+		await ctx.player.play()
+		expect(ctx.audio.currentTime).toBe(1.5)
+		expect(ctx.audio.play).toHaveBeenCalledTimes(2)
+	})
+
 	it('toggles play or pause from Enter and starts playback from Space on the focused select', async () => {
 		const ctx = renderPlayer(`
 			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>

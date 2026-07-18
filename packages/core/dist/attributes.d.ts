@@ -8,3 +8,4 @@ export declare const ATTR_TRACK_INDEX = "track-index";
 export declare const ATTR_TITLE = "title";
 export declare const ATTR_ARTIST = "artist";
 export declare const ATTR_TYPE = "type";
+export declare const ATTR_START_AT = "start-at";

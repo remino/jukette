@@ -49,6 +49,14 @@ var normalizeBooleanAttribute = (value) => {
 };
 //#endregion
 //#region src/lib/tracks.ts
+var normalizeStartAt = (value) => {
+	if (typeof value === "number") return Number.isFinite(value) ? Math.max(0, value) : void 0;
+	if (typeof value !== "string") return void 0;
+	const trimmed = value.trim();
+	if (!trimmed) return void 0;
+	const parsed = Number(trimmed);
+	return Number.isFinite(parsed) ? Math.max(0, parsed) : void 0;
+};
 var inferTrackType = (track) => {
 	if (track.type) return track.type;
 	for (const backend of getRegisteredJuketteBackends().sort((left, right) => (right.priority ?? 0) - (left.priority ?? 0))) {
@@ -79,6 +87,8 @@ var normalizeTrack = (value) => {
 		const preload = normalizeBooleanAttribute(value.preload);
 		if (preload !== void 0) track.preload = preload;
 	}
+	const startAt = normalizeStartAt(value.startAt);
+	if (startAt !== void 0) track.startAt = startAt;
 	if (typeof value.title === "string") track.title = value.title;
 	if (typeof value.type === "string" && value.type.trim()) track.type = value.type.trim();
 	return track;
@@ -98,6 +108,7 @@ var trackFromElement = (element) => {
 		artist: element.getAttribute("artist") ?? void 0,
 		preferMediaMetadata: element.getAttribute("prefer-media-metadata") ?? void 0,
 		preload: element.getAttribute("preload") ?? void 0,
+		startAt: element.getAttribute("start-at") ?? void 0,
 		src: element.getAttribute("src") ?? "",
 		title: element.getAttribute("title") ?? void 0,
 		type: element.getAttribute("type") ?? void 0

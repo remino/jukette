@@ -44,6 +44,7 @@ var parseAudioFileMetadata = (buffer) => {
 };
 //#endregion
 //#region src/lib/audio-track.ts
+var getTrackStartAt = (track) => Number.isFinite(track.startAt) ? Math.max(0, track.startAt) : 0;
 var AudioPlayableTrack = class extends JukettePlayableTrack {
 	audio;
 	constructor(track, audio, callbacks) {
@@ -74,10 +75,12 @@ var AudioPlayableTrack = class extends JukettePlayableTrack {
 		this.audio.addEventListener("error", onError, { once: true });
 		this.audio.src = this.track.src;
 		this.audio.load();
-		this.audio.currentTime = 0;
+		this.audio.currentTime = getTrackStartAt(this.track);
+		this.callbacks.onProgress(this.audio.currentTime, this.duration);
 		this.preloadFileMetadata(options.metadataPreloadId);
 	}
 	async play(options) {
+		if (options.restart) this.audio.currentTime = getTrackStartAt(this.track);
 		this.callbacks.onStatus("Starting audio");
 		await this.audio.play();
 		return !options.isStale();

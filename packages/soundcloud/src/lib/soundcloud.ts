@@ -239,7 +239,7 @@ class SoundCloudTrackState {
 		await this.ensureOEmbed()
 		await this.ensurePrepared()
 		this.widget?.pause()
-		this.seekTo(0)
+		this.seekTo(this.track.startAt ?? 0)
 		this.activeTrack?.trackCallbacks.onMetadata(this.metadata ?? {})
 		if (this.durationSeconds > 0) {
 			this.activeTrack?.trackCallbacks.onDuration(this.durationSeconds)
@@ -262,7 +262,7 @@ class SoundCloudTrackState {
 			(this.durationSeconds > 0 &&
 				this.positionSeconds >= this.durationSeconds)
 		) {
-			this.seekTo(0)
+			this.seekTo(this.track.startAt ?? 0)
 		}
 
 		this.playRequested = true

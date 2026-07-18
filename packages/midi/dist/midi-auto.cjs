@@ -80,6 +80,7 @@ var scheduleLeadTime = .03;
 var minimumMidiVelocity = .05;
 var midiSynthLevel = -18;
 var minimumMidiNoteDuration = .03;
+var getTrackStartAt = (track) => Number.isFinite(track.startAt) ? Math.max(0, track.startAt) : 0;
 var midiPlaybackRuntime = {
 	createPart(callback, notes) {
 		return new tone.Part(callback, notes);
@@ -121,8 +122,14 @@ var MidiPlayableTrack = class extends _remino_jukette_core.JukettePlayableTrack 
 	get currentTime() {
 		return this.timer ? (performance.now() - this.startedAt) / 1e3 + this.pausedAt : this.pausedAt;
 	}
+	get resetOffset() {
+		const startAt = getTrackStartAt(this.track);
+		return Math.min(startAt, this.durationValue || startAt);
+	}
 	async load(_options) {
 		if (this.sequence) {
+			this.pausedAt = this.resetOffset;
+			this.callbacks.onProgress(this.pausedAt, this.durationValue);
 			this.callbacks.onReady();
 			this.callbacks.onStatus();
 			return;
@@ -132,6 +139,7 @@ var MidiPlayableTrack = class extends _remino_jukette_core.JukettePlayableTrack 
 			const sequence = await loadMidiSequence(this.track.src);
 			this.sequence = sequence;
 			this.durationValue = sequence.duration;
+			this.pausedAt = this.resetOffset;
 			this.callbacks.onDuration(this.durationValue);
 			if (sequence.metadata?.title) this.callbacks.onMetadata({ title: sequence.metadata.title });
 			this.callbacks.onProgress(this.pausedAt, this.durationValue);
@@ -144,11 +152,11 @@ var MidiPlayableTrack = class extends _remino_jukette_core.JukettePlayableTrack 
 	async play(options) {
 		if (!this.sequence) return false;
 		if (options.restart) {
-			this.pausedAt = 0;
-			this.callbacks.onProgress(0, this.durationValue);
+			this.pausedAt = this.resetOffset;
+			this.callbacks.onProgress(this.pausedAt, this.durationValue);
 		} else if (this.durationValue > 0 && this.pausedAt >= this.durationValue) {
-			this.pausedAt = 0;
-			this.callbacks.onProgress(0, this.durationValue);
+			this.pausedAt = this.resetOffset;
+			this.callbacks.onProgress(this.pausedAt, this.durationValue);
 		}
 		this.stopPlayback();
 		await warmMidiAudioContext();
@@ -179,7 +187,7 @@ var MidiPlayableTrack = class extends _remino_jukette_core.JukettePlayableTrack 
 		this.callbacks.onProgress(this.pausedAt, this.durationValue);
 	}
 	stop() {
-		this.pausedAt = 0;
+		this.pausedAt = this.resetOffset;
 		this.stopPlayback();
 		this.disposePart();
 		this.disposeSynth();
