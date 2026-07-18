@@ -10,6 +10,7 @@ export interface JukettePlayerDom {
 	titleElement: HTMLElement
 	trackSelect: HTMLSelectElement
 	timeButton: HTMLButtonElement
+	timeElement: HTMLTimeElement
 }
 
 const query = <T extends Element>(root: ParentNode, selector: string): T => {
@@ -33,7 +34,7 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 				<div class="seek" part="seek">
 					<input class="seek-input" part="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
 				</div>
-				<button class="time" part="time" type="button" aria-label="Toggle time display">0:00</button>
+				<button class="time" part="time" type="button" aria-label="Toggle time display"><time datetime="PT0S">0:00</time></button>
 			</div>
 			<select class="track-select" part="track-select" aria-label="Track selection"></select>
 			<audio preload="metadata"></audio>
@@ -49,6 +50,7 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 		statusElement: query<HTMLElement>(shadowRoot, '.meta'),
 		titleElement: query<HTMLElement>(shadowRoot, '.title'),
 		timeButton: query<HTMLButtonElement>(shadowRoot, '.time'),
+		timeElement: query<HTMLTimeElement>(shadowRoot, '.time time'),
 		trackSelect: query<HTMLSelectElement>(shadowRoot, '.track-select'),
 	}
 }

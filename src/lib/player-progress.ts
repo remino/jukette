@@ -34,10 +34,19 @@ export class JuketteProgressController {
 				? Math.min(1, Math.max(0, safeCurrentTime / safeDuration))
 				: 0
 		this.options.dom.seekInput.value = String(Math.round(ratio * 1000))
-		this.options.dom.timeButton.textContent =
+		const displayText =
 			this.options.getTimeMode() === 'remaining'
 				? `-${formatTime(Math.max(0, safeDuration - safeCurrentTime))}`
 				: formatTime(safeCurrentTime)
+		this.options.dom.timeElement.textContent = displayText
+		this.options.dom.timeElement.dateTime = `PT${Math.max(
+			0,
+			Math.round(
+				this.options.getTimeMode() === 'remaining'
+					? safeDuration - safeCurrentTime
+					: safeCurrentTime,
+			),
+		)}S`
 	}
 
 	syncPlayingState(): void {
