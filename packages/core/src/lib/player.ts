@@ -66,6 +66,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private loadedTrackKey = ''
 	private statusMessage = ''
 	private timeMode: 'elapsed' | 'remaining' = 'elapsed'
+	private disconnectTeardownId: number | null = null
 
 	constructor() {
 		super()
@@ -117,6 +118,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	connectedCallback(): void {
+		if (this.disconnectTeardownId !== null) {
+			window.clearTimeout(this.disconnectTeardownId)
+			this.disconnectTeardownId = null
+		}
+
 		this.backendRegistrationCleanup = subscribeJuketteBackendRegistrations(
 			() => this.handleBackendRegistration(),
 		)
@@ -134,7 +140,16 @@ export class JukettePlayerElement extends HTMLElementBase {
 			subtree: true,
 		})
 		this.syncTracks()
-		this.loadTrack()
+		if (this.shouldReloadConnectedTrack()) {
+			this.loadTrack()
+			return
+		}
+
+		this.dom.trackSelect.disabled = false
+		this.renderCurrentTrack()
+		this.syncProgress(this.getCurrentTime(), this.duration)
+		this.syncPlayingState()
+		if (!this.playing) this.setStatus()
 	}
 
 	disconnectedCallback(): void {
@@ -142,7 +157,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.backendRegistrationCleanup = null
 		this.trackObserver?.disconnect()
 		this.stopProgressLoop()
-		this.activePlayableTrack?.stop()
+		this.disconnectTeardownId = window.setTimeout(() => {
+			if (this.isConnected) return
+			this.activePlayableTrack?.stop()
+			this.activePlayableTrack = null
+			this.disconnectTeardownId = null
+		}, 0)
 	}
 
 	attributeChangedCallback(
@@ -533,6 +553,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		if (this.playing) return
 		void this.play()
+	}
+
+	private shouldReloadConnectedTrack(): boolean {
+		const track = this.currentTrack
+		if (!track) return true
+		if (!this.activePlayableTrack) return true
+		return this.loadedTrackKey !== this.getTrackKey(track)
 	}
 
 	private getTrackDuration(track: JuketteTrack | null): number | undefined {

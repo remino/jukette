@@ -1,39 +1,7 @@
 /*! jukette v0.4.2 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 import { register } from "@remino/jukette-audio";
-//#region \0rolldown/runtime.js
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __exportAll = (all, no_symbols) => {
-	let target = {};
-	for (var name in all) __defProp(target, name, {
-		get: all[name],
-		enumerable: true
-	});
-	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
-	return target;
-};
-var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-		key = keys[i];
-		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-			get: ((k) => from[k]).bind(null, key),
-			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-		});
-	}
-	return to;
-};
-var __reExport = (target, mod, secondTarget) => (__copyProps(target, mod, "default"), secondTarget && __copyProps(secondTarget, mod, "default"));
-//#endregion
-//#region src/lib/jukette.ts
-var jukette_exports = /* @__PURE__ */ __exportAll({});
-import * as import__remino_jukette_audio from "@remino/jukette-audio";
-__reExport(jukette_exports, import__remino_jukette_audio);
-import * as import__remino_jukette_core from "@remino/jukette-core";
-__reExport(jukette_exports, import__remino_jukette_core);
-//#endregion
+import { defineElement } from "@remino/jukette-core";
 //#region src/lib/auto.ts
 register();
-(0, jukette_exports.defineElement)();
+defineElement();
 //#endregion

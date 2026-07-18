@@ -258,6 +258,30 @@ describe('JukettePlayerElement DOM', () => {
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
 	})
 
+	it('preserves the active track across a brief disconnect and reconnect', async () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+		await ctx.player.play()
+
+		ctx.state.setCurrentTime(3)
+		ctx.audio.dispatchEvent(new Event('timeupdate'))
+		expect(ctx.elements.timeValue.textContent).toBe('0:03')
+
+		const player = ctx.player
+		document.body.removeChild(player)
+		document.body.appendChild(player)
+		await flushAsync()
+
+		expect(ctx.player.currentTrackIndex).toBe(0)
+		expect(ctx.audio.play).toHaveBeenCalledTimes(1)
+		expect(ctx.audio.pause).not.toHaveBeenCalled()
+		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
+		expect(ctx.elements.timeValue.textContent).toBe('0:03')
+	})
+
 	it('keeps unsupported tracks selected and disabled', () => {
 		defineElement()
 		document.body.innerHTML = `

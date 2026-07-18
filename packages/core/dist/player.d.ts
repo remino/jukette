@@ -21,6 +21,7 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private loadedTrackKey;
     private statusMessage;
     private timeMode;
+    private disconnectTeardownId;
     constructor();
     connectedCallback(): void;
     disconnectedCallback(): void;
@@ -55,6 +56,7 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private selectTrack;
     private selectTrackFromInput;
     private handleTrackSelectKeyup;
+    private shouldReloadConnectedTrack;
     private getTrackDuration;
     private getTrackKey;
     private isCurrentTrack;

@@ -14,6 +14,15 @@
 
 ## HEAD
 
+- Library
+    - Preserve `jukette-player` state across brief disconnect and reconnect
+      cycles such as Turbo permanent navigations by deferring playback
+      teardown and skipping unnecessary track reloads when the same selected
+      track is reattached immediately.
+    - Fix the `jukette/auto` workspace source entry so it imports
+      `defineElement()` directly from `@remino/jukette-core`, keeping package
+      type generation aligned with the published convenience entrypoint.
+
 ## v0.4.2
 
 - Library
