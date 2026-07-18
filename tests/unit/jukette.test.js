@@ -84,6 +84,16 @@ describe('jukette helpers', () => {
 		expect(getJuketteBackend('midi')?.type).toBe('midi')
 	})
 
+	it('registers the audio backend from jukette/auto', async () => {
+		vi.resetModules()
+		const core = await import('@remino/jukette-core')
+		core.resetJuketteBackends()
+
+		await import('../../packages/jukette/src/lib/auto.ts')
+
+		expect(core.getJuketteBackend('audio')?.type).toBe('audio')
+	})
+
 	it('notifies listeners when a backend is registered', () => {
 		const listener = vi.fn()
 		const unsubscribe = subscribeJuketteBackendRegistrations(listener)

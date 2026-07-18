@@ -25,12 +25,13 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __reExport = (target, mod, secondTarget) => (__copyProps(target, mod, "default"), secondTarget && __copyProps(secondTarget, mod, "default"));
 //#endregion
-require("@remino/jukette-audio");
+let _remino_jukette_audio = require("@remino/jukette-audio");
 //#region src/lib/jukette.ts
 var jukette_exports = /* @__PURE__ */ __exportAll({});
 __reExport(jukette_exports, require("@remino/jukette-audio"));
 __reExport(jukette_exports, require("@remino/jukette-core"));
 //#endregion
 //#region src/lib/auto.ts
+(0, _remino_jukette_audio.register)();
 (0, jukette_exports.defineElement)();
 //#endregion

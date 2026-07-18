@@ -1,5 +1,5 @@
 /*! jukette v0.4.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
-import "@remino/jukette-audio";
+import { register } from "@remino/jukette-audio";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -34,5 +34,6 @@ import * as import__remino_jukette_core from "@remino/jukette-core";
 __reExport(jukette_exports, import__remino_jukette_core);
 //#endregion
 //#region src/lib/auto.ts
+register();
 (0, jukette_exports.defineElement)();
 //#endregion

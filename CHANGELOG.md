@@ -13,6 +13,12 @@
 
 ## HEAD
 
+- Library
+    - Restore browser-audio registration in the `jukette/auto` convenience
+      entry so plain audio tracks work again anywhere the package is consumed
+      without an explicit `@remino/jukette-audio` import, including the docs
+      demo site.
+
 ## v0.4.1
 
 - Repo
