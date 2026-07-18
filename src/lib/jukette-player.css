@@ -121,7 +121,7 @@ input[type='range'] {
 	cursor: pointer;
 	font: inherit;
 	inline-size: 100%;
-	padding: 0.35em 2em 0.35em 0.5em;
+	padding: 0.35rem 0.5em;
 }
 
 .track-select:focus-visible {
