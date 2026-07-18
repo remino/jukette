@@ -6,11 +6,19 @@ import {
 	ATTR_TITLE,
 	ATTR_TYPE,
 } from './attributes'
+import { getRegisteredJuketteBackends } from './backend-registry'
 import type { JuketteTrack } from './types'
 import { isRecord, normalizeBooleanAttribute } from './utils'
 
 export const inferTrackType = (track: Pick<JuketteTrack, 'src' | 'type'>) => {
 	if (track.type) return track.type
+
+	for (const backend of getRegisteredJuketteBackends().sort(
+		(left, right) => (right.priority ?? 0) - (left.priority ?? 0),
+	)) {
+		const inferredType = backend.inferTrackType?.(track)
+		if (inferredType) return inferredType
+	}
 
 	const source = track.src.toLowerCase()
 	if (/\.(?:mid|midi)(?:[?#].*)?$/.test(source)) return 'midi'
@@ -27,9 +35,6 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 
 	const src = value.src.trim()
 	if (!src) return null
-
-	const type =
-		value.type === 'audio' || value.type === 'midi' ? value.type : undefined
 
 	const track: JuketteTrack = { src }
 
@@ -51,7 +56,9 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 		if (preload !== undefined) track.preload = preload
 	}
 	if (typeof value.title === 'string') track.title = value.title
-	if (type) track.type = type
+	if (typeof value.type === 'string' && value.type.trim()) {
+		track.type = value.type.trim()
+	}
 
 	return track
 }

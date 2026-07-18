@@ -1,6 +1,3 @@
 import { registerJuketteAudioBackend } from './audio'
 
 registerJuketteAudioBackend()
-
-export * from './audio'
-export * from './core'

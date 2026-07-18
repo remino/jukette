@@ -2,22 +2,35 @@ import {
 	createJuketteEventDetail,
 	inferTrackType,
 	JukettePlayerElement,
-	midiProgramToOscillator,
 	normalizeTrack,
-	normalizeMidiOscillator,
-	parseAudioFileMetadata,
-	parseMidi,
 	parsePlaylist,
-	resolveMidiOscillatorType,
 	trackFromElement,
-} from '../../src/lib/jukette'
+	resetJuketteBackends,
+} from '../../src/lib/core'
 import { AudioPlayableTrack } from '../../src/lib/audio-track'
+import {
+	getJuketteBackend,
+	parseAudioFileMetadata,
+	registerJuketteAudioBackend,
+} from '../../src/lib/jukette'
+import {
+	midiProgramToOscillator,
+	normalizeMidiOscillator,
+	parseMidi,
+	registerJuketteMidiBackend,
+	resolveMidiOscillatorType,
+} from '../../src/lib/midi-entry'
 import {
 	midiPlaybackRuntime,
 	warmMidiAudioContext,
 } from '../../src/lib/midi-track'
 
 describe('jukette', () => {
+	beforeEach(() => {
+		resetJuketteBackends()
+		registerJuketteAudioBackend()
+	})
+
 	it('normalizes string tracks', () => {
 		expect(normalizeTrack('/track.mp3')).toEqual({ src: '/track.mp3' })
 	})
@@ -54,10 +67,20 @@ describe('jukette', () => {
 
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
+		registerJuketteMidiBackend()
 		expect(inferTrackType({ src: '/track.mid' })).toBe('midi')
 		expect(inferTrackType({ src: 'https://example.com/track' })).toBe(
 			'audio',
 		)
+	})
+
+	it('registers built-in backends', () => {
+		expect(getJuketteBackend('audio')?.type).toBe('audio')
+		expect(getJuketteBackend('midi')).toBeUndefined()
+
+		registerJuketteMidiBackend()
+
+		expect(getJuketteBackend('midi')?.type).toBe('midi')
 	})
 
 	it('parses JSON playlists', () => {

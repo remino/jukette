@@ -10,12 +10,10 @@ import {
 	ATTR_TRACK_INDEX,
 	ATTR_TYPE,
 } from './attributes'
+import { resolveJuketteBackend } from './backend-registry'
 import { HTMLElementBase } from './dom'
 import { createJuketteEventDetail } from './events'
 import { normalizeMidiOscillator } from './midi'
-import { warmMidiAudioContext } from './midi-track'
-import { AudioPlayableTrack } from './audio-track'
-import { MidiPlayableTrack } from './midi-track'
 import { createJukettePlayerDom, type JukettePlayerDom } from './player-dom'
 import { JuketteMetadataController } from './player-metadata'
 import { JuketteProgressController } from './player-progress'
@@ -243,7 +241,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	toggle(): void {
-		void warmMidiAudioContext()
 		if (this.playing) {
 			this.pause()
 			return
@@ -258,7 +255,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.setStatus('Seeking')
 		this.activePlayableTrack?.seek(seconds)
-		if (this.playing && inferTrackType(track) === 'midi') void this.play()
+		if (this.playing) void this.play()
 
 		this.syncProgress(seconds, this.duration)
 		this.emitJuketteEvent('jukette:seek')
@@ -339,7 +336,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		this.loadTrack()
-		if (this.playing) void this.play()
 	}
 
 	private getChildTracks(): JuketteTrack[] {
@@ -348,17 +344,18 @@ export class JukettePlayerElement extends HTMLElementBase {
 			.filter((track): track is JuketteTrack => track !== null)
 	}
 
-	private createPlayableTrack(track: JuketteTrack): JukettePlayableTrack {
+	private createPlayableTrack(
+		track: JuketteTrack,
+	): JukettePlayableTrack | null {
 		const callbacks = this.createPlayableCallbacks(track)
+		const backend = resolveJuketteBackend(track)
+		if (!backend) return null
 
-		if (inferTrackType(track) === 'midi') {
-			return new MidiPlayableTrack(
-				track,
-				callbacks,
-				() => this.midiOscillator,
-			)
-		}
-		return new AudioPlayableTrack(track, this.dom.audio, callbacks)
+		return backend.createPlayableTrack(track, callbacks, {
+			audioElement: this.dom.audio,
+			getMidiOscillator: () => this.midiOscillator,
+			host: this,
+		})
 	}
 
 	private createPlayableCallbacks(track: JuketteTrack) {
@@ -457,6 +454,15 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.setStatus(`Preparing ${type}`)
 		this.syncProgress(0, this.duration)
 		this.activePlayableTrack = this.createPlayableTrack(track)
+		if (!this.activePlayableTrack) {
+			this.setStatus(`${type} playback unavailable`)
+			this.renderTrackSelect()
+			this.syncPlayingState()
+			if (trackKey !== previousTrackKey) {
+				this.emitJuketteEvent('jukette:trackchange')
+			}
+			return
+		}
 
 		void this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataController.metadataPreloadId,
@@ -546,9 +552,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private syncAudio(): void {
-		if (this.activePlayableTrack instanceof AudioPlayableTrack) {
-			this.activePlayableTrack.syncFromMedia()
-		}
+		this.activePlayableTrack?.requestPosition(() => false)
 		if (!this.playing) this.setStatus()
 	}
 

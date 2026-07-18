@@ -65,7 +65,7 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 		this.audio.pause()
 	}
 
-	syncFromMedia(): void {
+	requestPosition(): void {
 		this.durationValue = this.duration
 		this.callbacks.onDuration(this.durationValue)
 		this.callbacks.onProgress(this.audio.currentTime, this.durationValue)

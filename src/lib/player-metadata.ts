@@ -1,7 +1,5 @@
-import { parseAudioFileMetadata } from './metadata'
-import { loadMidiSequence } from './midi'
-import { inferTrackType } from './tracks'
-import type { AudioFileMetadata, JuketteTrack, MidiSequence } from './types'
+import { resolveJuketteBackend } from './backend-registry'
+import type { AudioFileMetadata, JuketteTrack } from './types'
 
 export interface JuketteMetadataControllerOptions {
 	getPreloadMetadata(): boolean
@@ -95,102 +93,35 @@ export class JuketteMetadataController {
 
 		const metadataPreloadId = this.preloadId
 		for (const track of tracks) {
-			const type = inferTrackType(track)
-			const preferMediaMetadata =
-				this.options.trackPrefersMediaMetadata(track)
-			if (type === 'audio') {
-				if (this.options.getPreloadMetadata()) {
-					this.preloadAudioMetadata(track, metadataPreloadId)
-				}
-				if (preferMediaMetadata) {
-					void this.preloadAudioFileMetadata(track, metadataPreloadId)
-				}
-			} else if (type === 'midi') {
-				if (this.options.getPreloadMetadata() || preferMediaMetadata) {
-					void this.preloadMidiMetadata(track, metadataPreloadId)
-				}
-			}
+			void this.preloadTrackMetadata(track, metadataPreloadId)
 		}
 	}
 
-	private preloadAudioMetadata(
-		track: JuketteTrack,
-		metadataPreloadId: number,
-	): void {
-		if (this.getDuration(track) !== undefined) return
-		if (typeof Audio === 'undefined') return
-
-		const audio = new Audio()
-		const cleanup = () => {
-			audio.removeEventListener('loadedmetadata', onLoadedMetadata)
-			audio.removeEventListener('error', cleanup)
-			audio.removeAttribute('src')
-			audio.load()
-		}
-		const onLoadedMetadata = () => {
-			if (metadataPreloadId === this.preloadId) {
-				this.setDuration(track, audio.duration)
-			}
-			cleanup()
-		}
-
-		audio.preload = 'metadata'
-		audio.addEventListener('loadedmetadata', onLoadedMetadata)
-		audio.addEventListener('error', cleanup, { once: true })
-		audio.src = track.src
-		audio.load()
-	}
-
-	private async preloadAudioFileMetadata(
+	private async preloadTrackMetadata(
 		track: JuketteTrack,
 		metadataPreloadId: number,
 	): Promise<void> {
-		if (!this.options.trackPrefersMediaMetadata(track)) return
-		if (this.metadata.has(this.options.getTrackKey(track))) return
-		if (typeof fetch === 'undefined') return
+		const backend = resolveJuketteBackend(track)
+		if (!backend?.preloadTrack) return
 
 		try {
-			const response = await fetch(track.src, {
-				headers: { Range: 'bytes=0-65535' },
+			const result = await backend.preloadTrack(track, {
+				preloadDuration: this.options.getPreloadMetadata(),
+				preloadMetadata: this.options.trackPrefersMediaMetadata(track),
 			})
-			if (!response.ok) return
+			if (metadataPreloadId !== this.preloadId || !result) return
 
-			const metadata = parseAudioFileMetadata(
-				await response.arrayBuffer(),
-			)
-			if (metadataPreloadId === this.preloadId) {
-				this.setMetadata(track, metadata)
+			if (this.options.getPreloadMetadata() && result.duration) {
+				this.setDuration(track, result.duration)
+			}
+			if (
+				this.options.trackPrefersMediaMetadata(track) &&
+				result.metadata
+			) {
+				this.setMetadata(track, result.metadata)
 			}
 		} catch {
-			// Leave authored title and artist in place when tags cannot be read.
+			// Leave duration and authored metadata in place when preload fails.
 		}
-	}
-
-	private async preloadMidiMetadata(
-		track: JuketteTrack,
-		metadataPreloadId: number,
-	): Promise<void> {
-		try {
-			const sequence = await loadMidiSequence(track.src)
-			if (metadataPreloadId === this.preloadId) {
-				if (this.options.getPreloadMetadata()) {
-					this.setDuration(track, sequence.duration)
-				}
-				if (this.options.trackPrefersMediaMetadata(track)) {
-					this.setMidiTrackMetadata(track, sequence)
-				}
-			}
-		} catch {
-			// Leave duration unknown when metadata cannot be preloaded.
-		}
-	}
-
-	private setMidiTrackMetadata(
-		track: JuketteTrack,
-		sequence: MidiSequence,
-	): void {
-		if (!sequence.metadata?.title) return
-
-		this.setMetadata(track, { title: sequence.metadata.title })
 	}
 }

@@ -42,6 +42,31 @@
 			"types": "./dist/auto.d.ts",
 			"import": "./dist/jukette-auto.mjs",
 			"require": "./dist/jukette-auto.cjs"
+		},
+		"./core": {
+			"types": "./dist/core.d.ts",
+			"import": "./dist/core.mjs",
+			"require": "./dist/core.cjs"
+		},
+		"./audio": {
+			"types": "./dist/audio.d.ts",
+			"import": "./dist/audio.mjs",
+			"require": "./dist/audio.cjs"
+		},
+		"./audio/auto": {
+			"types": "./dist/audio-auto.d.ts",
+			"import": "./dist/audio-auto.mjs",
+			"require": "./dist/audio-auto.cjs"
+		},
+		"./midi": {
+			"types": "./dist/midi-entry.d.ts",
+			"import": "./dist/midi.mjs",
+			"require": "./dist/midi.cjs"
+		},
+		"./midi/auto": {
+			"types": "./dist/midi-auto.d.ts",
+			"import": "./dist/midi-auto.mjs",
+			"require": "./dist/midi-auto.cjs"
 		}
 	},
 	"files": [
@@ -66,7 +91,11 @@
 	"jsdelivr": "./dist/jukette-auto.min.js",
 	"sideEffects": [
 		"./dist/jukette-auto.*",
+		"./dist/audio-auto.*",
+		"./dist/midi-auto.*",
 		"./src/lib/auto.ts",
+		"./src/lib/audio-auto.ts",
+		"./src/lib/midi-auto.ts",
 		"./src/assets/js/copy-buttons.js"
 	],
 	"scripts": {

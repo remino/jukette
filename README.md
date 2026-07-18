@@ -67,7 +67,7 @@ If you want the API instead of auto-registration, import the ES module directly:
 
 ### npm
 
-Install the package first:
+Install the convenience package first:
 
 ```sh
 npm install jukette
@@ -88,6 +88,23 @@ defineJuketteElement()
 ```
 
 TypeScript declarations are included with the package.
+
+Optional addons:
+
+```sh
+npm install jukette
+```
+
+- `jukette/core`: backendless player infrastructure.
+- `jukette/audio` and `jukette/audio/auto`: browser-native audio backend.
+- `jukette/midi` and `jukette/midi/auto`: optional MIDI backend.
+
+Typical addon usage:
+
+```js
+import 'jukette/auto'
+import 'jukette/midi/auto'
+```
 
 ### Direct download
 
@@ -145,6 +162,14 @@ Changing the selected track prepares it for playback but does not start it
 automatically. Jukette enables play, seek, and time controls once the selected
 track is ready.
 
+The default `jukette` entry includes browser-native audio support only. Import
+addons for other track types:
+
+```js
+import 'jukette/auto'
+import 'jukette/midi/auto'
+```
+
 [Back to top](#)
 
 ---
@@ -194,18 +219,23 @@ Track sources are resolved in this order:
 - `src`: required URL for a local audio file or local MIDI file.
 - `title`: optional display title.
 - `artist`: optional display artist.
-- `type`: optional `audio` or `midi`.
+- `type`: optional backend-owned track type such as `audio`, `midi`, or
+  `soundcloud`.
 - `preload` attribute / `preload` object field: optional per-track playback
   preparation preference.
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
   for the player's media metadata preference.
 
 If `type` is omitted, Jukette infers `.mid` / `.midi` files. Everything else
-is treated as browser-native audio.
+falls back to browser-native audio when the audio backend is registered.
 
 MIDI playback uses `@tonejs/midi` for parsing and a compact Tone.js synth for
 browser playback. It is intentionally simple and suitable for local MIDI
 previews, not a full General MIDI instrument set.
+
+If a selected track type has no registered backend, Jukette leaves the track
+selected, keeps playback controls disabled, and surfaces that the track type is
+unavailable.
 
 [Back to top](#)
 
@@ -233,9 +263,22 @@ player.preferMediaMetadata = true
 player.midiOscillator = 'sine'
 ```
 
+Core and addon imports:
+
+```js
+import { defineJuketteElement } from 'jukette/core'
+import { registerJuketteAudioBackend } from 'jukette/audio'
+import { registerJuketteMidiBackend } from 'jukette/midi'
+
+registerJuketteAudioBackend()
+registerJuketteMidiBackend()
+defineJuketteElement()
+```
+
 Use the `preload-metadata` attribute or `preloadMetadata` property to discover
 playlist durations before tracks are played. Jukette preloads metadata for
-browser-native audio and local MIDI tracks.
+registered backends that provide preload hooks, including browser-native audio
+and local MIDI.
 
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.
@@ -246,6 +289,9 @@ selection state.
 Selecting a track prepares it and resets playback to the start of that track.
 Playback begins only after an explicit `play()` call or a user press on the
 play button.
+
+If the selected track backend is unavailable, Jukette keeps the selected track
+visible but leaves play, seek, and time controls disabled.
 
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3
@@ -266,7 +312,8 @@ preloading.
 Use `midi-oscillator` or `midiOscillator` to choose the Tone.js MIDI preview
 oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
 `triangle`. `auto` is the default and maps MIDI program changes to a simple
-preview timbre; invalid values fall back to `auto`.
+preview timbre; invalid values fall back to `auto`. The property matters only
+when the MIDI addon is registered.
 
 Jukette dispatches bubbling composed custom events from the `<jukette-player>`
 host:

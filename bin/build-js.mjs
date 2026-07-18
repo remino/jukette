@@ -55,6 +55,37 @@ await buildLibrary({
 })
 
 await buildLibrary({
+	entry: resolve(root, 'src/lib/core.ts'),
+	fileName: (format) => (format === 'es' ? 'core.mjs' : 'core.cjs'),
+	formats: ['es', 'cjs'],
+})
+
+await buildLibrary({
+	entry: resolve(root, 'src/lib/audio.ts'),
+	fileName: (format) => (format === 'es' ? 'audio.mjs' : 'audio.cjs'),
+	formats: ['es', 'cjs'],
+})
+
+await buildLibrary({
+	entry: resolve(root, 'src/lib/audio-auto.ts'),
+	fileName: (format) =>
+		format === 'es' ? 'audio-auto.mjs' : 'audio-auto.cjs',
+	formats: ['es', 'cjs'],
+})
+
+await buildLibrary({
+	entry: resolve(root, 'src/lib/midi-entry.ts'),
+	fileName: (format) => (format === 'es' ? 'midi.mjs' : 'midi.cjs'),
+	formats: ['es', 'cjs'],
+})
+
+await buildLibrary({
+	entry: resolve(root, 'src/lib/midi-auto.ts'),
+	fileName: (format) => (format === 'es' ? 'midi-auto.mjs' : 'midi-auto.cjs'),
+	formats: ['es', 'cjs'],
+})
+
+await buildLibrary({
 	entry: resolve(root, 'src/lib/auto.ts'),
 	fileName: (format) =>
 		format === 'es' ? 'jukette-auto.mjs' : 'jukette-auto.cjs',
