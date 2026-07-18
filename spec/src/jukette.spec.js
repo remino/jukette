@@ -11,6 +11,8 @@ import {
 	resolveMidiOscillatorType,
 	trackFromElement,
 } from '../../src/lib/jukette'
+import { AudioPlayableTrack } from '../../src/lib/audio-track'
+import { warmMidiAudioContext } from '../../src/lib/midi-track'
 
 describe('jukette', () => {
 	it('normalizes string tracks', () => {
@@ -284,5 +286,59 @@ describe('jukette', () => {
 			artist: 'Tagged artist',
 			title: 'Tagged title',
 		})
+	})
+
+	it('keeps the audio source attached when stopping an audio track', () => {
+		const audio = {
+			currentTime: 0,
+			duration: 0,
+			pause: jasmine.createSpy('pause'),
+			removeAttribute: jasmine.createSpy('removeAttribute'),
+		}
+		const track = new AudioPlayableTrack({ src: '/track.mp3' }, audio, {
+			onDuration() {},
+			onFinish() {},
+			onMetadata() {},
+			onPause() {},
+			onPlay() {},
+			onProgress() {},
+			onStatus() {},
+		})
+
+		track.stop()
+
+		expect(audio.pause).toHaveBeenCalled()
+		expect(audio.removeAttribute).not.toHaveBeenCalled()
+	})
+
+	it('warms the shared MIDI audio context once from a suspended state', async () => {
+		const previousAudioContext = globalThis.AudioContext
+		let resumeCalls = 0
+		let instances = 0
+
+		class FakeAudioContext {
+			constructor() {
+				instances += 1
+				this.state = 'suspended'
+			}
+
+			resume() {
+				resumeCalls += 1
+				this.state = 'running'
+				return Promise.resolve()
+			}
+		}
+
+		globalThis.AudioContext = FakeAudioContext
+
+		try {
+			await warmMidiAudioContext()
+			await warmMidiAudioContext()
+
+			expect(instances).toBe(1)
+			expect(resumeCalls).toBe(1)
+		} finally {
+			globalThis.AudioContext = previousAudioContext
+		}
 	})
 })

@@ -53,7 +53,6 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 
 	stop(): void {
 		this.audio.pause()
-		this.audio.removeAttribute('src')
 	}
 
 	syncFromMedia(): void {

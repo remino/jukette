@@ -7,6 +7,32 @@ import type {
 } from './playable-track'
 import type { JuketteMidiOscillator, JuketteTrack, MidiSequence } from './types'
 
+let sharedAudioContext: AudioContext | null = null
+
+const getAudioContextConstructor = () =>
+	globalThis.AudioContext ??
+	(
+		globalThis as typeof globalThis & {
+			webkitAudioContext?: typeof AudioContext
+		}
+	).webkitAudioContext
+
+const getSharedAudioContext = (): AudioContext | null => {
+	if (sharedAudioContext) return sharedAudioContext
+
+	const AudioContextConstructor = getAudioContextConstructor()
+	if (!AudioContextConstructor) return null
+
+	sharedAudioContext = new AudioContextConstructor()
+	return sharedAudioContext
+}
+
+export const warmMidiAudioContext = async (): Promise<void> => {
+	const audio = getSharedAudioContext()
+	if (!audio || audio.state !== 'suspended') return
+	await audio.resume()
+}
+
 export class MidiPlayableTrack extends JukettePlayableTrack {
 	private audio: AudioContext | null = null
 	private gain: GainNode | null = null
@@ -132,6 +158,8 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 
 	stop(): void {
 		this.stopSources()
+		this.gain?.disconnect()
+		this.gain = null
 	}
 
 	private stopSources(): void {
@@ -153,20 +181,13 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 	private ensureAudio(): void {
 		if (this.audio && this.gain) return
 
-		const AudioContextConstructor =
-			globalThis.AudioContext ??
-			(
-				globalThis as typeof globalThis & {
-					webkitAudioContext?: typeof AudioContext
-				}
-			).webkitAudioContext
-
-		if (!AudioContextConstructor) {
+		const audio = getSharedAudioContext()
+		if (!audio) {
 			this.callbacks.onStatus('MIDI playback needs Web Audio')
 			return
 		}
 
-		this.audio = new AudioContextConstructor()
+		this.audio = audio
 		this.gain = this.audio.createGain()
 		this.gain.gain.value = this.volume
 		this.gain.connect(this.audio.destination)
