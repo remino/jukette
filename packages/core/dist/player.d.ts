@@ -2,6 +2,7 @@ import { HTMLElementBase } from './dom';
 import type { JuketteMidiOscillator, JuketteTrack } from './types';
 export declare class JukettePlayerElement extends HTMLElementBase {
     static observedAttributes: string[];
+    private static readonly reconnectGraceMs;
     private readonly dom;
     private readonly metadataController;
     private readonly progressController;

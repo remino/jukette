@@ -46,6 +46,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
 	]
+	private static readonly reconnectGraceMs = 1000
 
 	private readonly dom: JukettePlayerDom
 	private readonly metadataController: JuketteMetadataController
@@ -162,7 +163,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.activePlayableTrack?.stop()
 			this.activePlayableTrack = null
 			this.disconnectTeardownId = null
-		}, 0)
+		}, JukettePlayerElement.reconnectGraceMs)
 	}
 
 	attributeChangedCallback(

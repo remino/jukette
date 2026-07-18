@@ -16,6 +16,11 @@
 
 ## HEAD
 
+- Library
+    - Give `jukette-player` a longer reconnect grace window before tearing
+      playback down so real Turbo navigations can reattach the same player
+      instance without losing prepared state or current progress.
+
 ## v0.4.4
 
 - Repo

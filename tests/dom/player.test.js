@@ -272,6 +272,7 @@ describe('JukettePlayerElement DOM', () => {
 
 		const player = ctx.player
 		document.body.removeChild(player)
+		await new Promise((resolve) => window.setTimeout(resolve, 25))
 		document.body.appendChild(player)
 		await flushAsync()
 

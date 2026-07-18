@@ -308,7 +308,7 @@ var renderTrackSelect = ({ currentIndex, element, formatTime, getDisplay, getDur
 };
 //#endregion
 //#region src/lib/player.ts
-var JukettePlayerElement = class extends HTMLElementBase {
+var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
 		"src",
 		ATTR_PLAYLIST,
@@ -317,6 +317,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
 	];
+	static reconnectGraceMs = 1e3;
 	dom;
 	metadataController;
 	progressController;
@@ -409,7 +410,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			this.activePlayableTrack?.stop();
 			this.activePlayableTrack = null;
 			this.disconnectTeardownId = null;
-		}, 0);
+		}, JukettePlayerElement.reconnectGraceMs);
 	}
 	attributeChangedCallback(name, oldValue, newValue) {
 		if (oldValue === newValue) return;
