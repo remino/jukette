@@ -115,6 +115,7 @@ const buildLibrary = async ({
 		configFile: false,
 		publicDir: false,
 		build: {
+			cssMinify: true,
 			emptyOutDir: false,
 			lib: {
 				entry: resolve(packageRoot, entry),

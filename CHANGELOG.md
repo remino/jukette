@@ -15,6 +15,11 @@
 
 ## HEAD
 
+- Repo
+    - Minify inline player CSS in ESM and CommonJS package builds too, not
+      only in the standalone minified browser bundle, so published `dist/*`
+      artifacts stop shipping pretty-printed shadow CSS.
+
 ## v0.4.3
 
 - Library
