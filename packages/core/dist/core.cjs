@@ -1,4 +1,4 @@
-/*! @remino/jukette-core v0.4.4 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-core v0.5.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();

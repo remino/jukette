@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.5.0](#v050)
 - [v0.4.4](#v044)
 - [v0.4.3](#v043)
 - [v0.4.2](#v042)
@@ -15,6 +16,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.5.0
 
 - Library
     - Preserve live `jukette-player` playback across brief Turbo-style

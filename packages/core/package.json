@@ -1,6 +1,6 @@
 {
 	"name": "@remino/jukette-core",
-	"version": "0.4.4",
+	"version": "0.5.0",
 	"description": "Backendless core package for the jukette custom element player.",
 	"type": "module",
 	"license": "ISC",
