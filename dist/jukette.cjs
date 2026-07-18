@@ -5,7 +5,6 @@ var HTMLElementBase = globalThis.HTMLElement ?? class {};
 //#endregion
 //#region src/lib/attributes.ts
 var ATTR_PLAYLIST = "playlist";
-var ATTR_PLAYLIST_OPEN = "playlist-open";
 var ATTR_PRELOAD = "preload";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
 var ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
@@ -250,49 +249,6 @@ var loadMidiSequence = async (src) => {
 	return parseMidi(await response.arrayBuffer());
 };
 //#endregion
-//#region src/lib/metadata.ts
-var readSynchsafeInteger = (data, offset, length = 4) => {
-	let value = 0;
-	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
-	return value;
-};
-var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
-var decodeId3TextFrame = (frameData) => {
-	if (frameData.length < 2) return "";
-	const encoding = frameData[0];
-	const content = frameData.slice(1);
-	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
-	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
-	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
-	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
-};
-var parseAudioFileMetadata = (buffer) => {
-	const data = new Uint8Array(buffer);
-	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
-	const version = data[3];
-	const flags = data[5];
-	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
-	let offset = 10;
-	if (flags & 64 && offset + 4 <= tagEnd) {
-		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
-		offset += extendedHeaderSize;
-	}
-	const metadata = {};
-	while (offset + 10 <= tagEnd) {
-		const frameId = decodeAscii(data.slice(offset, offset + 4));
-		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
-		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
-		const frameStart = offset + 10;
-		const frameEnd = frameStart + frameSize;
-		if (frameSize <= 0 || frameEnd > tagEnd) break;
-		const frameData = data.slice(frameStart, frameEnd);
-		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
-		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
-		offset = frameEnd;
-	}
-	return metadata;
-};
-//#endregion
 //#region src/lib/playable-track.ts
 var JukettePlayableTrack = class {
 	track;
@@ -317,61 +273,21 @@ var JukettePlayableTrack = class {
 	requestPosition(_isStale) {}
 };
 //#endregion
-//#region src/lib/audio-track.ts
-var AudioPlayableTrack = class extends JukettePlayableTrack {
-	audio;
-	constructor(track, audio, callbacks) {
-		super(track, callbacks);
-		this.audio = audio;
-	}
-	get currentTime() {
-		return this.audio.currentTime;
-	}
-	get duration() {
-		return Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
-	}
-	load(options) {
-		this.callbacks.onStatus("Loading audio");
-		this.audio.src = this.track.src;
-		this.audio.volume = options.volume;
-		this.audio.load();
-		this.audio.currentTime = 0;
-		this.preloadFileMetadata(options.metadataPreloadId);
-	}
-	async play(options) {
-		this.callbacks.onStatus("Starting audio");
-		await this.audio.play();
-		return !options.isStale();
-	}
-	pause() {
-		this.audio.pause();
-	}
-	seek(seconds) {
-		this.audio.currentTime = seconds;
-	}
-	setVolume(volume) {
-		this.audio.volume = volume;
-	}
-	stop() {
-		this.audio.pause();
-		this.audio.removeAttribute("src");
-	}
-	syncFromMedia() {
-		this.durationValue = this.duration;
-		this.callbacks.onDuration(this.durationValue);
-		this.callbacks.onProgress(this.audio.currentTime, this.durationValue);
-	}
-	async preloadFileMetadata(metadataPreloadId) {
-		if (typeof fetch === "undefined") return;
-		try {
-			const response = await fetch(this.track.src, { headers: { Range: "bytes=0-65535" } });
-			if (!response.ok) return;
-			this.callbacks.onMetadata(parseAudioFileMetadata(await response.arrayBuffer()), metadataPreloadId);
-		} catch {}
-	}
-};
-//#endregion
 //#region src/lib/midi-track.ts
+var sharedAudioContext = null;
+var getAudioContextConstructor = () => globalThis.AudioContext ?? globalThis.webkitAudioContext;
+var getSharedAudioContext = () => {
+	if (sharedAudioContext) return sharedAudioContext;
+	const AudioContextConstructor = getAudioContextConstructor();
+	if (!AudioContextConstructor) return null;
+	sharedAudioContext = new AudioContextConstructor();
+	return sharedAudioContext;
+};
+var warmMidiAudioContext = async () => {
+	const audio = getSharedAudioContext();
+	if (!audio || audio.state !== "suspended") return;
+	await audio.resume();
+};
 var MidiPlayableTrack = class extends JukettePlayableTrack {
 	getOscillator;
 	audio = null;
@@ -456,6 +372,8 @@ var MidiPlayableTrack = class extends JukettePlayableTrack {
 	}
 	stop() {
 		this.stopSources();
+		this.gain?.disconnect();
+		this.gain = null;
 	}
 	stopSources() {
 		if (this.timer) {
@@ -469,20 +387,116 @@ var MidiPlayableTrack = class extends JukettePlayableTrack {
 	}
 	ensureAudio() {
 		if (this.audio && this.gain) return;
-		const AudioContextConstructor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-		if (!AudioContextConstructor) {
+		const audio = getSharedAudioContext();
+		if (!audio) {
 			this.callbacks.onStatus("MIDI playback needs Web Audio");
 			return;
 		}
-		this.audio = new AudioContextConstructor();
+		this.audio = audio;
 		this.gain = this.audio.createGain();
 		this.gain.gain.value = this.volume;
 		this.gain.connect(this.audio.destination);
 	}
 };
 //#endregion
+//#region src/lib/metadata.ts
+var readSynchsafeInteger = (data, offset, length = 4) => {
+	let value = 0;
+	for (let index = 0; index < length; index++) value = value << 7 | data[offset + index] & 127;
+	return value;
+};
+var readUint32 = (data, offset) => (data[offset] << 24 | data[offset + 1] << 16 | data[offset + 2] << 8 | data[offset + 3]) >>> 0;
+var decodeId3TextFrame = (frameData) => {
+	if (frameData.length < 2) return "";
+	const encoding = frameData[0];
+	const content = frameData.slice(1);
+	if (encoding === 0) return cleanMetadataText(decodeIso88591(content));
+	if (encoding === 3) return cleanMetadataText(decodeTextBytes(content, "utf-8"));
+	if (encoding === 2) return cleanMetadataText(decodeUtf16Be(content));
+	return cleanMetadataText(decodeTextBytes(content, "utf-16"));
+};
+var parseAudioFileMetadata = (buffer) => {
+	const data = new Uint8Array(buffer);
+	if (data.length < 10 || decodeAscii(data.slice(0, 3)) !== "ID3") return {};
+	const version = data[3];
+	const flags = data[5];
+	const tagEnd = Math.min(data.length, 10 + readSynchsafeInteger(data, 6));
+	let offset = 10;
+	if (flags & 64 && offset + 4 <= tagEnd) {
+		const extendedHeaderSize = version === 4 ? readSynchsafeInteger(data, offset) : readUint32(data, offset) + 4;
+		offset += extendedHeaderSize;
+	}
+	const metadata = {};
+	while (offset + 10 <= tagEnd) {
+		const frameId = decodeAscii(data.slice(offset, offset + 4));
+		if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
+		const frameSize = version === 4 ? readSynchsafeInteger(data, offset + 4) : readUint32(data, offset + 4);
+		const frameStart = offset + 10;
+		const frameEnd = frameStart + frameSize;
+		if (frameSize <= 0 || frameEnd > tagEnd) break;
+		const frameData = data.slice(frameStart, frameEnd);
+		if (frameId === "TIT2") metadata.title = decodeId3TextFrame(frameData);
+		if (frameId === "TPE1") metadata.artist = decodeId3TextFrame(frameData);
+		offset = frameEnd;
+	}
+	return metadata;
+};
+//#endregion
+//#region src/lib/audio-track.ts
+var AudioPlayableTrack = class extends JukettePlayableTrack {
+	audio;
+	constructor(track, audio, callbacks) {
+		super(track, callbacks);
+		this.audio = audio;
+	}
+	get currentTime() {
+		return this.audio.currentTime;
+	}
+	get duration() {
+		return Number.isFinite(this.audio.duration) ? this.audio.duration : 0;
+	}
+	load(options) {
+		this.callbacks.onStatus("Loading audio");
+		this.audio.src = this.track.src;
+		this.audio.volume = options.volume;
+		this.audio.load();
+		this.audio.currentTime = 0;
+		this.preloadFileMetadata(options.metadataPreloadId);
+	}
+	async play(options) {
+		this.callbacks.onStatus("Starting audio");
+		await this.audio.play();
+		return !options.isStale();
+	}
+	pause() {
+		this.audio.pause();
+	}
+	seek(seconds) {
+		this.audio.currentTime = seconds;
+	}
+	setVolume(volume) {
+		this.audio.volume = volume;
+	}
+	stop() {
+		this.audio.pause();
+	}
+	syncFromMedia() {
+		this.durationValue = this.duration;
+		this.callbacks.onDuration(this.durationValue);
+		this.callbacks.onProgress(this.audio.currentTime, this.durationValue);
+	}
+	async preloadFileMetadata(metadataPreloadId) {
+		if (typeof fetch === "undefined") return;
+		try {
+			const response = await fetch(this.track.src, { headers: { Range: "bytes=0-65535" } });
+			if (!response.ok) return;
+			this.callbacks.onMetadata(parseAudioFileMetadata(await response.arrayBuffer()), metadataPreloadId);
+		} catch {}
+	}
+};
+//#endregion
 //#region src/lib/jukette-player.css?inline
-var jukette_player_default = ":host {\n	--jukette-control-size: 2em;\n	display: block;\n	font: inherit;\n	color: inherit;\n}\n\n* {\n	box-sizing: border-box;\n}\n\n.player {\n	border: 1px solid currentColor;\n	display: grid;\n	gap: 0.5lh;\n	padding: 0.5rlh 1em;\n}\n\n.track {\n	display: grid;\n	min-inline-size: 0;\n}\n\n.progress {\n	display: grid;\n	gap: 0;\n}\n\n.title,\n.meta {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.title {\n	font-weight: 700;\n}\n\n.meta,\n.status,\n.time {\n	opacity: 0.75;\n}\n\n.status {\n	min-block-size: 1lh;\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.controls {\n	align-items: center;\n	display: grid;\n	gap: 0.5lh 0.5em;\n	grid-template-areas: 'previous play next volume playlist';\n	grid-template-columns:\n		repeat(3, var(--jukette-control-size)) minmax(7rem, 1fr)\n		var(--jukette-control-size);\n}\n\n.previous {\n	grid-area: previous;\n}\n\n.play {\n	grid-area: play;\n}\n\n.next {\n	grid-area: next;\n}\n\n.volume {\n	grid-area: volume;\n}\n\n.playlist-toggle {\n	grid-area: playlist;\n}\n\nbutton {\n	align-items: center;\n	appearance: none;\n	background: transparent;\n	border: 1px solid currentColor;\n	block-size: var(--jukette-control-size);\n	color: inherit;\n	cursor: pointer;\n	display: inline-grid;\n	font: inherit;\n	inline-size: var(--jukette-control-size);\n	justify-content: center;\n	padding: 0;\n}\n\nbutton:focus-visible {\n	outline: 2px solid currentColor;\n	outline-offset: 0;\n	outline-radius: 0;\n}\n\nbutton:active {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton[aria-pressed='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton:disabled {\n	cursor: default;\n	opacity: 0.45;\n}\n\ninput[type='range'] {\n	accent-color: currentColor;\n}\n\n.seek {\n	display: grid;\n}\n\n.time {\n	display: grid;\n	gap: 0.5em;\n	grid-template-columns: repeat(3, 1fr);\n	font-variant-numeric: tabular-nums;\n}\n\n.time span:nth-child(2) {\n	text-align: center;\n}\n\n.time span:nth-child(3) {\n	text-align: end;\n}\n\n.playlist {\n	border-block-start: 1px solid currentColor;\n	counter-reset: jukette-playlist;\n	display: none;\n	gap: 0.5lh 0;\n	list-style: none;\n	margin: 0;\n	padding: 1lh 0 0.5lh;\n}\n\n:host([playlist-open]) .playlist {\n	display: grid;\n}\n\n.playlist li {\n	align-items: start;\n	counter-increment: jukette-playlist;\n	display: grid;\n}\n\n.playlist li button {\n	padding-inline: 0.5em;\n}\n\n.playlist li button::before {\n	content: counter(jukette-playlist) '.';\n	grid-column: 1;\n	grid-row: 1 / span 2;\n	font-variant-numeric: tabular-nums;\n	text-align: end;\n}\n\n.playlist li button[aria-current='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\n.playlist button {\n	align-items: start;\n	block-size: auto;\n	border: 0;\n	display: grid;\n	gap: 0 0.5em;\n	grid-template-columns: 2ch minmax(0, 1fr) auto;\n	inline-size: 100%;\n	text-align: start;\n}\n\n.playlist-title,\n.playlist-artist {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.playlist-title {\n	font-weight: 700;\n	grid-column: 2;\n}\n\n.playlist-artist,\n.playlist-duration {\n	opacity: 0.75;\n}\n\n.playlist-duration {\n	align-self: center;\n	font-variant-numeric: tabular-nums;\n	grid-column: 3;\n	grid-row: 1 / span 2;\n	white-space: nowrap;\n}\n\n.playlist-artist {\n	grid-column: 2;\n}\n\naudio {\n	display: none;\n}\n\n@media (max-width: 34em) {\n	.controls {\n		grid-template-areas:\n			'volume volume volume volume volume'\n			'previous play next spacer playlist';\n		grid-template-columns:\n			repeat(3, var(--jukette-control-size)) minmax(0, 1fr)\n			var(--jukette-control-size);\n		justify-content: start;\n	}\n}\n";
+var jukette_player_default = ":host {\n	--jukette-control-size: 2em;\n	display: block;\n	font: inherit;\n	color: inherit;\n}\n\n* {\n	box-sizing: border-box;\n}\n\n.player {\n	border: 1px solid currentColor;\n	display: grid;\n	gap: 0.5lh;\n	padding: 0.5rlh 1em;\n}\n\n.track {\n	display: grid;\n	min-inline-size: 0;\n}\n\n.title,\n.meta {\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.title {\n	font-weight: 700;\n}\n\n.meta,\n.status {\n	opacity: 0.75;\n}\n\n.status {\n	min-block-size: 1lh;\n	overflow: hidden;\n	text-overflow: ellipsis;\n	white-space: nowrap;\n}\n\n.controls {\n	align-items: center;\n	display: grid;\n	gap: 0.5em;\n	grid-template-columns: var(--jukette-control-size) minmax(0, 1fr) auto;\n}\n\n.play {\n	block-size: var(--jukette-control-size);\n	inline-size: var(--jukette-control-size);\n}\n\nbutton {\n	align-items: center;\n	appearance: none;\n	background: transparent;\n	border: 1px solid currentColor;\n	block-size: var(--jukette-control-size);\n	color: inherit;\n	cursor: pointer;\n	display: inline-grid;\n	font: inherit;\n	inline-size: var(--jukette-control-size);\n	justify-content: center;\n	padding: 0;\n}\n\nbutton:focus-visible {\n	outline: 2px solid currentColor;\n	outline-offset: 0;\n	outline-radius: 0;\n}\n\nbutton:active {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton[aria-pressed='true'] {\n	background: rgb(\n		from currentColor calc(255 - r) calc(255 - g) calc(255 - b)\n	);\n	color: rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));\n}\n\nbutton:disabled {\n	cursor: default;\n	opacity: 0.45;\n}\n\ninput[type='range'] {\n	accent-color: currentColor;\n}\n\n.seek {\n	display: grid;\n}\n\n.time {\n	block-size: auto;\n	inline-size: auto;\n	min-inline-size: 4.5ch;\n	padding-inline: 0.5em;\n	font-variant-numeric: tabular-nums;\n	text-align: end;\n}\n\n.track-select,\n.volume {\n	inline-size: 100%;\n}\n\n.track-select {\n	background: transparent;\n	border: 1px solid currentColor;\n	color: inherit;\n	font: inherit;\n	padding: 0.35em 0.5em;\n}\n\naudio {\n	display: none;\n}\n\n@media (max-width: 34em) {\n	.controls {\n		grid-template-columns: var(--jukette-control-size) minmax(0, 1fr);\n	}\n\n	.time {\n		grid-column: 1 / -1;\n		justify-self: end;\n	}\n}\n";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -500,43 +514,29 @@ var createJukettePlayerDom = (host) => {
 				<div class="title" part="title"></div>
 				<div class="meta" part="artist"></div>
 			</div>
-			<div class="progress" part="progress">
-				<div class="status" part="status" role="status" aria-live="polite"></div>
+			<div class="status" part="status" role="status" aria-live="polite"></div>
+			<div class="controls" part="controls">
+				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
 				<div class="seek" part="seek">
 					<input class="seek-input" part="seek-input" type="range" min="0" max="1000" value="0" aria-label="Seek" />
-					<div class="time" part="time" aria-live="off">
-						<span class="elapsed" part="elapsed">0:00</span>
-						<span class="remaining" part="remaining">-0:00</span>
-						<span class="total" part="total">0:00</span>
-					</div>
 				</div>
+				<button class="time" part="time" type="button" aria-label="Toggle time display">0:00</button>
 			</div>
-			<div class="controls" part="controls">
-				<button class="previous" part="button previous-button" type="button" aria-label="Previous or restart track">&#x23ee;&#xfe0e;</button>
-				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
-				<button class="next" part="button next-button" type="button" aria-label="Next track">&#x23ed;&#xfe0e;</button>
-				<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
-				<button class="playlist-toggle" part="button playlist-button" type="button" aria-label="Toggle playlist" aria-pressed="false">☰</button>
-			</div>
+			<select class="track-select" part="track-select" aria-label="Track selection"></select>
+			<input class="volume" part="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
 			<audio preload="metadata"></audio>
-			<ol class="playlist" part="playlist"></ol>
 		</div>
 	`;
 	return {
 		audio: query(shadowRoot, "audio"),
-		elapsedTimeElement: query(shadowRoot, ".elapsed"),
 		metaElement: query(shadowRoot, ".meta"),
-		nextButton: query(shadowRoot, ".next"),
 		playButton: query(shadowRoot, ".play"),
 		playerElement: query(shadowRoot, ".player"),
-		playlistButton: query(shadowRoot, ".playlist-toggle"),
-		playlistElement: query(shadowRoot, ".playlist"),
-		previousButton: query(shadowRoot, ".previous"),
-		remainingTimeElement: query(shadowRoot, ".remaining"),
 		seekInput: query(shadowRoot, ".seek-input"),
 		statusElement: query(shadowRoot, ".status"),
 		titleElement: query(shadowRoot, ".title"),
-		totalTimeElement: query(shadowRoot, ".total"),
+		timeButton: query(shadowRoot, ".time"),
+		trackSelect: query(shadowRoot, ".track-select"),
 		volumeInput: query(shadowRoot, ".volume")
 	};
 };
@@ -649,42 +649,6 @@ var JuketteMetadataController = class {
 	}
 };
 //#endregion
-//#region src/lib/player-playlist-renderer.ts
-var renderPlaylist = ({ currentIndex, element, formatTime, getDisplay, getDuration, onSelect, tracks }) => {
-	element.replaceChildren(...tracks.map((track, index) => {
-		const display = getDisplay(track);
-		const item = document.createElement("li");
-		const button = document.createElement("button");
-		const title = document.createElement("span");
-		const artist = document.createElement("span");
-		const duration = document.createElement("span");
-		const durationValue = getDuration(track);
-		const durationText = durationValue === void 0 ? "--:--" : formatTime(durationValue);
-		button.type = "button";
-		button.part.add("playlist-track");
-		button.setAttribute("aria-label", [
-			display.title,
-			display.artist,
-			durationValue === void 0 ? "unknown duration" : durationText
-		].filter(Boolean).join(", "));
-		item.part.add("playlist-item");
-		title.className = "playlist-title";
-		title.part.add("playlist-title");
-		title.textContent = display.title;
-		artist.className = "playlist-artist";
-		artist.part.add("playlist-artist");
-		artist.textContent = display.artist;
-		duration.className = "playlist-duration";
-		duration.part.add("playlist-duration");
-		duration.textContent = durationText;
-		button.append(title, artist, duration);
-		if (index === currentIndex) button.setAttribute("aria-current", "true");
-		button.addEventListener("click", () => onSelect(index));
-		item.append(button);
-		return item;
-	}));
-};
-//#endregion
 //#region src/lib/player-time.ts
 var formatTime = (seconds) => {
 	const roundedSeconds = Math.floor(Number.isFinite(seconds) ? Math.max(0, seconds) : 0);
@@ -708,9 +672,7 @@ var JuketteProgressController = class {
 		const safeCurrentTime = Number.isFinite(currentTime) ? Math.min(Math.max(0, currentTime), safeDuration || Number.MAX_SAFE_INTEGER) : 0;
 		const ratio = safeDuration > 0 ? Math.min(1, Math.max(0, safeCurrentTime / safeDuration)) : 0;
 		this.options.dom.seekInput.value = String(Math.round(ratio * 1e3));
-		this.options.dom.elapsedTimeElement.textContent = formatTime(safeCurrentTime);
-		this.options.dom.remainingTimeElement.textContent = `-${formatTime(Math.max(0, safeDuration - safeCurrentTime))}`;
-		this.options.dom.totalTimeElement.textContent = formatTime(safeDuration);
+		this.options.dom.timeButton.textContent = this.options.getTimeMode() === "remaining" ? `-${formatTime(Math.max(0, safeDuration - safeCurrentTime))}` : formatTime(safeCurrentTime);
 	}
 	syncPlayingState() {
 		const playing = this.options.getPlaying();
@@ -744,12 +706,26 @@ var JuketteProgressController = class {
 	}
 };
 //#endregion
+//#region src/lib/player-track-select.ts
+var renderTrackSelect = ({ currentIndex, element, formatTime, getDisplay, getDuration, tracks }) => {
+	element.replaceChildren(...tracks.map((track, index) => {
+		const option = document.createElement("option");
+		const display = getDisplay(track);
+		const durationValue = getDuration(track);
+		const durationText = durationValue === void 0 ? "--:--" : formatTime(durationValue);
+		const artist = display.artist ? ` - ${display.artist}` : "";
+		option.value = String(index);
+		option.textContent = `${index + 1}. ${display.title}${artist} (${durationText})`;
+		return option;
+	}));
+	element.value = String(Math.max(0, Math.min(currentIndex, tracks.length - 1)));
+};
+//#endregion
 //#region src/lib/player.ts
 var JukettePlayerElement = class extends HTMLElementBase {
 	static observedAttributes = [
 		"src",
 		ATTR_PLAYLIST,
-		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
@@ -769,6 +745,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	trackObserver = null;
 	playlistOverride = null;
 	loadedTrackKey = "";
+	timeMode = "elapsed";
 	constructor() {
 		super();
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
@@ -779,19 +756,19 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			getTracks: () => this.tracks,
 			isCurrentTrack: (track) => this.isCurrentTrack(track),
 			onCurrentTrackDisplayChange: () => this.renderCurrentTrack(),
-			onPlaylistDisplayChange: () => this.renderPlaylist(),
+			onPlaylistDisplayChange: () => this.renderTrackSelect(),
 			trackPrefersMediaMetadata: (track) => this.trackPrefersMediaMetadata(track)
 		});
 		this.progressController = new JuketteProgressController({
 			dom: this.dom,
 			getCurrentTime: () => this.getCurrentTime(),
 			getDuration: () => this.duration,
-			getPlaying: () => this.playing
+			getPlaying: () => this.playing,
+			getTimeMode: () => this.timeMode
 		});
 		this.dom.playButton.addEventListener("click", () => this.toggle());
-		this.dom.previousButton.addEventListener("click", () => this.previous());
-		this.dom.nextButton.addEventListener("click", () => this.next());
-		this.dom.playlistButton.addEventListener("click", () => this.togglePlaylist());
+		this.dom.timeButton.addEventListener("click", () => this.toggleTimeMode());
+		this.dom.trackSelect.addEventListener("change", () => this.selectTrackFromInput());
 		this.dom.volumeInput.addEventListener("input", () => this.syncVolume());
 		this.dom.seekInput.addEventListener("input", () => this.seekFromInput());
 		this.dom.audio.addEventListener("loadedmetadata", () => this.syncAudio());
@@ -813,7 +790,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			subtree: true
 		});
 		this.syncTracks();
-		this.syncPlaylistButton();
 		this.loadTrack();
 	}
 	disconnectedCallback() {
@@ -825,14 +801,8 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		if (oldValue === newValue) return;
 		if (name === "preload-metadata" || name === "prefer-media-metadata") {
 			this.renderCurrentTrack();
-			this.renderPlaylist();
+			this.renderTrackSelect();
 			this.preloadPlaylistMetadata();
-			return;
-		}
-		if (name === "playlist-open") {
-			const open = newValue !== null;
-			this.syncPlaylistButton();
-			this.emitJuketteEvent("jukette:playlisttoggle", { open });
 			return;
 		}
 		this.syncTracks();
@@ -852,12 +822,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	}
 	get playlist() {
 		return [...this.tracks];
-	}
-	get playlistOpen() {
-		return this.hasAttribute(ATTR_PLAYLIST_OPEN);
-	}
-	set playlistOpen(open) {
-		this.toggleAttribute(ATTR_PLAYLIST_OPEN, open);
 	}
 	get totalTracks() {
 		return this.tracks.length;
@@ -884,7 +848,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.playlistOverride = tracks.map((track) => normalizeTrack(track)).filter((track) => track !== null);
 		this.tracks = [...this.playlistOverride];
 		this.index = 0;
-		this.renderPlaylist();
+		this.renderTrackSelect();
 		this.preloadPlaylistMetadata();
 		this.loadTrack();
 	}
@@ -913,46 +877,12 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		if (wasPlaying) this.emitJuketteEvent("jukette:pause");
 	}
 	toggle() {
+		warmMidiAudioContext();
 		if (this.playing) {
 			this.pause();
 			return;
 		}
 		this.play();
-	}
-	next() {
-		if (this.tracks.length === 0) return;
-		const fromIndex = this.index;
-		const shouldPlay = this.desiredPlaying || this.playing;
-		this.index = (this.index + 1) % this.tracks.length;
-		this.restartOnNextPlay = true;
-		this.loadTrack();
-		this.emitJuketteEvent("jukette:next", {
-			direction: "next",
-			fromIndex,
-			toIndex: this.index
-		});
-		if (shouldPlay) this.play();
-	}
-	previous() {
-		if (this.tracks.length === 0) return;
-		if (this.getCurrentTime() > 3) {
-			this.restartOnNextPlay = true;
-			this.seek(0);
-			this.emitJuketteEvent("jukette:restart");
-			if (this.desiredPlaying || this.playing) this.play();
-			return;
-		}
-		const fromIndex = this.index;
-		const shouldPlay = this.desiredPlaying || this.playing;
-		this.index = (this.index - 1 + this.tracks.length) % this.tracks.length;
-		this.restartOnNextPlay = true;
-		this.loadTrack();
-		this.emitJuketteEvent("jukette:previous", {
-			direction: "previous",
-			fromIndex,
-			toIndex: this.index
-		});
-		if (shouldPlay) this.play();
 	}
 	seek(seconds) {
 		const track = this.currentTrack;
@@ -976,7 +906,6 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			duration: this.duration,
 			index: this.index,
 			playing: this.playing,
-			playlistOpen: this.playlistOpen,
 			track: this.currentTrack,
 			tracks: this.tracks,
 			volume: Number(this.dom.volumeInput.value),
@@ -998,7 +927,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.tracks = this.playlistOverride ?? (childTracks.length > 0 ? childTracks : attributeTracks.length > 0 ? attributeTracks : singleTrack ? [singleTrack] : []);
 		const nextIndex = Number(this.getAttribute(ATTR_TRACK_INDEX));
 		this.index = Number.isInteger(nextIndex) && nextIndex >= 0 ? Math.min(nextIndex, Math.max(0, this.tracks.length - 1)) : Math.min(this.index, Math.max(0, this.tracks.length - 1));
-		this.renderPlaylist();
+		this.renderTrackSelect();
 		this.preloadPlaylistMetadata();
 	}
 	syncChildTracks() {
@@ -1006,7 +935,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const currentTrack = this.currentTrack;
 		this.syncTracks();
 		if (this.currentTrack?.src === currentTrack?.src) {
-			this.renderPlaylist();
+			this.renderTrackSelect();
 			return;
 		}
 		this.loadTrack();
@@ -1076,6 +1005,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			this.dom.metaElement.textContent = "";
 			this.dom.statusElement.textContent = "";
 			this.dom.playButton.disabled = true;
+			this.dom.trackSelect.disabled = true;
 			if (previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
 			return;
 		}
@@ -1085,6 +1015,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.duration = this.getTrackDuration(track) ?? 0;
 		this.dataset.kind = type;
 		this.dom.playButton.disabled = false;
+		this.dom.trackSelect.disabled = false;
 		this.renderCurrentTrack();
 		this.setStatus();
 		this.syncProgress(0, this.duration);
@@ -1094,22 +1025,22 @@ var JukettePlayerElement = class extends HTMLElementBase {
 			restart: this.restartOnNextPlay,
 			volume: Number(this.dom.volumeInput.value)
 		});
-		this.renderPlaylist();
+		this.renderTrackSelect();
 		this.syncPlayingState();
 		if (trackKey !== previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
 	}
-	renderPlaylist() {
-		renderPlaylist({
+	renderTrackSelect() {
+		renderTrackSelect({
 			currentIndex: this.index,
-			element: this.dom.playlistElement,
+			element: this.dom.trackSelect,
 			formatTime,
 			getDisplay: (track) => this.getTrackDisplay(track),
 			getDuration: (track) => this.getTrackDuration(track),
-			onSelect: (index) => this.selectPlaylistTrack(index),
 			tracks: this.tracks
 		});
 	}
-	selectPlaylistTrack(index) {
+	selectTrack(index) {
+		warmMidiAudioContext();
 		this.desiredPlaying = true;
 		this.restartOnNextPlay = true;
 		if (index === this.index) {
@@ -1120,6 +1051,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.index = index;
 		this.loadTrack();
 		this.play();
+	}
+	selectTrackFromInput() {
+		const nextIndex = Number(this.dom.trackSelect.value);
+		if (!Number.isInteger(nextIndex) || nextIndex < 0) return;
+		this.selectTrack(nextIndex);
 	}
 	getTrackDuration(track) {
 		return this.metadataController.getDuration(track);
@@ -1146,11 +1082,9 @@ var JukettePlayerElement = class extends HTMLElementBase {
 	preloadPlaylistMetadata() {
 		this.metadataController.preloadPlaylistMetadata();
 	}
-	togglePlaylist() {
-		this.playlistOpen = !this.playlistOpen;
-	}
-	syncPlaylistButton() {
-		this.dom.playlistButton.setAttribute("aria-pressed", String(this.playlistOpen));
+	toggleTimeMode() {
+		this.timeMode = this.timeMode === "elapsed" ? "remaining" : "elapsed";
+		this.syncProgress(this.getCurrentTime(), this.duration);
 	}
 	syncVolume() {
 		this.activePlayableTrack?.setVolume(Number(this.dom.volumeInput.value));
@@ -1174,8 +1108,11 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.progressController.setStatus(message);
 	}
 	finishTrack() {
+		this.desiredPlaying = false;
+		this.playing = false;
+		this.syncPlayingState();
+		this.syncProgress(this.duration, this.duration);
 		this.emitJuketteEvent("jukette:ended");
-		this.next();
 	}
 	stopProgressLoop() {
 		this.progressController.stop();

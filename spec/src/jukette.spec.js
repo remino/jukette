@@ -71,7 +71,6 @@ describe('jukette', () => {
 			duration: 8,
 			index: 0,
 			playing: true,
-			playlistOpen: false,
 			track,
 			tracks,
 			volume: 0.5,
@@ -82,7 +81,6 @@ describe('jukette', () => {
 			duration: 8,
 			index: 0,
 			playing: true,
-			playlistOpen: false,
 			track,
 			tracks: [track],
 			type: 'midi',
@@ -122,7 +120,7 @@ describe('jukette', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'preload-metadata',
 		)
-		expect(JukettePlayerElement.observedAttributes).toContain(
+		expect(JukettePlayerElement.observedAttributes).not.toContain(
 			'playlist-open',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(

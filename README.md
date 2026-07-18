@@ -217,8 +217,6 @@ const player = document.querySelector('jukette-player')
 player.play()
 player.pause()
 player.toggle()
-player.next()
-player.previous()
 player.seek(30)
 player.currentTime = 30
 console.log(player.currentTime)
@@ -226,7 +224,6 @@ console.log(player.currentTrack)
 console.log(player.currentTrackIndex)
 console.log(player.totalTracks)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
-player.playlistOpen = true
 player.preloadMetadata = true
 player.preferMediaMetadata = true
 player.midiOscillator = 'sine'
@@ -239,8 +236,8 @@ browser-native audio and local MIDI tracks.
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.
 
-Use `currentTrack`, `currentTrackIndex`, and `totalTracks` to inspect playlist
-state. Use `playlistOpen` to read or set whether the playlist panel is expanded.
+Use `currentTrack`, `currentTrackIndex`, and `totalTracks` to inspect the track
+selection state.
 
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3
@@ -268,19 +265,13 @@ host:
 
 - `jukette:play`
 - `jukette:pause`
-- `jukette:next`
-- `jukette:previous`
-- `jukette:restart`
 - `jukette:seek`
 - `jukette:ended`
 - `jukette:trackchange`
 - `jukette:volumechange`
-- `jukette:playlisttoggle`
 
 Each event includes `event.detail` with the current `track`, `tracks`, `index`,
-`type`, `currentTime`, `duration`, `volume`, `playing`, and `playlistOpen`.
-Navigation events also include `fromIndex`, `toIndex`, and `direction`; playlist
-toggle events include `open`.
+`type`, `currentTime`, `duration`, `volume`, and `playing`.
 
 [Back to top](#)
 
@@ -305,19 +296,15 @@ jukette-player {
 The host supports these stable styling inputs:
 
 - `color`: inherited by text, borders, buttons, and range accents.
-- `font`: inherited by labels, buttons, and playlist items.
-- `--jukette-control-size`: controls the square previous, play, next, and
-  playlist-toggle button size. Defaults to `2em`.
+- `font`: inherited by labels, buttons, and the track selector.
+- `--jukette-control-size`: controls the square play button size. Defaults to
+  `2em`.
 - `inline-size`, `max-inline-size`, `margin`, and other normal layout
   properties on `jukette-player`.
 
 Use host attributes for state-specific styling:
 
 ```css
-jukette-player[playlist-open] {
-	border-color: currentColor;
-}
-
 jukette-player[data-kind='midi'] {
 	color: #164e63;
 }
@@ -329,14 +316,9 @@ native range accent styling.
 
 For deeper styling, Jukette exposes stable `::part()` hooks:
 
-- Layout: `player`, `track`, `progress`, `seek`, `time`, `controls`,
-  `playlist`.
+- Layout: `player`, `track`, `seek`, `time`, `controls`.
 - Track display: `title`, `artist`, `status`.
-- Time display: `elapsed`, `remaining`, `total`.
-- Controls: `button`, `previous-button`, `play-button`, `next-button`,
-  `playlist-button`, `seek-input`, `volume`.
-- Playlist rows: `playlist-item`, `playlist-track`, `playlist-title`,
-  `playlist-artist`, `playlist-duration`.
+- Controls: `button`, `play-button`, `seek-input`, `volume`, `track-select`.
 
 ```css
 jukette-player::part(player) {
@@ -348,8 +330,8 @@ jukette-player::part(play-button) {
 	border-radius: 999px;
 }
 
-jukette-player::part(playlist-track) {
-	padding-block: 0.5rem;
+jukette-player::part(track-select) {
+	font-size: 0.95rem;
 }
 ```
 

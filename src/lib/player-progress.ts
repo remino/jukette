@@ -6,6 +6,7 @@ export interface JuketteProgressControllerOptions {
 	getCurrentTime(): number
 	getDuration(): number
 	getPlaying(): boolean
+	getTimeMode(): 'elapsed' | 'remaining'
 }
 
 export class JuketteProgressController {
@@ -32,12 +33,10 @@ export class JuketteProgressController {
 				? Math.min(1, Math.max(0, safeCurrentTime / safeDuration))
 				: 0
 		this.options.dom.seekInput.value = String(Math.round(ratio * 1000))
-		this.options.dom.elapsedTimeElement.textContent =
-			formatTime(safeCurrentTime)
-		this.options.dom.remainingTimeElement.textContent = `-${formatTime(
-			Math.max(0, safeDuration - safeCurrentTime),
-		)}`
-		this.options.dom.totalTimeElement.textContent = formatTime(safeDuration)
+		this.options.dom.timeButton.textContent =
+			this.options.getTimeMode() === 'remaining'
+				? `-${formatTime(Math.max(0, safeDuration - safeCurrentTime))}`
+				: formatTime(safeCurrentTime)
 	}
 
 	syncPlayingState(): void {

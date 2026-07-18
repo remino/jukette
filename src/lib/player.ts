@@ -2,7 +2,6 @@ import {
 	ATTR_ARTIST,
 	ATTR_MIDI_OSCILLATOR,
 	ATTR_PLAYLIST,
-	ATTR_PLAYLIST_OPEN,
 	ATTR_PREFER_MEDIA_METADATA,
 	ATTR_PRELOAD,
 	ATTR_PRELOAD_METADATA,
@@ -14,12 +13,13 @@ import {
 import { HTMLElementBase } from './dom'
 import { createJuketteEventDetail } from './events'
 import { normalizeMidiOscillator } from './midi'
+import { warmMidiAudioContext } from './midi-track'
 import { AudioPlayableTrack } from './audio-track'
 import { MidiPlayableTrack } from './midi-track'
 import { createJukettePlayerDom, type JukettePlayerDom } from './player-dom'
 import { JuketteMetadataController } from './player-metadata'
-import { renderPlaylist as renderPlaylistItems } from './player-playlist-renderer'
 import { JuketteProgressController } from './player-progress'
+import { renderTrackSelect } from './player-track-select'
 import { formatTime } from './player-time'
 import { JukettePlayableTrack } from './playable-track'
 import {
@@ -40,7 +40,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
 		ATTR_SRC,
 		ATTR_PLAYLIST,
-		ATTR_PLAYLIST_OPEN,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_MIDI_OSCILLATOR,
@@ -61,6 +60,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
 	private loadedTrackKey = ''
+	private timeMode: 'elapsed' | 'remaining' = 'elapsed'
 
 	constructor() {
 		super()
@@ -78,7 +78,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			getTracks: () => this.tracks,
 			isCurrentTrack: (track) => this.isCurrentTrack(track),
 			onCurrentTrackDisplayChange: () => this.renderCurrentTrack(),
-			onPlaylistDisplayChange: () => this.renderPlaylist(),
+			onPlaylistDisplayChange: () => this.renderTrackSelect(),
 			trackPrefersMediaMetadata: (track) =>
 				this.trackPrefersMediaMetadata(track),
 		})
@@ -87,13 +87,15 @@ export class JukettePlayerElement extends HTMLElementBase {
 			getCurrentTime: () => this.getCurrentTime(),
 			getDuration: () => this.duration,
 			getPlaying: () => this.playing,
+			getTimeMode: () => this.timeMode,
 		})
 
 		this.dom.playButton.addEventListener('click', () => this.toggle())
-		this.dom.previousButton.addEventListener('click', () => this.previous())
-		this.dom.nextButton.addEventListener('click', () => this.next())
-		this.dom.playlistButton.addEventListener('click', () =>
-			this.togglePlaylist(),
+		this.dom.timeButton.addEventListener('click', () =>
+			this.toggleTimeMode(),
+		)
+		this.dom.trackSelect.addEventListener('change', () =>
+			this.selectTrackFromInput(),
 		)
 		this.dom.volumeInput.addEventListener('input', () => this.syncVolume())
 		this.dom.seekInput.addEventListener('input', () => this.seekFromInput())
@@ -119,7 +121,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 			subtree: true,
 		})
 		this.syncTracks()
-		this.syncPlaylistButton()
 		this.loadTrack()
 	}
 
@@ -140,14 +141,8 @@ export class JukettePlayerElement extends HTMLElementBase {
 			name === ATTR_PREFER_MEDIA_METADATA
 		) {
 			this.renderCurrentTrack()
-			this.renderPlaylist()
+			this.renderTrackSelect()
 			this.preloadPlaylistMetadata()
-			return
-		}
-		if (name === ATTR_PLAYLIST_OPEN) {
-			const open = newValue !== null
-			this.syncPlaylistButton()
-			this.emitJuketteEvent('jukette:playlisttoggle', { open })
 			return
 		}
 
@@ -173,14 +168,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	get playlist(): JuketteTrack[] {
 		return [...this.tracks]
-	}
-
-	get playlistOpen(): boolean {
-		return this.hasAttribute(ATTR_PLAYLIST_OPEN)
-	}
-
-	set playlistOpen(open: boolean) {
-		this.toggleAttribute(ATTR_PLAYLIST_OPEN, open)
 	}
 
 	get totalTracks(): number {
@@ -217,7 +204,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			.filter((track): track is JuketteTrack => track !== null)
 		this.tracks = [...this.playlistOverride]
 		this.index = 0
-		this.renderPlaylist()
+		this.renderTrackSelect()
 		this.preloadPlaylistMetadata()
 		this.loadTrack()
 	}
@@ -255,51 +242,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	toggle(): void {
+		void warmMidiAudioContext()
 		if (this.playing) {
 			this.pause()
 			return
 		}
 
 		void this.play()
-	}
-
-	next(): void {
-		if (this.tracks.length === 0) return
-		const fromIndex = this.index
-		const shouldPlay = this.desiredPlaying || this.playing
-		this.index = (this.index + 1) % this.tracks.length
-		this.restartOnNextPlay = true
-		this.loadTrack()
-		this.emitJuketteEvent('jukette:next', {
-			direction: 'next',
-			fromIndex,
-			toIndex: this.index,
-		})
-		if (shouldPlay) void this.play()
-	}
-
-	previous(): void {
-		if (this.tracks.length === 0) return
-
-		if (this.getCurrentTime() > 3) {
-			this.restartOnNextPlay = true
-			this.seek(0)
-			this.emitJuketteEvent('jukette:restart')
-			if (this.desiredPlaying || this.playing) void this.play()
-			return
-		}
-
-		const fromIndex = this.index
-		const shouldPlay = this.desiredPlaying || this.playing
-		this.index = (this.index - 1 + this.tracks.length) % this.tracks.length
-		this.restartOnNextPlay = true
-		this.loadTrack()
-		this.emitJuketteEvent('jukette:previous', {
-			direction: 'previous',
-			fromIndex,
-			toIndex: this.index,
-		})
-		if (shouldPlay) void this.play()
 	}
 
 	seek(seconds: number): void {
@@ -331,7 +280,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 			duration: this.duration,
 			index: this.index,
 			playing: this.playing,
-			playlistOpen: this.playlistOpen,
 			track: this.currentTrack,
 			tracks: this.tracks,
 			volume: Number(this.dom.volumeInput.value),
@@ -375,7 +323,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				? Math.min(nextIndex, Math.max(0, this.tracks.length - 1))
 				: Math.min(this.index, Math.max(0, this.tracks.length - 1))
 
-		this.renderPlaylist()
+		this.renderTrackSelect()
 		this.preloadPlaylistMetadata()
 	}
 
@@ -386,7 +334,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.syncTracks()
 
 		if (this.currentTrack?.src === currentTrack?.src) {
-			this.renderPlaylist()
+			this.renderTrackSelect()
 			return
 		}
 
@@ -486,6 +434,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.dom.metaElement.textContent = ''
 			this.dom.statusElement.textContent = ''
 			this.dom.playButton.disabled = true
+			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
 			return
 		}
@@ -496,6 +445,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.duration = this.getTrackDuration(track) ?? 0
 		this.dataset.kind = type
 		this.dom.playButton.disabled = false
+		this.dom.trackSelect.disabled = false
 		this.renderCurrentTrack()
 		this.setStatus()
 		this.syncProgress(0, this.duration)
@@ -507,26 +457,26 @@ export class JukettePlayerElement extends HTMLElementBase {
 			volume: Number(this.dom.volumeInput.value),
 		})
 
-		this.renderPlaylist()
+		this.renderTrackSelect()
 		this.syncPlayingState()
 		if (trackKey !== previousTrackKey) {
 			this.emitJuketteEvent('jukette:trackchange')
 		}
 	}
 
-	private renderPlaylist(): void {
-		renderPlaylistItems({
+	private renderTrackSelect(): void {
+		renderTrackSelect({
 			currentIndex: this.index,
-			element: this.dom.playlistElement,
+			element: this.dom.trackSelect,
 			formatTime,
 			getDisplay: (track) => this.getTrackDisplay(track),
 			getDuration: (track) => this.getTrackDuration(track),
-			onSelect: (index) => this.selectPlaylistTrack(index),
 			tracks: this.tracks,
 		})
 	}
 
-	private selectPlaylistTrack(index: number): void {
+	private selectTrack(index: number): void {
+		void warmMidiAudioContext()
 		this.desiredPlaying = true
 		this.restartOnNextPlay = true
 		if (index === this.index) {
@@ -538,6 +488,12 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.index = index
 		this.loadTrack()
 		void this.play()
+	}
+
+	private selectTrackFromInput(): void {
+		const nextIndex = Number(this.dom.trackSelect.value)
+		if (!Number.isInteger(nextIndex) || nextIndex < 0) return
+		this.selectTrack(nextIndex)
 	}
 
 	private getTrackDuration(track: JuketteTrack | null): number | undefined {
@@ -577,15 +533,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.metadataController.preloadPlaylistMetadata()
 	}
 
-	private togglePlaylist(): void {
-		this.playlistOpen = !this.playlistOpen
-	}
-
-	private syncPlaylistButton(): void {
-		this.dom.playlistButton.setAttribute(
-			'aria-pressed',
-			String(this.playlistOpen),
-		)
+	private toggleTimeMode(): void {
+		this.timeMode = this.timeMode === 'elapsed' ? 'remaining' : 'elapsed'
+		this.syncProgress(this.getCurrentTime(), this.duration)
 	}
 
 	private syncVolume(): void {
@@ -618,8 +568,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private finishTrack(): void {
+		this.desiredPlaying = false
+		this.playing = false
+		this.syncPlayingState()
+		this.syncProgress(this.duration, this.duration)
 		this.emitJuketteEvent('jukette:ended')
-		this.next()
 	}
 
 	private stopProgressLoop(): void {
