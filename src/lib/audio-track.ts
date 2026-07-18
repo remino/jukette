@@ -27,7 +27,6 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 	load(options: PlayableTrackLoadOptions): void {
 		this.callbacks.onStatus('Loading audio')
 		this.audio.src = this.track.src
-		this.audio.volume = options.volume
 		this.audio.load()
 		this.audio.currentTime = 0
 		void this.preloadFileMetadata(options.metadataPreloadId)
@@ -45,10 +44,6 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 
 	seek(seconds: number): void {
 		this.audio.currentTime = seconds
-	}
-
-	setVolume(volume: number): void {
-		this.audio.volume = volume
 	}
 
 	stop(): void {

@@ -199,9 +199,9 @@ Track sources are resolved in this order:
 If `type` is omitted, Jukette infers `.mid` / `.midi` files. Everything else
 is treated as browser-native audio.
 
-MIDI playback uses a small built-in Standard MIDI File parser and Web Audio
-synth. It is intentionally simple and suitable for local MIDI previews, not a
-full General MIDI instrument set.
+MIDI playback uses `@tonejs/midi` for parsing and a compact Tone.js synth for
+browser playback. It is intentionally simple and suitable for local MIDI
+previews, not a full General MIDI instrument set.
 
 [Back to top](#)
 
@@ -255,7 +255,7 @@ Use `preload` or `preload: true` to ask Jukette to prepare a track for playback
 when possible. The flag is track-local and does not change media metadata
 preloading.
 
-Use `midi-oscillator` or `midiOscillator` to choose the built-in MIDI preview
+Use `midi-oscillator` or `midiOscillator` to choose the Tone.js MIDI preview
 oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
 `triangle`. `auto` is the default and maps MIDI program changes to a simple
 preview timbre; invalid values fall back to `auto`.

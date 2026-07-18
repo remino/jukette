@@ -12,7 +12,10 @@ import {
 	trackFromElement,
 } from '../../src/lib/jukette'
 import { AudioPlayableTrack } from '../../src/lib/audio-track'
-import { warmMidiAudioContext } from '../../src/lib/midi-track'
+import {
+	midiPlaybackRuntime,
+	warmMidiAudioContext,
+} from '../../src/lib/midi-track'
 
 describe('jukette', () => {
 	it('normalizes string tracks', () => {
@@ -308,33 +311,15 @@ describe('jukette', () => {
 	})
 
 	it('warms the shared MIDI audio context once from a suspended state', async () => {
-		const previousAudioContext = globalThis.AudioContext
-		let resumeCalls = 0
-		let instances = 0
+		midiPlaybackRuntime.resetWarmup()
+		const start = spyOn(midiPlaybackRuntime, 'start').and.returnValue(
+			Promise.resolve(),
+		)
 
-		class FakeAudioContext {
-			constructor() {
-				instances += 1
-				this.state = 'suspended'
-			}
+		await warmMidiAudioContext()
+		await warmMidiAudioContext()
 
-			resume() {
-				resumeCalls += 1
-				this.state = 'running'
-				return Promise.resolve()
-			}
-		}
-
-		globalThis.AudioContext = FakeAudioContext
-
-		try {
-			await warmMidiAudioContext()
-			await warmMidiAudioContext()
-
-			expect(instances).toBe(1)
-			expect(resumeCalls).toBe(1)
-		} finally {
-			globalThis.AudioContext = previousAudioContext
-		}
+		expect(start).toHaveBeenCalledTimes(1)
+		midiPlaybackRuntime.resetWarmup()
 	})
 })

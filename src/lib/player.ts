@@ -219,7 +219,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const played = await this.activePlayableTrack?.play({
 			isStale: () => trackLoadId !== this.trackLoadId,
 			restart: this.restartOnNextPlay,
-			volume: 1,
 		})
 		this.restartOnNextPlay = false
 		if (trackLoadId !== this.trackLoadId) return
@@ -454,7 +453,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		void this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataController.metadataPreloadId,
 			restart: this.restartOnNextPlay,
-			volume: 1,
 		})
 
 		this.renderTrackSelect()

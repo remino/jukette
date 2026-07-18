@@ -14,13 +14,11 @@ export interface PlayableTrackLoadOptions {
 	metadataPreloadId: number
 	restart: boolean
 	silent?: boolean
-	volume: number
 }
 
 export interface PlayableTrackPlayOptions {
 	isStale(): boolean
 	restart: boolean
-	volume: number
 }
 
 export abstract class JukettePlayableTrack {
@@ -46,8 +44,6 @@ export abstract class JukettePlayableTrack {
 	abstract pause(options?: { silent?: boolean }): void
 
 	seek(_seconds: number): void {}
-
-	setVolume(_volume: number): void {}
 
 	stop(): void {
 		this.pause({ silent: true })
