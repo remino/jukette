@@ -30,7 +30,9 @@
 		"publish:workspaces:dry-run": "npm publish --workspace @remino/jukette-core --dry-run --access public && npm publish --workspace @remino/jukette-audio --dry-run --access public && npm publish --workspace @remino/jukette-midi --dry-run --access public && npm publish --workspace jukette --dry-run --access public",
 		"release": "release-it",
 		"release:dry-run": "release-it --dry-run --verbose",
-		"test": "npm run build --workspace @remino/jukette-core && npm run build --workspace @remino/jukette-audio && npm run build --workspace @remino/jukette-midi && node --import tsx --import ./spec/support/register-css-inline-loader.mjs ./node_modules/jasmine/bin/jasmine.js",
+		"test": "vitest run",
+		"test:run": "vitest run",
+		"test:watch": "vitest",
 		"typecheck": "npm run build --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-core && npm run build --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-audio && npm run build --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-midi && npm run build --workspace jukette && npm run typecheck --workspace jukette && npm run typecheck --workspace @remino/jukette-docs",
 		"typecheck:docs": "npm run typecheck --workspace @remino/jukette-docs",
 		"typecheck:packages": "npm run build --workspace @remino/jukette-core && npm run typecheck --workspace @remino/jukette-core && npm run build --workspace @remino/jukette-audio && npm run typecheck --workspace @remino/jukette-audio && npm run build --workspace @remino/jukette-midi && npm run typecheck --workspace @remino/jukette-midi && npm run build --workspace jukette && npm run typecheck --workspace jukette"
@@ -45,15 +47,15 @@
 		"eslint-plugin-astro": "^1.7.0",
 		"globals": "^17.7.0",
 		"husky": "^9.1.7",
-		"jasmine": "^6.3.0",
+		"jsdom": "^26.1.0",
 		"lint-staged": "^16.4.0",
 		"prettier": "^3.7.4",
 		"prettier-plugin-astro": "^0.14.1",
 		"release-it": "^20.2.1",
-		"tsx": "^4.22.4",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.62.0",
-		"vite": "^8.1.0"
+		"vite": "^8.1.0",
+		"vitest": "^3.2.4"
 	},
 	"lint-staged": {
 		"*.{js,mjs,cjs,ts,astro}": [

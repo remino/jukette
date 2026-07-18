@@ -1,3 +1,5 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+
 import {
 	createJuketteEventDetail,
 	getJuketteBackend,
@@ -5,31 +7,29 @@ import {
 	JukettePlayerElement,
 	normalizeTrack,
 	parsePlaylist,
+	resetJuketteBackends,
 	subscribeJuketteBackendRegistrations,
 	trackFromElement,
-	resetJuketteBackends,
 } from '@remino/jukette-core'
 import { AudioPlayableTrack } from '../../packages/audio/src/lib/audio-track'
-import {
-	parseAudioFileMetadata,
-	registerJuketteAudioBackend,
-} from '../../packages/audio/src/lib/audio'
+import { parseAudioFileMetadata, register } from '@remino/jukette-audio'
 import {
 	midiProgramToOscillator,
 	normalizeMidiOscillator,
 	parseMidi,
-	registerJuketteMidiBackend,
+	register as registerMidi,
 	resolveMidiOscillatorType,
-} from '../../packages/midi/src/lib/midi-entry'
+} from '@remino/jukette-midi'
 import {
 	midiPlaybackRuntime,
+	MidiPlayableTrack,
 	warmMidiAudioContext,
 } from '../../packages/midi/src/lib/midi-track'
 
-describe('jukette', () => {
+describe('jukette helpers', () => {
 	beforeEach(() => {
 		resetJuketteBackends()
-		registerJuketteAudioBackend()
+		register()
 	})
 
 	it('normalizes string tracks', () => {
@@ -68,7 +68,7 @@ describe('jukette', () => {
 
 	it('infers supported track types', () => {
 		expect(inferTrackType({ src: '/track.mp3' })).toBe('audio')
-		registerJuketteMidiBackend()
+		registerMidi()
 		expect(inferTrackType({ src: '/track.mid' })).toBe('midi')
 		expect(inferTrackType({ src: 'https://example.com/track' })).toBe(
 			'audio',
@@ -79,19 +79,19 @@ describe('jukette', () => {
 		expect(getJuketteBackend('audio')?.type).toBe('audio')
 		expect(getJuketteBackend('midi')).toBeUndefined()
 
-		registerJuketteMidiBackend()
+		registerMidi()
 
 		expect(getJuketteBackend('midi')?.type).toBe('midi')
 	})
 
 	it('notifies listeners when a backend is registered', () => {
-		const listener = jasmine.createSpy('listener')
+		const listener = vi.fn()
 		const unsubscribe = subscribeJuketteBackendRegistrations(listener)
 
-		registerJuketteMidiBackend()
+		registerMidi()
 
 		expect(listener).toHaveBeenCalledWith(
-			jasmine.objectContaining({ type: 'midi' }),
+			expect.objectContaining({ type: 'midi' }),
 		)
 
 		unsubscribe()
@@ -328,8 +328,8 @@ describe('jukette', () => {
 		const audio = {
 			currentTime: 0,
 			duration: 0,
-			pause: jasmine.createSpy('pause'),
-			removeAttribute: jasmine.createSpy('removeAttribute'),
+			pause: vi.fn(),
+			removeAttribute: vi.fn(),
 		}
 		const track = new AudioPlayableTrack({ src: '/track.mp3' }, audio, {
 			onDuration() {},
@@ -356,8 +356,8 @@ describe('jukette', () => {
 			},
 			currentTime: 0,
 			duration: 0,
-			load: jasmine.createSpy('load'),
-			pause: jasmine.createSpy('pause'),
+			load: vi.fn(),
+			pause: vi.fn(),
 			removeEventListener(type) {
 				listeners.delete(type)
 			},
@@ -365,7 +365,7 @@ describe('jukette', () => {
 				this._src = value
 			},
 		}
-		const onReady = jasmine.createSpy('onReady')
+		const onReady = vi.fn()
 		const track = new AudioPlayableTrack({ src: '/track.mp3' }, audio, {
 			onDuration() {},
 			onFinish() {},
@@ -384,8 +384,7 @@ describe('jukette', () => {
 	})
 
 	it('marks MIDI tracks ready after preparation completes', async () => {
-		const previousFetch = globalThis.fetch
-		const onReady = jasmine.createSpy('onReady')
+		const onReady = vi.fn()
 		const bytes = new Uint8Array([
 			0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
 			0x01, 0x00, 0x60, 0x4d, 0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x0c,
@@ -393,15 +392,15 @@ describe('jukette', () => {
 			0x00,
 		])
 
-		globalThis.fetch = jasmine.createSpy('fetch').and.returnValue(
-			Promise.resolve({
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
 				arrayBuffer: () => Promise.resolve(bytes.buffer),
 				ok: true,
 			}),
 		)
 
-		const module = await import('../../packages/midi/src/lib/midi-track')
-		const track = new module.MidiPlayableTrack(
+		const track = new MidiPlayableTrack(
 			{ src: '/track.mid', type: 'midi' },
 			{
 				onDuration() {},
@@ -416,20 +415,16 @@ describe('jukette', () => {
 			() => 'auto',
 		)
 
-		try {
-			await track.load({ metadataPreloadId: 1, restart: true })
+		await track.load({ metadataPreloadId: 1, restart: true })
 
-			expect(onReady).toHaveBeenCalled()
-		} finally {
-			globalThis.fetch = previousFetch
-		}
+		expect(onReady).toHaveBeenCalled()
 	})
 
 	it('warms the shared MIDI audio context once from a suspended state', async () => {
 		midiPlaybackRuntime.resetWarmup()
-		const start = spyOn(midiPlaybackRuntime, 'start').and.returnValue(
-			Promise.resolve(),
-		)
+		const start = vi
+			.spyOn(midiPlaybackRuntime, 'start')
+			.mockResolvedValue(undefined)
 
 		await warmMidiAudioContext()
 		await warmMidiAudioContext()

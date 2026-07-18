@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { updateReadmeVersion } from '../../bin/release-readme.mjs'
 
 describe('bin/release-readme.mjs', () => {
@@ -14,7 +16,7 @@ By Rémino Rem
 
 <script src="https://unpkg.com/jukette@0.1.0"></script>
 
-import { defineJuketteElement } from 'https://unpkg.com/jukette@0.1.0/dist/jukette.mjs'
+import { defineElement } from 'https://unpkg.com/jukette@0.1.0/dist/jukette.mjs'
 `
 
 	it('adds the visible README version line', () => {

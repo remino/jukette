@@ -11,6 +11,7 @@ export default [
 	{
 		ignores: [
 			'.astro/**',
+			'apps/**/.astro/**',
 			'apps/**/dist/**',
 			'deploy/**',
 			'dist/**',
@@ -41,9 +42,13 @@ export default [
 		},
 	},
 	{
-		files: ['spec/**/*.js'],
+		files: ['tests/**/*.js'],
 		languageOptions: {
-			globals: globals.jasmine,
+			globals: {
+				...globals.browser,
+				...globals.node,
+				...globals.vitest,
+			},
 		},
 	},
 	{
