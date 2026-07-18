@@ -19,6 +19,9 @@
     - Minify inline player CSS in ESM and CommonJS package builds too, not
       only in the standalone minified browser bundle, so published `dist/*`
       artifacts stop shipping pretty-printed shadow CSS.
+    - Stop package declaration builds from using composite incremental state so
+      fresh workspace builds always re-emit `dist/*.d.ts` after `dist/` is
+      cleaned, fixing release failures caused by missing package type files.
 
 ## v0.4.3
 
