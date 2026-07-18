@@ -1,4 +1,8 @@
-export { juketteMidiBackend, registerJuketteMidiBackend } from './midi-backend'
+export {
+	juketteMidiBackend,
+	register,
+	registerJuketteMidiBackend,
+} from './midi-backend'
 export {
 	loadMidiSequence,
 	midiProgramToOscillator,

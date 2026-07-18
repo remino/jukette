@@ -37,5 +37,8 @@ export const juketteMidiBackend: JuketteBackend = {
 	type: 'midi',
 }
 
+export const register = (): JuketteBackend =>
+	registerJuketteBackend(juketteMidiBackend)
+
 export const registerJuketteMidiBackend = (): JuketteBackend =>
 	registerJuketteBackend(juketteMidiBackend)

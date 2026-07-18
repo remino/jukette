@@ -13,6 +13,8 @@ export type {
 	JuketteBackendPreloadResult,
 } from './backend-registry'
 export {
+	defineElement,
+	defineElements,
 	defineJuketteElement,
 	defineJuketteElements,
 	JuketteTrackElement,

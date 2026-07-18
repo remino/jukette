@@ -59,9 +59,9 @@ If you want the API instead of auto-registration, import the ES module directly:
 
 ```html
 <script type="module">
-	import { defineJuketteElement } from 'https://unpkg.com/jukette@0.3.0/dist/jukette.mjs'
+	import { defineElement } from 'https://unpkg.com/jukette@0.3.0/dist/jukette.mjs'
 
-	defineJuketteElement()
+	defineElement()
 </script>
 ```
 
@@ -82,9 +82,9 @@ import 'jukette/auto'
 Or import the explicit API:
 
 ```js
-import { defineJuketteElement } from 'jukette'
+import { defineElement } from 'jukette'
 
-defineJuketteElement()
+defineElement()
 ```
 
 TypeScript declarations are included with the package.
@@ -270,13 +270,13 @@ player.midiOscillator = 'sine'
 Core and addon imports:
 
 ```js
-import { defineJuketteElement } from '@remino/jukette-core'
-import { registerJuketteAudioBackend } from '@remino/jukette-audio'
-import { registerJuketteMidiBackend } from '@remino/jukette-midi'
+import { defineElement } from '@remino/jukette-core'
+import { register as registerAudio } from '@remino/jukette-audio'
+import { register as registerMidi } from '@remino/jukette-midi'
 
-registerJuketteAudioBackend()
-registerJuketteMidiBackend()
-defineJuketteElement()
+registerAudio()
+registerMidi()
+defineElement()
 ```
 
 Use the `preload-metadata` attribute or `preloadMetadata` property to discover

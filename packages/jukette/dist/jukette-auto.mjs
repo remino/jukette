@@ -34,5 +34,5 @@ import * as import__remino_jukette_core from "@remino/jukette-core";
 __reExport(jukette_exports, import__remino_jukette_core);
 //#endregion
 //#region src/lib/auto.ts
-(0, jukette_exports.defineJuketteElement)();
+(0, jukette_exports.defineElement)();
 //#endregion

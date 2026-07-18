@@ -151,8 +151,10 @@ var juketteAudioBackend = {
 	},
 	type: "audio"
 };
+var register = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteAudioBackend);
 var registerJuketteAudioBackend = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteAudioBackend);
 //#endregion
 exports.juketteAudioBackend = juketteAudioBackend;
 exports.parseAudioFileMetadata = parseAudioFileMetadata;
+exports.register = register;
 exports.registerJuketteAudioBackend = registerJuketteAudioBackend;

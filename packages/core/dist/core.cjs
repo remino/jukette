@@ -738,13 +738,15 @@ var JukettePlayerElement = class extends HTMLElementBase {
 };
 //#endregion
 //#region src/lib/elements.ts
-var defineJuketteElement = () => {
+var defineElement = () => {
 	if (typeof customElements === "undefined") return;
 	if (!customElements.get("jukette-track")) customElements.define("jukette-track", JuketteTrackElement);
 	if (!customElements.get("jukette-player")) customElements.define("jukette-player", JukettePlayerElement);
 };
 var JuketteTrackElement = class extends HTMLElementBase {};
-var defineJuketteElements = defineJuketteElement;
+var defineElements = defineElement;
+var defineJuketteElement = defineElement;
+var defineJuketteElements = defineElement;
 //#endregion
 //#region src/lib/playable-track.ts
 var JukettePlayableTrack = class {
@@ -798,6 +800,8 @@ exports.decodeAscii = decodeAscii;
 exports.decodeIso88591 = decodeIso88591;
 exports.decodeTextBytes = decodeTextBytes;
 exports.decodeUtf16Be = decodeUtf16Be;
+exports.defineElement = defineElement;
+exports.defineElements = defineElements;
 exports.defineJuketteElement = defineJuketteElement;
 exports.defineJuketteElements = defineJuketteElements;
 exports.getJuketteBackend = getJuketteBackend;

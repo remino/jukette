@@ -267,8 +267,8 @@ var juketteMidiBackend = {
 	priority: 100,
 	type: "midi"
 };
-var registerJuketteMidiBackend = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteMidiBackend);
+var register = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteMidiBackend);
 //#endregion
 //#region src/lib/midi-auto.ts
-registerJuketteMidiBackend();
+register();
 //#endregion

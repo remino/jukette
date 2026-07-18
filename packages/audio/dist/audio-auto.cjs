@@ -150,8 +150,8 @@ var juketteAudioBackend = {
 	},
 	type: "audio"
 };
-var registerJuketteAudioBackend = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteAudioBackend);
+var register = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteAudioBackend);
 //#endregion
 //#region src/lib/audio-auto.ts
-registerJuketteAudioBackend();
+register();
 //#endregion

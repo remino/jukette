@@ -1,7 +1,7 @@
 import { HTMLElementBase } from './dom'
 import { JukettePlayerElement } from './player'
 
-export const defineJuketteElement = (): void => {
+export const defineElement = (): void => {
 	if (typeof customElements === 'undefined') return
 
 	if (!customElements.get('jukette-track')) {
@@ -15,7 +15,9 @@ export const defineJuketteElement = (): void => {
 
 export class JuketteTrackElement extends HTMLElementBase {}
 
-export const defineJuketteElements = defineJuketteElement
+export const defineElements = defineElement
+export const defineJuketteElement = defineElement
+export const defineJuketteElements = defineElement
 
 declare global {
 	interface HTMLElementTagNameMap {

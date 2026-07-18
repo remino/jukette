@@ -150,8 +150,8 @@ var juketteAudioBackend = {
 	},
 	type: "audio"
 };
-var registerJuketteAudioBackend = () => registerJuketteBackend(juketteAudioBackend);
+var register = () => registerJuketteBackend(juketteAudioBackend);
 //#endregion
 //#region src/lib/audio-auto.ts
-registerJuketteAudioBackend();
+register();
 //#endregion

@@ -1,3 +1,3 @@
-import { registerJuketteAudioBackend } from './audio'
+import { register } from './audio'
 
-registerJuketteAudioBackend()
+register()

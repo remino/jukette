@@ -737,13 +737,15 @@ var JukettePlayerElement = class extends HTMLElementBase {
 };
 //#endregion
 //#region src/lib/elements.ts
-var defineJuketteElement = () => {
+var defineElement = () => {
 	if (typeof customElements === "undefined") return;
 	if (!customElements.get("jukette-track")) customElements.define("jukette-track", JuketteTrackElement);
 	if (!customElements.get("jukette-player")) customElements.define("jukette-player", JukettePlayerElement);
 };
 var JuketteTrackElement = class extends HTMLElementBase {};
-var defineJuketteElements = defineJuketteElement;
+var defineElements = defineElement;
+var defineJuketteElement = defineElement;
+var defineJuketteElements = defineElement;
 //#endregion
 //#region src/lib/playable-track.ts
 var JukettePlayableTrack = class {
@@ -788,4 +790,4 @@ var cleanMetadataText = (value) => {
 	return (nullIndex >= 0 ? value.slice(0, nullIndex) : value.trimEnd()).trim();
 };
 //#endregion
-export { JukettePlayableTrack, JukettePlayerElement, JuketteTrackElement, cleanMetadataText, createJuketteEventDetail, decodeAscii, decodeIso88591, decodeTextBytes, decodeUtf16Be, defineJuketteElement, defineJuketteElements, getJuketteBackend, getRegisteredJuketteBackends, inferTrackType, normalizeMidiOscillator, normalizeTrack, parsePlaylist, registerJuketteBackend, resetJuketteBackends, resolveJuketteBackend, subscribeJuketteBackendRegistrations, trackFromElement };
+export { JukettePlayableTrack, JukettePlayerElement, JuketteTrackElement, cleanMetadataText, createJuketteEventDetail, decodeAscii, decodeIso88591, decodeTextBytes, decodeUtf16Be, defineElement, defineElements, defineJuketteElement, defineJuketteElements, getJuketteBackend, getRegisteredJuketteBackends, inferTrackType, normalizeMidiOscillator, normalizeTrack, parsePlaylist, registerJuketteBackend, resetJuketteBackends, resolveJuketteBackend, subscribeJuketteBackendRegistrations, trackFromElement };

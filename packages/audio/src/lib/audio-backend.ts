@@ -72,5 +72,8 @@ export const juketteAudioBackend: JuketteBackend = {
 	type: 'audio',
 }
 
+export const register = (): JuketteBackend =>
+	registerJuketteBackend(juketteAudioBackend)
+
 export const registerJuketteAudioBackend = (): JuketteBackend =>
 	registerJuketteBackend(juketteAudioBackend)

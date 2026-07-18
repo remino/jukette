@@ -1,6 +1,6 @@
-import { registerJuketteAudioBackend } from '@remino/jukette-audio'
+import { register } from '@remino/jukette-audio'
 
-registerJuketteAudioBackend()
+register()
 
 export * from '@remino/jukette-audio'
 export * from '@remino/jukette-core'

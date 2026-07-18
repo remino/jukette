@@ -268,6 +268,7 @@ var juketteMidiBackend = {
 	priority: 100,
 	type: "midi"
 };
+var register = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteMidiBackend);
 var registerJuketteMidiBackend = () => (0, _remino_jukette_core.registerJuketteBackend)(juketteMidiBackend);
 //#endregion
 exports.juketteMidiBackend = juketteMidiBackend;
@@ -280,5 +281,6 @@ Object.defineProperty(exports, "normalizeMidiOscillator", {
 	}
 });
 exports.parseMidi = parseMidi;
+exports.register = register;
 exports.registerJuketteMidiBackend = registerJuketteMidiBackend;
 exports.resolveMidiOscillatorType = resolveMidiOscillatorType;

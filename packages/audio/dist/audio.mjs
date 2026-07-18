@@ -150,6 +150,7 @@ var juketteAudioBackend = {
 	},
 	type: "audio"
 };
+var register = () => registerJuketteBackend(juketteAudioBackend);
 var registerJuketteAudioBackend = () => registerJuketteBackend(juketteAudioBackend);
 //#endregion
-export { juketteAudioBackend, parseAudioFileMetadata, registerJuketteAudioBackend };
+export { juketteAudioBackend, parseAudioFileMetadata, register, registerJuketteAudioBackend };

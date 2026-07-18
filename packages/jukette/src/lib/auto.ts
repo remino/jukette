@@ -1,3 +1,3 @@
-import { defineJuketteElement } from './jukette'
+import { defineElement } from './jukette'
 
-defineJuketteElement()
+defineElement()

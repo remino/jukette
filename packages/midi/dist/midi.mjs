@@ -243,6 +243,7 @@ var juketteMidiBackend = {
 	priority: 100,
 	type: "midi"
 };
+var register = () => registerJuketteBackend(juketteMidiBackend);
 var registerJuketteMidiBackend = () => registerJuketteBackend(juketteMidiBackend);
 //#endregion
-export { juketteMidiBackend, loadMidiSequence, midiProgramToOscillator, normalizeMidiOscillator, parseMidi, registerJuketteMidiBackend, resolveMidiOscillatorType };
+export { juketteMidiBackend, loadMidiSequence, midiProgramToOscillator, normalizeMidiOscillator, parseMidi, register, registerJuketteMidiBackend, resolveMidiOscillatorType };

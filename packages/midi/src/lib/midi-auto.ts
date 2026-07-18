@@ -1,3 +1,3 @@
-import { registerJuketteMidiBackend } from './midi-entry'
+import { register } from './midi-entry'
 
-registerJuketteMidiBackend()
+register()

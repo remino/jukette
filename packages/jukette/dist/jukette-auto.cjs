@@ -32,5 +32,5 @@ __reExport(jukette_exports, require("@remino/jukette-audio"));
 __reExport(jukette_exports, require("@remino/jukette-core"));
 //#endregion
 //#region src/lib/auto.ts
-(0, jukette_exports.defineJuketteElement)();
+(0, jukette_exports.defineElement)();
 //#endregion
