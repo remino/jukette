@@ -41,6 +41,9 @@
     - Pin the repo-local `@remino` npm scope to `https://registry.npmjs.org/`
       so workspace release scripts do not get redirected by user-level scoped
       registry overrides during publish.
+    - Read npm publish auth from `RELEASE_IT_NPM_TOKEN` in the repo-local
+      `.npmrc` so local workspace releases can authenticate without relying on
+      machine-wide npm login state.
 - Library
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
