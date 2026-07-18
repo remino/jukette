@@ -38,6 +38,9 @@
     - Make root `typecheck` read-only for release preflight by removing
       workspace builds from that script and splitting package validation into
       dedicated non-composite `tsconfig.typecheck.json` files.
+    - Pin the repo-local `@remino` npm scope to `https://registry.npmjs.org/`
+      so workspace release scripts do not get redirected by user-level scoped
+      registry overrides during publish.
 - Library
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
