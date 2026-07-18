@@ -53,6 +53,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private index = 0
 	private desiredPlaying = false
 	private playing = false
+	private ready = false
 	private trackLoadId = 0
 	private duration = 0
 	private activePlayableTrack: JukettePlayableTrack | null = null
@@ -212,7 +213,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	async play(): Promise<void> {
 		const track = this.currentTrack
-		if (!track) return
+		if (!track || !this.ready) return
 
 		this.desiredPlaying = true
 		const trackLoadId = this.trackLoadId
@@ -253,7 +254,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	seek(seconds: number): void {
 		const track = this.currentTrack
-		if (!track) return
+		if (!track || !this.ready) return
 
 		this.setStatus('Seeking')
 		this.activePlayableTrack?.seek(seconds)
@@ -411,6 +412,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 				if (!isCurrentTrack()) return
 				this.syncProgress(currentTime, duration)
 			},
+			onReady: () => {
+				if (!isCurrentTrack()) return
+				this.setReady(true)
+				if (!this.playing) this.setStatus()
+			},
 			onStatus: (message = '') => {
 				if (isCurrentTrack()) this.setStatus(message)
 			},
@@ -422,7 +428,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const previousTrackKey = this.loadedTrackKey
 		this.activePlayableTrack?.stop()
 		this.activePlayableTrack = null
+		this.desiredPlaying = false
 		this.playing = false
+		this.setReady(false)
 		this.duration = 0
 		this.syncProgress(0, 0)
 
@@ -432,7 +440,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.statusMessage = ''
 			this.dom.titleElement.textContent = 'No track'
 			this.dom.metaElement.textContent = ''
-			this.dom.playButton.disabled = true
+			this.setReady(false)
 			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
 			return
@@ -443,10 +451,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.loadedTrackKey = trackKey
 		this.duration = this.getTrackDuration(track) ?? 0
 		this.dataset.kind = type
-		this.dom.playButton.disabled = false
+		this.setReady(false)
 		this.dom.trackSelect.disabled = false
 		this.renderCurrentTrack()
-		this.setStatus()
+		this.setStatus(`Preparing ${type}`)
 		this.syncProgress(0, this.duration)
 		this.activePlayableTrack = this.createPlayableTrack(track)
 
@@ -474,18 +482,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private selectTrack(index: number): void {
-		void warmMidiAudioContext()
-		this.desiredPlaying = true
 		this.restartOnNextPlay = true
 		if (index === this.index) {
-			this.seek(0)
-			void this.play()
+			this.loadTrack()
 			return
 		}
 
 		this.index = index
 		this.loadTrack()
-		void this.play()
 	}
 
 	private selectTrackFromInput(): void {
@@ -531,12 +535,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 	}
 
 	private toggleTimeMode(): void {
+		if (!this.ready) return
 		this.timeMode = this.timeMode === 'elapsed' ? 'remaining' : 'elapsed'
 		this.syncProgress(this.getCurrentTime(), this.duration)
 	}
 
 	private seekFromInput(): void {
-		if (!this.duration) return
+		if (!this.ready || !this.duration) return
 		this.seek((Number(this.dom.seekInput.value) / 1000) * this.duration)
 	}
 
@@ -579,6 +584,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.syncPlayingState()
 		this.syncProgress(this.duration, this.duration)
 		this.emitJuketteEvent('jukette:ended')
+	}
+
+	private setReady(ready: boolean): void {
+		this.ready = ready
+		this.dom.playButton.disabled = !ready
+		this.dom.seekInput.disabled = !ready
+		this.dom.timeButton.disabled = !ready
 	}
 
 	private stopProgressLoop(): void {

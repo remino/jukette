@@ -301,6 +301,7 @@ describe('jukette', () => {
 			onPause() {},
 			onPlay() {},
 			onProgress() {},
+			onReady() {},
 			onStatus() {},
 		})
 
@@ -308,6 +309,83 @@ describe('jukette', () => {
 
 		expect(audio.pause).toHaveBeenCalled()
 		expect(audio.removeAttribute).not.toHaveBeenCalled()
+	})
+
+	it('marks audio tracks ready on canplay', () => {
+		const listeners = new Map()
+		const audio = {
+			addEventListener(type, listener) {
+				listeners.set(type, listener)
+			},
+			currentTime: 0,
+			duration: 0,
+			load: jasmine.createSpy('load'),
+			pause: jasmine.createSpy('pause'),
+			removeEventListener(type) {
+				listeners.delete(type)
+			},
+			set src(value) {
+				this._src = value
+			},
+		}
+		const onReady = jasmine.createSpy('onReady')
+		const track = new AudioPlayableTrack({ src: '/track.mp3' }, audio, {
+			onDuration() {},
+			onFinish() {},
+			onMetadata() {},
+			onPause() {},
+			onPlay() {},
+			onProgress() {},
+			onReady,
+			onStatus() {},
+		})
+
+		track.load({ metadataPreloadId: 1, restart: true })
+		listeners.get('canplay')()
+
+		expect(onReady).toHaveBeenCalled()
+	})
+
+	it('marks MIDI tracks ready after preparation completes', async () => {
+		const previousFetch = globalThis.fetch
+		const onReady = jasmine.createSpy('onReady')
+		const bytes = new Uint8Array([
+			0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+			0x01, 0x00, 0x60, 0x4d, 0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x0c,
+			0x00, 0x90, 0x3c, 0x40, 0x60, 0x80, 0x3c, 0x00, 0x00, 0xff, 0x2f,
+			0x00,
+		])
+
+		globalThis.fetch = jasmine.createSpy('fetch').and.returnValue(
+			Promise.resolve({
+				arrayBuffer: () => Promise.resolve(bytes.buffer),
+				ok: true,
+			}),
+		)
+
+		const module = await import('../../src/lib/midi-track')
+		const track = new module.MidiPlayableTrack(
+			{ src: '/track.mid', type: 'midi' },
+			{
+				onDuration() {},
+				onFinish() {},
+				onMetadata() {},
+				onPause() {},
+				onPlay() {},
+				onProgress() {},
+				onReady,
+				onStatus() {},
+			},
+			() => 'auto',
+		)
+
+		try {
+			await track.load({ metadataPreloadId: 1, restart: true })
+
+			expect(onReady).toHaveBeenCalled()
+		} finally {
+			globalThis.fetch = previousFetch
+		}
 	})
 
 	it('warms the shared MIDI audio context once from a suspended state', async () => {

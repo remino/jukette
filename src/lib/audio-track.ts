@@ -26,6 +26,21 @@ export class AudioPlayableTrack extends JukettePlayableTrack {
 
 	load(options: PlayableTrackLoadOptions): void {
 		this.callbacks.onStatus('Loading audio')
+		const onCanPlay = () => {
+			this.audio.removeEventListener('canplay', onCanPlay)
+			this.callbacks.onReady()
+			if (!this.audio.paused) this.callbacks.onStatus()
+		}
+		const onError = () => {
+			this.audio.removeEventListener('canplay', onCanPlay)
+			this.audio.removeEventListener('error', onError)
+			this.callbacks.onStatus('Audio failed to load')
+		}
+
+		this.audio.removeEventListener('canplay', onCanPlay)
+		this.audio.removeEventListener('error', onError)
+		this.audio.addEventListener('canplay', onCanPlay, { once: true })
+		this.audio.addEventListener('error', onError, { once: true })
 		this.audio.src = this.track.src
 		this.audio.load()
 		this.audio.currentTime = 0

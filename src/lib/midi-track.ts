@@ -80,26 +80,36 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 			: this.pausedAt
 	}
 
-	load(_options: PlayableTrackLoadOptions): void {
-		this.callbacks.onStatus('Ready')
-		window.setTimeout(() => {
-			if (!this.timer) this.callbacks.onStatus()
-		}, 700)
+	async load(_options: PlayableTrackLoadOptions): Promise<void> {
+		if (this.sequence) {
+			this.callbacks.onReady()
+			this.callbacks.onStatus()
+			return
+		}
+
+		this.callbacks.onStatus('Loading MIDI')
+
+		try {
+			const sequence = await loadMidiSequence(this.track.src)
+			this.sequence = sequence
+			this.durationValue = sequence.duration
+			this.callbacks.onDuration(this.durationValue)
+			if (sequence.metadata?.title) {
+				this.callbacks.onMetadata({
+					title: sequence.metadata.title,
+				})
+			}
+			this.callbacks.onProgress(this.pausedAt, this.durationValue)
+			this.callbacks.onReady()
+			this.callbacks.onStatus()
+		} catch {
+			this.callbacks.onStatus('MIDI failed to load')
+		}
 	}
 
 	async play(options: PlayableTrackPlayOptions): Promise<boolean> {
 		if (!this.sequence) {
-			this.callbacks.onStatus('Loading MIDI')
-			this.sequence = await loadMidiSequence(this.track.src)
-			if (options.isStale()) return false
-			this.durationValue = this.sequence.duration
-			this.callbacks.onDuration(this.durationValue)
-			if (this.sequence.metadata?.title) {
-				this.callbacks.onMetadata({
-					title: this.sequence.metadata.title,
-				})
-			}
-			this.callbacks.onProgress(this.pausedAt, this.durationValue)
+			return false
 		}
 
 		if (options.restart) {

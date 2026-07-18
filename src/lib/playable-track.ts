@@ -7,6 +7,7 @@ export interface PlayableTrackCallbacks {
 	onPause(): void
 	onPlay(): void
 	onProgress(currentTime: number, duration: number): void
+	onReady(): void
 	onStatus(message?: string): void
 }
 

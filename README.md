@@ -141,6 +141,10 @@ Or pass a playlist with child track elements:
 </jukette-player>
 ```
 
+Changing the selected track prepares it for playback but does not start it
+automatically. Jukette enables play, seek, and time controls once the selected
+track is ready.
+
 [Back to top](#)
 
 ---
@@ -238,6 +242,10 @@ to `currentTime` seeks, matching native media element behavior.
 
 Use `currentTrack`, `currentTrackIndex`, and `totalTracks` to inspect the track
 selection state.
+
+Selecting a track prepares it and resets playback to the start of that track.
+Playback begins only after an explicit `play()` call or a user press on the
+play button.
 
 Use `prefer-media-metadata` or `preferMediaMetadata` to let readable media-file
 tags override authored track titles and artists. Jukette currently reads MP3
