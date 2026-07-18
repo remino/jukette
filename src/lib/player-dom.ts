@@ -27,9 +27,8 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">
 				<div class="title" part="title"></div>
-				<div class="meta" part="artist"></div>
+				<div class="meta" part="artist status" role="status" aria-live="polite"></div>
 			</div>
-			<div class="status" part="status" role="status" aria-live="polite"></div>
 			<div class="controls" part="controls">
 				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
 				<div class="seek" part="seek">
@@ -49,7 +48,7 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 		playButton: query<HTMLButtonElement>(shadowRoot, '.play'),
 		playerElement: query<HTMLElement>(shadowRoot, '.player'),
 		seekInput: query<HTMLInputElement>(shadowRoot, '.seek-input'),
-		statusElement: query<HTMLElement>(shadowRoot, '.status'),
+		statusElement: query<HTMLElement>(shadowRoot, '.meta'),
 		titleElement: query<HTMLElement>(shadowRoot, '.title'),
 		timeButton: query<HTMLButtonElement>(shadowRoot, '.time'),
 		trackSelect: query<HTMLSelectElement>(shadowRoot, '.track-select'),

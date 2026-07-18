@@ -7,6 +7,7 @@ export interface JuketteProgressControllerOptions {
 	getDuration(): number
 	getPlaying(): boolean
 	getTimeMode(): 'elapsed' | 'remaining'
+	onStatusChange(message?: string): void
 }
 
 export class JuketteProgressController {
@@ -15,7 +16,7 @@ export class JuketteProgressController {
 	constructor(private readonly options: JuketteProgressControllerOptions) {}
 
 	setStatus(message = ''): void {
-		this.options.dom.statusElement.textContent = message
+		this.options.onStatusChange(message)
 	}
 
 	syncProgress(currentTime: number, duration: number): void {

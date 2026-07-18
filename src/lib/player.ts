@@ -60,6 +60,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
 	private loadedTrackKey = ''
+	private statusMessage = ''
 	private timeMode: 'elapsed' | 'remaining' = 'elapsed'
 
 	constructor() {
@@ -88,6 +89,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			getDuration: () => this.duration,
 			getPlaying: () => this.playing,
 			getTimeMode: () => this.timeMode,
+			onStatusChange: (message = '') => this.updateStatus(message),
 		})
 
 		this.dom.playButton.addEventListener('click', () => this.toggle())
@@ -430,9 +432,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const track = this.currentTrack
 		if (!track) {
 			this.loadedTrackKey = ''
+			this.statusMessage = ''
 			this.dom.titleElement.textContent = 'No track'
 			this.dom.metaElement.textContent = ''
-			this.dom.statusElement.textContent = ''
 			this.dom.playButton.disabled = true
 			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
@@ -525,8 +527,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		const display = this.getTrackDisplay(track)
 		this.dom.titleElement.textContent = display.title
-		this.dom.metaElement.textContent =
-			display.artist || inferTrackType(track)
+		this.renderMetaLine(display.artist || inferTrackType(track))
 	}
 
 	private preloadPlaylistMetadata(): void {
@@ -565,6 +566,19 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private setStatus(message = ''): void {
 		this.progressController.setStatus(message)
+	}
+
+	private updateStatus(message = ''): void {
+		this.statusMessage = message
+		const track = this.currentTrack
+		const display = track ? this.getTrackDisplay(track) : null
+		this.renderMetaLine(
+			display?.artist || (track ? inferTrackType(track) : ''),
+		)
+	}
+
+	private renderMetaLine(fallbackText: string): void {
+		this.dom.metaElement.textContent = this.statusMessage || fallbackText
 	}
 
 	private finishTrack(): void {

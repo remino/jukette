@@ -33,16 +33,8 @@
 	font-weight: 700;
 }
 
-.meta,
-.status {
+.meta {
 	opacity: 0.75;
-}
-
-.status {
-	min-block-size: 1lh;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .controls {
