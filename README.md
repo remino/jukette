@@ -230,8 +230,12 @@ Track sources are resolved in this order:
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
   for the player's media metadata preference.
 
-If `type` is omitted, Jukette infers `.mid` / `.midi` files. Everything else
-falls back to browser-native audio when the audio backend is registered.
+If `type` is omitted, Jukette treats `.mid` / `.midi` sources as `midi`.
+Everything else defaults to `audio`.
+
+In practice, the convenience `jukette` package registers the browser-native
+audio backend for you, so tracks without an explicit `type` normally behave as
+audio tracks unless their source looks like MIDI.
 
 MIDI playback uses `@tonejs/midi` for parsing and a compact Tone.js synth for
 browser playback. It is intentionally simple and suitable for local MIDI
