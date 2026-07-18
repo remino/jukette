@@ -99,6 +99,7 @@ var SoundCloudTrackState = class {
 	iframeElement = null;
 	metadata;
 	oEmbedPromise = null;
+	playRequested = false;
 	playing = false;
 	positionSeconds = 0;
 	ready = false;
@@ -123,19 +124,21 @@ var SoundCloudTrackState = class {
 	detach(track) {
 		if (this.activeTrack === track) {
 			this.activeTrack = null;
+			this.playRequested = false;
 			this.playing = false;
 		}
 	}
 	async preload(options) {
-		if (!options.prepare && !options.preloadDuration && !options.preloadMetadata) return;
+		if (!options.prepare && !options.preloadMetadata) return;
 		if (options.preloadMetadata || options.prepare) await this.ensureOEmbed();
-		if (options.prepare || options.preloadDuration) await this.ensurePrepared();
+		if (options.prepare) await this.ensurePrepared();
 		return {
 			duration: this.durationSeconds || void 0,
 			metadata: this.metadata
 		};
 	}
 	async load(_options) {
+		this.playRequested = false;
 		this.playing = false;
 		this.activeTrack?.trackCallbacks.onStatus("Loading SoundCloud");
 		await this.ensureOEmbed();
@@ -153,11 +156,13 @@ var SoundCloudTrackState = class {
 		if (options.isStale()) return false;
 		if (!this.widget) return false;
 		if (options.restart || this.durationSeconds > 0 && this.positionSeconds >= this.durationSeconds) this.seekTo(0);
+		this.playRequested = true;
 		this.activeTrack?.trackCallbacks.onStatus("Starting SoundCloud");
 		this.widget.play();
 		return false;
 	}
 	pause() {
+		this.playRequested = false;
 		this.playing = false;
 		this.widget?.pause();
 	}
@@ -231,14 +236,17 @@ var SoundCloudTrackState = class {
 			this.activeTrack?.trackCallbacks.onProgress(this.positionSeconds, this.durationSeconds);
 		});
 		this.widget.bind(events.PLAY, () => {
+			if (!this.playRequested && !this.playing) return;
 			this.playing = true;
 			this.activeTrack?.handlePlayEvent();
 		});
 		this.widget.bind(events.PAUSE, () => {
+			this.playRequested = false;
 			this.playing = false;
 			this.activeTrack?.handlePauseEvent();
 		});
 		this.widget.bind(events.FINISH, () => {
+			this.playRequested = false;
 			this.playing = false;
 			this.positionSeconds = this.durationSeconds;
 			this.activeTrack?.trackCallbacks.onFinish();

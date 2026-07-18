@@ -177,6 +177,7 @@ class SoundCloudTrackState {
 	private iframeElement: HTMLIFrameElement | null = null
 	private metadata: AudioFileMetadata | undefined
 	private oEmbedPromise: Promise<SoundCloudOEmbedResponse> | null = null
+	private playRequested = false
 	private playing = false
 	private positionSeconds = 0
 	private ready = false
@@ -206,6 +207,7 @@ class SoundCloudTrackState {
 	detach(track: SoundCloudPlayableTrack): void {
 		if (this.activeTrack === track) {
 			this.activeTrack = null
+			this.playRequested = false
 			this.playing = false
 		}
 	}
@@ -213,18 +215,14 @@ class SoundCloudTrackState {
 	async preload(
 		options: JuketteBackendPreloadOptions,
 	): Promise<JuketteBackendPreloadResult | void> {
-		if (
-			!options.prepare &&
-			!options.preloadDuration &&
-			!options.preloadMetadata
-		) {
+		if (!options.prepare && !options.preloadMetadata) {
 			return
 		}
 
 		if (options.preloadMetadata || options.prepare) {
 			await this.ensureOEmbed()
 		}
-		if (options.prepare || options.preloadDuration) {
+		if (options.prepare) {
 			await this.ensurePrepared()
 		}
 
@@ -235,6 +233,7 @@ class SoundCloudTrackState {
 	}
 
 	async load(_options: PlayableTrackLoadOptions): Promise<void> {
+		this.playRequested = false
 		this.playing = false
 		this.activeTrack?.trackCallbacks.onStatus('Loading SoundCloud')
 		await this.ensureOEmbed()
@@ -266,12 +265,14 @@ class SoundCloudTrackState {
 			this.seekTo(0)
 		}
 
+		this.playRequested = true
 		this.activeTrack?.trackCallbacks.onStatus('Starting SoundCloud')
 		this.widget.play()
 		return false
 	}
 
 	pause(): void {
+		this.playRequested = false
 		this.playing = false
 		this.widget?.pause()
 	}
@@ -383,14 +384,17 @@ class SoundCloudTrackState {
 			)
 		})
 		this.widget.bind(events.PLAY, () => {
+			if (!this.playRequested && !this.playing) return
 			this.playing = true
 			this.activeTrack?.handlePlayEvent()
 		})
 		this.widget.bind(events.PAUSE, () => {
+			this.playRequested = false
 			this.playing = false
 			this.activeTrack?.handlePauseEvent()
 		})
 		this.widget.bind(events.FINISH, () => {
+			this.playRequested = false
 			this.playing = false
 			this.positionSeconds = this.durationSeconds
 			this.activeTrack?.trackCallbacks.onFinish()

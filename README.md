@@ -256,7 +256,10 @@ previews, not a full General MIDI instrument set.
 SoundCloud playback is available through the optional
 `@remino/jukette-soundcloud` addon. Selecting a SoundCloud track prepares the
 hidden widget and oEmbed metadata first, then enables Play once the widget is
-ready to accept playback calls.
+ready to accept playback calls. Player-level `preload-metadata` does not
+prepare SoundCloud tracks by itself; use per-track `preload` when you want a
+SoundCloud widget prepared before selection, and `prefer-media-metadata` when
+you want authored labels to yield to fetched SoundCloud metadata.
 
 If a selected track type has no registered backend, Jukette leaves the track
 selected, keeps playback controls disabled, and surfaces that the track type is
@@ -305,7 +308,8 @@ defineElement()
 Use the `preload-metadata` attribute or `preloadMetadata` property to discover
 playlist durations before tracks are played. Jukette preloads metadata for
 registered backends that provide preload hooks, including browser-native audio
-and local MIDI.
+and local MIDI. SoundCloud stays opt-in here: player-level `preload-metadata`
+alone does not fetch or prepare SoundCloud tracks.
 
 Use `currentTime` to read the current playback position in seconds. Assigning
 to `currentTime` seeks, matching native media element behavior.

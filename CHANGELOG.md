@@ -35,6 +35,9 @@
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
       existing verbose aliases available during the `0.x` line.
+    - Keep SoundCloud preload opt-in so player-level `preload-metadata` alone
+      does not fetch or prepare SoundCloud tracks, while per-track `preload`
+      remains the signal for early widget setup.
     - Reintroduce SoundCloud support as the optional
       `@remino/jukette-soundcloud` backend addon with per-track widget
       preparation, oEmbed metadata loading, and selection-time readiness

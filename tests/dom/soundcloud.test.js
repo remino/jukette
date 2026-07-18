@@ -165,6 +165,27 @@ describe('SoundCloud addon', () => {
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
 	})
 
+	it('keeps the play button idle when the widget emits PLAY during preparation', async () => {
+		const soundCloud = stubSoundCloudEnvironment()
+		const ctx = renderPlayer(`
+			<jukette-track src="${soundCloudTrackUrl}" type="soundcloud"></jukette-track>
+		`)
+
+		await waitFor(
+			() => soundCloud.widgets.length === 1,
+			'Expected SoundCloud widget to be created.',
+		)
+
+		soundCloud.widgets[0].widget.emit(soundCloud.events.PLAY)
+		soundCloud.widgets[0].widget.emit(soundCloud.events.READY)
+		await waitFor(
+			() => ctx.elements.play.disabled === false,
+			'Expected SoundCloud track to become ready.',
+		)
+
+		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Play')
+	})
+
 	it('reuses the same widget when the same SoundCloud track is reselected', async () => {
 		const soundCloud = stubSoundCloudEnvironment()
 		const ctx = renderPlayer(`
@@ -301,6 +322,23 @@ describe('SoundCloud addon', () => {
 				String(url).startsWith('https://soundcloud.com/oembed'),
 			),
 		).toHaveLength(1)
+	})
+
+	it('does not preload a SoundCloud track from player preload-metadata alone', async () => {
+		const soundCloud = stubSoundCloudEnvironment()
+		renderPlayer(`
+			<jukette-track title="Audio" src="/track.mp3"></jukette-track>
+			<jukette-track src="${soundCloudTrackUrl}" type="soundcloud"></jukette-track>
+		`).player.setAttribute('preload-metadata', '')
+
+		await flushAsync()
+
+		expect(soundCloud.widgets).toHaveLength(0)
+		expect(
+			fetch.mock.calls.filter(([url]) =>
+				String(url).startsWith('https://soundcloud.com/oembed'),
+			),
+		).toHaveLength(0)
 	})
 
 	it('ignores stale SoundCloud readiness after switching to another SoundCloud track', async () => {
