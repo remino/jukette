@@ -140,17 +140,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 			childList: true,
 			subtree: true,
 		})
-		this.syncTracks()
-		if (this.shouldReloadConnectedTrack()) {
-			this.loadTrack()
+		if (this.canResumeConnectedTrack()) {
+			this.restoreConnectedTrack()
 			return
 		}
 
-		this.dom.trackSelect.disabled = false
-		this.renderCurrentTrack()
-		this.syncProgress(this.getCurrentTime(), this.duration)
-		this.syncPlayingState()
-		if (!this.playing) this.setStatus()
+		this.syncTracks()
+		this.loadTrack()
 	}
 
 	disconnectedCallback(): void {
@@ -556,11 +552,20 @@ export class JukettePlayerElement extends HTMLElementBase {
 		void this.play()
 	}
 
-	private shouldReloadConnectedTrack(): boolean {
+	private canResumeConnectedTrack(): boolean {
 		const track = this.currentTrack
-		if (!track) return true
-		if (!this.activePlayableTrack) return true
-		return this.loadedTrackKey !== this.getTrackKey(track)
+		if (!track) return false
+		if (!this.activePlayableTrack) return false
+		return this.loadedTrackKey === this.getTrackKey(track)
+	}
+
+	private restoreConnectedTrack(): void {
+		this.dom.trackSelect.disabled = false
+		this.renderCurrentTrack()
+		this.renderTrackSelect()
+		this.syncProgress(this.getCurrentTime(), this.duration)
+		this.syncPlayingState()
+		if (!this.playing) this.setStatus()
 	}
 
 	private getTrackDuration(track: JuketteTrack | null): number | undefined {

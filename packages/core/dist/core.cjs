@@ -390,16 +390,12 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			childList: true,
 			subtree: true
 		});
-		this.syncTracks();
-		if (this.shouldReloadConnectedTrack()) {
-			this.loadTrack();
+		if (this.canResumeConnectedTrack()) {
+			this.restoreConnectedTrack();
 			return;
 		}
-		this.dom.trackSelect.disabled = false;
-		this.renderCurrentTrack();
-		this.syncProgress(this.getCurrentTime(), this.duration);
-		this.syncPlayingState();
-		if (!this.playing) this.setStatus();
+		this.syncTracks();
+		this.loadTrack();
 	}
 	disconnectedCallback() {
 		this.backendRegistrationCleanup?.();
@@ -697,11 +693,19 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (this.playing) return;
 		this.play();
 	}
-	shouldReloadConnectedTrack() {
+	canResumeConnectedTrack() {
 		const track = this.currentTrack;
-		if (!track) return true;
-		if (!this.activePlayableTrack) return true;
-		return this.loadedTrackKey !== this.getTrackKey(track);
+		if (!track) return false;
+		if (!this.activePlayableTrack) return false;
+		return this.loadedTrackKey === this.getTrackKey(track);
+	}
+	restoreConnectedTrack() {
+		this.dom.trackSelect.disabled = false;
+		this.renderCurrentTrack();
+		this.renderTrackSelect();
+		this.syncProgress(this.getCurrentTime(), this.duration);
+		this.syncPlayingState();
+		if (!this.playing) this.setStatus();
 	}
 	getTrackDuration(track) {
 		return this.metadataController.getDuration(track);

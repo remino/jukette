@@ -283,6 +283,45 @@ describe('JukettePlayerElement DOM', () => {
 		expect(ctx.elements.timeValue.textContent).toBe('0:03')
 	})
 
+	it('tears playback down after a real disconnect beyond the reconnect window', async () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+		await ctx.player.play()
+
+		const player = ctx.player
+		const stopSpy = vi.spyOn(player.activePlayableTrack, 'stop')
+		document.body.removeChild(player)
+		await new Promise((resolve) => window.setTimeout(resolve, 1100))
+
+		expect(stopSpy).toHaveBeenCalledTimes(1)
+
+		document.body.appendChild(player)
+		await flushAsync()
+
+		expect(ctx.audio.load).toHaveBeenCalledTimes(1)
+	})
+
+	it('reloads on reconnect when the selected track changes while detached', async () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+			<jukette-track title="Two" artist="Band" src="/two.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+		const player = ctx.player
+		document.body.removeChild(player)
+		player.setAttribute('track-index', '1')
+		document.body.appendChild(player)
+		await flushAsync()
+
+		expect(ctx.audio.load).toHaveBeenCalledTimes(1)
+		expect(ctx.player.currentTrackIndex).toBe(1)
+		expect(ctx.elements.title.textContent).toBe('Two')
+	})
+
 	it('keeps unsupported tracks selected and disabled', () => {
 		defineElement()
 		document.body.innerHTML = `

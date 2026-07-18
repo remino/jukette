@@ -57,7 +57,8 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private selectTrack;
     private selectTrackFromInput;
     private handleTrackSelectKeyup;
-    private shouldReloadConnectedTrack;
+    private canResumeConnectedTrack;
+    private restoreConnectedTrack;
     private getTrackDuration;
     private getTrackKey;
     private isCurrentTrack;

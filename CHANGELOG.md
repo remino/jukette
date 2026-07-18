@@ -17,9 +17,9 @@
 ## HEAD
 
 - Library
-    - Give `jukette-player` a longer reconnect grace window before tearing
-      playback down so real Turbo navigations can reattach the same player
-      instance without losing prepared state or current progress.
+    - Preserve live `jukette-player` playback across brief Turbo-style
+      disconnect and reconnect cycles by deferring teardown and reusing the
+      current prepared track when the same element instance is reattached.
 
 ## v0.4.4
 
