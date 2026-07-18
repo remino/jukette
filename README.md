@@ -268,10 +268,9 @@ host:
 - `jukette:seek`
 - `jukette:ended`
 - `jukette:trackchange`
-- `jukette:volumechange`
 
 Each event includes `event.detail` with the current `track`, `tracks`, `index`,
-`type`, `currentTime`, `duration`, `volume`, and `playing`.
+`type`, `currentTime`, `duration`, and `playing`.
 
 [Back to top](#)
 
@@ -311,14 +310,14 @@ jukette-player[data-kind='midi'] {
 ```
 
 Range inputs use `accent-color: currentColor` inside the shadow DOM, so changing
-the host `color` changes the seek and volume accents in browsers that support
-native range accent styling.
+the host `color` changes the seek accent in browsers that support native range
+accent styling.
 
 For deeper styling, Jukette exposes stable `::part()` hooks:
 
 - Layout: `player`, `track`, `seek`, `time`, `controls`.
 - Track display: `title`, `artist`, `status`.
-- Controls: `button`, `play-button`, `seek-input`, `volume`, `track-select`.
+- Controls: `button`, `play-button`, `seek-input`, `track-select`.
 
 ```css
 jukette-player::part(player) {

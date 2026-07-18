@@ -6,7 +6,6 @@ export type JuketteEventName =
 	| 'jukette:play'
 	| 'jukette:seek'
 	| 'jukette:trackchange'
-	| 'jukette:volumechange'
 
 export interface JuketteTrack {
 	title?: string
@@ -30,7 +29,6 @@ export interface JuketteEventDetail {
 	track: JuketteTrack | null
 	tracks: JuketteTrack[]
 	type?: JuketteTrackKind
-	volume: number
 }
 
 export interface MidiNote {

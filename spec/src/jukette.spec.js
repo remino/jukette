@@ -73,7 +73,6 @@ describe('jukette', () => {
 			playing: true,
 			track,
 			tracks,
-			volume: 0.5,
 		})
 
 		expect(detail).toEqual({
@@ -84,7 +83,6 @@ describe('jukette', () => {
 			track,
 			tracks: [track],
 			type: 'midi',
-			volume: 0.5,
 		})
 		expect(detail.tracks).not.toBe(tracks)
 	})

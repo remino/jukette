@@ -99,7 +99,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.dom.trackSelect.addEventListener('change', () =>
 			this.selectTrackFromInput(),
 		)
-		this.dom.volumeInput.addEventListener('input', () => this.syncVolume())
 		this.dom.seekInput.addEventListener('input', () => this.seekFromInput())
 		this.dom.audio.addEventListener('loadedmetadata', () =>
 			this.syncAudio(),
@@ -220,7 +219,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const played = await this.activePlayableTrack?.play({
 			isStale: () => trackLoadId !== this.trackLoadId,
 			restart: this.restartOnNextPlay,
-			volume: Number(this.dom.volumeInput.value),
+			volume: 1,
 		})
 		this.restartOnNextPlay = false
 		if (trackLoadId !== this.trackLoadId) return
@@ -284,7 +283,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 			playing: this.playing,
 			track: this.currentTrack,
 			tracks: this.tracks,
-			volume: Number(this.dom.volumeInput.value),
 			...detail,
 		})
 	}
@@ -456,7 +454,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		void this.activePlayableTrack.load({
 			metadataPreloadId: this.metadataController.metadataPreloadId,
 			restart: this.restartOnNextPlay,
-			volume: Number(this.dom.volumeInput.value),
+			volume: 1,
 		})
 
 		this.renderTrackSelect()
@@ -537,11 +535,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private toggleTimeMode(): void {
 		this.timeMode = this.timeMode === 'elapsed' ? 'remaining' : 'elapsed'
 		this.syncProgress(this.getCurrentTime(), this.duration)
-	}
-
-	private syncVolume(): void {
-		this.activePlayableTrack?.setVolume(Number(this.dom.volumeInput.value))
-		this.emitJuketteEvent('jukette:volumechange')
 	}
 
 	private seekFromInput(): void {
