@@ -74,6 +74,13 @@ const markAudioReady = ({ audio }, duration = 10) => {
 	audio.dispatchEvent(new Event('canplay'))
 }
 
+const flushAsync = async (count = 3) => {
+	for (let index = 0; index < count; index += 1) {
+		await Promise.resolve()
+		await new Promise((resolve) => window.setTimeout(resolve, 0))
+	}
+}
+
 describe('JukettePlayerElement DOM', () => {
 	it('renders the simplified player shape without playlist UI', () => {
 		const { elements, shadowRoot } = renderPlayer(`
@@ -199,6 +206,56 @@ describe('JukettePlayerElement DOM', () => {
 		expect(trackChange).not.toHaveBeenCalled()
 		expect(ctx.player.currentTrackIndex).toBe(0)
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Play')
+	})
+
+	it('toggles play or pause from Enter and starts playback from Space on the focused select', async () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+			<jukette-track title="Two" artist="Band" src="/two.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+		ctx.elements.select.focus()
+
+		ctx.elements.select.dispatchEvent(
+			new KeyboardEvent('keyup', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Enter',
+			}),
+		)
+		await flushAsync()
+
+		expect(ctx.audio.play).toHaveBeenCalledTimes(1)
+		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
+
+		ctx.elements.select.dispatchEvent(
+			new KeyboardEvent('keyup', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Enter',
+			}),
+		)
+		await flushAsync()
+
+		expect(ctx.audio.pause).toHaveBeenCalledTimes(1)
+		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Play')
+
+		ctx.elements.select.value = '1'
+		ctx.elements.select.dispatchEvent(new Event('change'))
+		markAudioReady(ctx, 10)
+
+		ctx.elements.select.dispatchEvent(
+			new KeyboardEvent('keyup', {
+				bubbles: true,
+				cancelable: true,
+				key: ' ',
+			}),
+		)
+		await flushAsync()
+
+		expect(ctx.audio.play).toHaveBeenCalledTimes(2)
+		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
 	})
 
 	it('keeps unsupported tracks selected and disabled', () => {

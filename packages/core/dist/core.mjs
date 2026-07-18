@@ -362,6 +362,7 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		this.dom.playButton.addEventListener("click", () => this.toggle());
 		this.dom.timeButton.addEventListener("click", () => this.toggleTimeMode());
 		this.dom.trackSelect.addEventListener("change", () => this.selectTrackFromInput());
+		this.dom.trackSelect.addEventListener("keyup", (event) => this.handleTrackSelectKeyup(event));
 		this.dom.seekInput.addEventListener("input", () => this.seekFromInput());
 		this.dom.audio.addEventListener("loadedmetadata", () => this.syncAudio());
 		this.dom.audio.addEventListener("timeupdate", () => this.syncAudio());
@@ -665,6 +666,16 @@ var JukettePlayerElement = class extends HTMLElementBase {
 		const nextIndex = Number(this.dom.trackSelect.value);
 		if (!Number.isInteger(nextIndex) || nextIndex < 0) return;
 		this.selectTrack(nextIndex);
+	}
+	handleTrackSelectKeyup(event) {
+		if (event.key !== "Enter" && event.key !== " ") return;
+		if (!this.ready || this.dom.trackSelect.disabled) return;
+		if (event.key === "Enter") {
+			this.toggle();
+			return;
+		}
+		if (this.playing) return;
+		this.play();
 	}
 	getTrackDuration(track) {
 		return this.metadataController.getDuration(track);

@@ -105,6 +105,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.dom.trackSelect.addEventListener('change', () =>
 			this.selectTrackFromInput(),
 		)
+		this.dom.trackSelect.addEventListener('keyup', (event) =>
+			this.handleTrackSelectKeyup(event),
+		)
 		this.dom.seekInput.addEventListener('input', () => this.seekFromInput())
 		this.dom.audio.addEventListener('loadedmetadata', () =>
 			this.syncAudio(),
@@ -517,6 +520,19 @@ export class JukettePlayerElement extends HTMLElementBase {
 		const nextIndex = Number(this.dom.trackSelect.value)
 		if (!Number.isInteger(nextIndex) || nextIndex < 0) return
 		this.selectTrack(nextIndex)
+	}
+
+	private handleTrackSelectKeyup(event: KeyboardEvent): void {
+		if (event.key !== 'Enter' && event.key !== ' ') return
+		if (!this.ready || this.dom.trackSelect.disabled) return
+
+		if (event.key === 'Enter') {
+			this.toggle()
+			return
+		}
+
+		if (this.playing) return
+		void this.play()
 	}
 
 	private getTrackDuration(track: JuketteTrack | null): number | undefined {
