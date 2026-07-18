@@ -52,6 +52,8 @@
 	},
 	"scripts": {
 		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+		"postpack": "node ../../bin/sync-package-readme.mjs packages/jukette clean",
+		"prepack": "node ../../bin/sync-package-readme.mjs packages/jukette",
 		"typecheck": "tsc -p tsconfig.typecheck.json --noEmit"
 	}
 }

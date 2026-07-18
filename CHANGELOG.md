@@ -12,6 +12,11 @@
 
 ## HEAD
 
+- Repo
+    - Generate `packages/jukette/README.md` from the repo-top README during
+      `prepack` and remove it in `postpack`, keeping npm package docs in sync
+      without tracking a duplicate workspace README.
+
 ## v0.4.0
 
 - Repo
