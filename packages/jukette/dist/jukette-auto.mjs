@@ -1,4 +1,4 @@
-/*! jukette v0.4.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! jukette v0.4.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 import "@remino/jukette-audio";
 //#region \0rolldown/runtime.js
 var __defProp = Object.defineProperty;

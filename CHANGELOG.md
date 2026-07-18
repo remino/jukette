@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.4.1](#v041)
 - [v0.4.0](#v040)
 - [v0.3.0](#v030)
 - [v0.2.0](#v020)
@@ -11,6 +12,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.4.1
 
 - Repo
     - Generate `packages/jukette/README.md` from the repo-top README during
