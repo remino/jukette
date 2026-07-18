@@ -575,6 +575,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private finishTrack(): void {
 		this.desiredPlaying = false
 		this.playing = false
+		this.restartOnNextPlay = true
 		this.syncPlayingState()
 		this.syncProgress(this.duration, this.duration)
 		this.emitJuketteEvent('jukette:ended')

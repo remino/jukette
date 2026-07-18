@@ -14,13 +14,35 @@ let warmMidiPromise: Promise<void> | null = null
 const scheduleLeadTime = 0.03
 const minimumMidiVelocity = 0.05
 const midiSynthLevel = -18
+const minimumMidiNoteDuration = 0.03
+
+type ScheduledMidiNote = {
+	duration: number
+	frequency: number
+	time: number
+	velocity: number
+}
+
+type ToneTransport = ReturnType<typeof Tone.getTransport>
 
 export const midiPlaybackRuntime = {
+	createPart(
+		callback: (time: number, note: ScheduledMidiNote) => void,
+		notes: ScheduledMidiNote[],
+	): Tone.Part<ScheduledMidiNote> {
+		return new Tone.Part(callback, notes)
+	},
+	get now(): number {
+		return Tone.now()
+	},
 	resetWarmup(): void {
 		warmMidiPromise = null
 	},
 	start(): Promise<void> {
 		return Tone.start()
+	},
+	get transport(): ToneTransport {
+		return Tone.getTransport()
 	},
 }
 
@@ -36,6 +58,7 @@ export const warmMidiAudioContext = async (): Promise<void> => {
 }
 
 export class MidiPlayableTrack extends JukettePlayableTrack {
+	private part: Tone.Part<ScheduledMidiNote> | null = null
 	private pausedAt = 0
 	private sequence: MidiSequence | null = null
 	private startedAt = 0
@@ -82,6 +105,12 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 		if (options.restart) {
 			this.pausedAt = 0
 			this.callbacks.onProgress(0, this.durationValue)
+		} else if (
+			this.durationValue > 0 &&
+			this.pausedAt >= this.durationValue
+		) {
+			this.pausedAt = 0
+			this.callbacks.onProgress(0, this.durationValue)
 		}
 
 		this.stopPlayback()
@@ -96,26 +125,16 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 		if (!this.synth || !this.sequence) return false
 
 		const startOffset = this.pausedAt
-		const startTime = Tone.now() + scheduleLeadTime
+		const startTime = midiPlaybackRuntime.now + scheduleLeadTime
 		this.startedAt = performance.now()
-
-		for (const note of this.sequence.notes) {
-			if (note.start + note.duration <= startOffset) continue
-
-			const relativeStart = Math.max(0, note.start - startOffset)
-			const clippedOffset = Math.max(0, startOffset - note.start)
-			const clippedDuration = Math.max(
-				0.03,
-				note.duration - clippedOffset,
-			)
-
-			this.synth.triggerAttackRelease(
-				note.frequency,
-				clippedDuration,
-				startTime + relativeStart,
-				Math.max(minimumMidiVelocity, note.velocity),
-			)
-		}
+		this.disposePart()
+		this.part = this.createPart(this.sequence.notes)
+		this.playResumedNotes(startOffset, startTime)
+		this.part?.start(0, startOffset)
+		const transport = midiPlaybackRuntime.transport
+		transport.stop()
+		transport.seconds = 0
+		transport.start(startTime, 0)
 
 		this.timer = window.setTimeout(
 			() => this.finishPlayback(),
@@ -137,6 +156,7 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 	stop(): void {
 		this.pausedAt = 0
 		this.stopPlayback()
+		this.disposePart()
 		this.disposeSynth()
 	}
 
@@ -163,6 +183,12 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 			this.timer = 0
 		}
 
+		this.part?.stop(0)
+		this.part?.cancel(0)
+		const transport = midiPlaybackRuntime.transport
+		if (transport.state !== 'stopped') {
+			transport.pause()
+		}
 		this.synth?.releaseAll()
 	}
 
@@ -178,5 +204,57 @@ export class MidiPlayableTrack extends JukettePlayableTrack {
 		this.synth?.dispose()
 		this.synth = null
 		this.synthOscillator = null
+	}
+
+	private createPart(
+		notes: MidiSequence['notes'],
+	): Tone.Part<ScheduledMidiNote> {
+		return midiPlaybackRuntime.createPart(
+			(time, note) => {
+				this.synth?.triggerAttackRelease(
+					note.frequency,
+					note.duration,
+					time,
+					Math.max(minimumMidiVelocity, note.velocity),
+				)
+			},
+			notes.map((note) => ({
+				duration: note.duration,
+				frequency: note.frequency,
+				time: note.start,
+				velocity: note.velocity,
+			})),
+		)
+	}
+
+	private playResumedNotes(startOffset: number, startTime: number): void {
+		if (!this.synth || !this.sequence || startOffset <= 0) return
+
+		for (const note of this.sequence.notes) {
+			if (
+				note.start >= startOffset ||
+				note.start + note.duration <= startOffset
+			) {
+				continue
+			}
+
+			const clippedDuration = Math.max(
+				minimumMidiNoteDuration,
+				note.start + note.duration - startOffset,
+			)
+			this.synth.triggerAttackRelease(
+				note.frequency,
+				clippedDuration,
+				startTime,
+				Math.max(minimumMidiVelocity, note.velocity),
+			)
+		}
+	}
+
+	private disposePart(): void {
+		this.part?.stop(0)
+		this.part?.cancel(0)
+		this.part?.dispose()
+		this.part = null
 	}
 }
