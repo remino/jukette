@@ -31,6 +31,8 @@
     - Rename the private workspace root package and add explicit `dev:docs`,
       `build:packages`, `build:docs`, `preview:docs`, and targeted typecheck
       scripts so the monorepo entrypoints read more clearly.
+    - Remove the stale `ROADMAP.md` planning file now that the SoundCloud
+      addon direction has either landed or moved into the changelog.
 - Library
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
@@ -42,11 +44,18 @@
       `@remino/jukette-soundcloud` backend addon with per-track widget
       preparation, oEmbed metadata loading, and selection-time readiness
       gating.
+    - Reuse per-track SoundCloud widgets while resetting selection-time state
+      correctly so reselected tracks rewind to the beginning, ignore stale
+      progress from earlier play sessions, and no longer surface `Pause`
+      before an explicit user play request.
     - Remove SoundCloud playback from the core library so `jukette-player`
       focuses on browser-native audio and local MIDI tracks.
     - Simplify `jukette-player` into a track selector with a single
       play/pause control row, native track `<select>`, clickable elapsed or
       remaining time readout, and no previous/next or playlist panel UI.
+    - Let the focused track `<select>` act as a transport shortcut: `Enter`
+      now toggles play or pause for the prepared selected track, and `Space`
+      starts playback when the player is idle.
     - Remove playlist navigation and toggle APIs from the player public
       surface, keeping track selection and playback state focused on the
       current track.
