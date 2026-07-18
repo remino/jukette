@@ -9,13 +9,16 @@ const manifests = [
 	'packages/core/package.json',
 	'packages/audio/package.json',
 	'packages/midi/package.json',
+	'packages/soundcloud/package.json',
 	'packages/jukette/package.json',
+	'apps/docs/package.json',
 ]
 
 const publishableVersions = new Map([
 	['@remino/jukette-core', true],
 	['@remino/jukette-audio', true],
 	['@remino/jukette-midi', true],
+	['@remino/jukette-soundcloud', true],
 	['jukette', true],
 ])
 

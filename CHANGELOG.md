@@ -33,6 +33,8 @@
       scripts so the monorepo entrypoints read more clearly.
     - Remove the stale `ROADMAP.md` planning file now that the SoundCloud
       addon direction has either landed or moved into the changelog.
+    - Fix lockstep release automation so version bumps and release staging now
+      include `@remino/jukette-soundcloud` and the docs workspace manifest.
 - Library
     - Shorten the explicit package setup APIs to `defineElement()` for
       `jukette` and `register()` for addon backends, while keeping the
