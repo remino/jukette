@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.4.3](#v043)
 - [v0.4.2](#v042)
 - [v0.4.1](#v041)
 - [v0.4.0](#v040)
@@ -13,6 +14,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.4.3
 
 - Library
     - Preserve `jukette-player` state across brief disconnect and reconnect

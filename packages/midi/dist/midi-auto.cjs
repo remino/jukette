@@ -1,4 +1,4 @@
-/*! @remino/jukette-midi v0.4.2 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-midi v0.4.3 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
