@@ -1,5 +1,6 @@
 export const ATTR_SRC = 'src'
 export const ATTR_PLAYLIST = 'playlist'
+export const ATTR_PLAYLIST_SRC = 'playlist-src'
 export const ATTR_PRELOAD = 'preload'
 export const ATTR_PRELOAD_METADATA = 'preload-metadata'
 export const ATTR_PREFER_MEDIA_METADATA = 'prefer-media-metadata'

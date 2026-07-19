@@ -82,17 +82,20 @@ export const parsePlaylist = (value: string | null): JuketteTrack[] => {
 	if (!value) return []
 
 	try {
-		const parsed = JSON.parse(value) as unknown
-		const items = Array.isArray(parsed) ? parsed : [parsed]
-		return items
-			.map((item) => normalizeTrack(item))
-			.filter((item): item is JuketteTrack => item !== null)
+		return normalizePlaylistItems(JSON.parse(value) as unknown)
 	} catch {
 		return value
 			.split('\n')
 			.map((item) => normalizeTrack(item))
 			.filter((item): item is JuketteTrack => item !== null)
 	}
+}
+
+export const normalizePlaylistItems = (value: unknown): JuketteTrack[] => {
+	const items = Array.isArray(value) ? value : [value]
+	return items
+		.map((item) => normalizeTrack(item))
+		.filter((item): item is JuketteTrack => item !== null)
 }
 
 export const trackFromElement = (element: Element): JuketteTrack | null => {

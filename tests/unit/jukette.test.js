@@ -205,6 +205,9 @@ describe('jukette helpers', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'display-marquee',
 		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'playlist-src',
+		)
 	})
 
 	it('normalizes display marquee modes', () => {

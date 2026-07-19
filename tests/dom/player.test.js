@@ -141,6 +141,103 @@ describe('JukettePlayerElement DOM', () => {
 		expect(ctx.elements.time.disabled).toBe(false)
 	})
 
+	it('loads a remote playlist from playlist-src', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: true,
+				text: async () =>
+					JSON.stringify([
+						{ artist: 'Remote', src: '/remote.mp3', title: 'One' },
+					]),
+			}),
+		)
+		defineElement()
+		registerAudio()
+		document.body.innerHTML =
+			'<jukette-player playlist-src="/playlist.json"></jukette-player>'
+		const player = document.querySelector('jukette-player')
+		const shadowRoot = player.shadowRoot
+		const audio = shadowRoot.querySelector('audio')
+		patchAudio(audio)
+
+		expect(shadowRoot.querySelector('.display').textContent).toBe(
+			'Loading playlist',
+		)
+
+		await flushAsync()
+
+		expect(fetch).toHaveBeenCalledWith('/playlist.json')
+		expect(player.playlist).toEqual([
+			{ artist: 'Remote', src: '/remote.mp3', title: 'One' },
+		])
+		expect(shadowRoot.querySelector('.display').textContent).toBe(
+			'Loading audio',
+		)
+		expect(shadowRoot.querySelector('.track-select').options).toHaveLength(
+			1,
+		)
+	})
+
+	it('shows a playlist error when playlist-src fails to load', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: false,
+				status: 404,
+				text: async () => 'missing',
+			}),
+		)
+		defineElement()
+		registerAudio()
+		document.body.innerHTML =
+			'<jukette-player playlist-src="/missing.json"></jukette-player>'
+		const player = document.querySelector('jukette-player')
+		const shadowRoot = player.shadowRoot
+		const audio = shadowRoot.querySelector('audio')
+		patchAudio(audio)
+
+		await flushAsync()
+
+		expect(player.playlist).toEqual([])
+		expect(shadowRoot.querySelector('.display').textContent).toBe(
+			'Playlist failed to load',
+		)
+		expect(shadowRoot.querySelector('.track-select').disabled).toBe(true)
+	})
+
+	it('prefers inline playlist sources over playlist-src', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: true,
+				text: async () =>
+					JSON.stringify([{ src: '/remote.mp3', title: 'Remote' }]),
+			}),
+		)
+		defineElement()
+		registerAudio()
+		document.body.innerHTML = `
+			<jukette-player
+				playlist='[{"src":"/inline.mp3","title":"Inline"}]'
+				playlist-src="/playlist.json"
+			></jukette-player>
+		`
+		const player = document.querySelector('jukette-player')
+		const shadowRoot = player.shadowRoot
+		const audio = shadowRoot.querySelector('audio')
+		patchAudio(audio)
+
+		await flushAsync()
+
+		expect(player.playlist).toEqual([
+			{ src: '/inline.mp3', title: 'Inline' },
+		])
+		expect(
+			shadowRoot.querySelector('.track-select').options[0].textContent,
+		).toBe('Inline (--:--)')
+	})
+
 	it('changes selection without autoplay and resets the current track', async () => {
 		const ctx = renderPlayer(`
 			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>

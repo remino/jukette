@@ -18,6 +18,20 @@
 
 ## HEAD
 
+- Library
+    - Add a `playlist-src` attribute on `jukette-player` so playlists can be
+      fetched from remote JSON files using the same track object shape as the
+      existing inline `playlist` attribute.
+    - Surface explicit loading and failure states while a remote playlist is
+      being fetched instead of silently falling through to unrelated sources.
+- Docs
+    - Change the live demo page to load its playlist from
+      `/jukette/demo-playlist.data.json` instead of inline
+      `<jukette-track>` children, with the playlist now authored directly as a
+      JSON file in the docs source.
+    - Add `.json` to the Astro compression pass so the built demo playlist is
+      emitted as minified JSON and included in compressed site assets.
+
 ## v0.6.0
 
 - Library

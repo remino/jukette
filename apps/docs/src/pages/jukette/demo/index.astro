@@ -4,32 +4,10 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 
 <BaseLayout title="Demo" path="/jukette/demo/">
 	<h2>Demo</h2>
-	<jukette-player preload-metadata prefer-media-metadata>
-		<jukette-track
-			title="C-sharp arpeggiator for late-night cassette deck calibration and soft neon hallway testing"
-			artist="Jukette"
-			src="/jukette/demo-tone.mp3"
-			preload></jukette-track>
-		<jukette-track
-			title="MIDI scale"
-			artist="Jukette"
-			src="/jukette/demo-scale.mid"
-			type="midi"></jukette-track>
-		<jukette-track
-			title="Flickermood"
-			artist="Forss"
-			src="https://soundcloud.com/forss/flickermood"
-			type="soundcloud"
-			preload="false"></jukette-track>
-		<jukette-track
-			title="Wii Shop Music"
-			artist="Nintendo"
-			src="https://soundcloud.com/yanocon/nintendo-shop-theme-wii-shop"
-			type="soundcloud"
-			preload="false"
-			prefer-media-metadata="false"
-			start-at="59"></jukette-track>
-	</jukette-player>
+	<jukette-player
+		playlist-src="/jukette/demo-playlist.data.json"
+		preload-metadata
+		prefer-media-metadata></jukette-player>
 	<script>
 		import 'jukette/auto'
 		import '@remino/jukette-midi/auto'

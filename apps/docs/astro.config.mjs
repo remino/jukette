@@ -26,6 +26,7 @@ export default defineConfig({
 			fileExtensions: [
 				'.css',
 				'.js',
+				'.json',
 				'.html',
 				'.xml',
 				'.cjs',

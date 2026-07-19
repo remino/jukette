@@ -3,6 +3,7 @@ import {
 	ATTR_DISPLAY_MARQUEE,
 	ATTR_MIDI_OSCILLATOR,
 	ATTR_PLAYLIST,
+	ATTR_PLAYLIST_SRC,
 	ATTR_PREFER_MEDIA_METADATA,
 	ATTR_PRELOAD,
 	ATTR_PRELOAD_METADATA,
@@ -28,6 +29,7 @@ import { JukettePlayableTrack } from './playable-track'
 import {
 	inferTrackType,
 	normalizeTrack,
+	normalizePlaylistItems,
 	parsePlaylist,
 	trackFromElement,
 } from './tracks'
@@ -45,6 +47,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
 		ATTR_SRC,
 		ATTR_PLAYLIST,
+		ATTR_PLAYLIST_SRC,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_DISPLAY_MARQUEE,
@@ -69,6 +72,11 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private restartOnNextPlay = false
 	private readonly trackObserver: MutationObserver | null = null
 	private playlistOverride: JuketteTrack[] | null = null
+	private remotePlaylist: JuketteTrack[] | null = null
+	private remotePlaylistError = ''
+	private remotePlaylistLoading = false
+	private remotePlaylistRequestId = 0
+	private remotePlaylistSelected = false
 	private loadedTrackKey = ''
 	private statusMessage = ''
 	private timeMode: 'elapsed' | 'remaining' = 'elapsed'
@@ -147,6 +155,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 			childList: true,
 			subtree: true,
 		})
+		if (this.hasRemotePlaylistSource()) {
+			void this.syncRemotePlaylist()
+		}
 		if (this.canResumeConnectedTrack()) {
 			this.restoreConnectedTrack()
 			return
@@ -187,6 +198,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (name === ATTR_DISPLAY_MARQUEE) {
 			this.syncDisplayMarqueeMode()
 			return
+		}
+		if (name === ATTR_PLAYLIST_SRC) {
+			void this.syncRemotePlaylist()
 		}
 
 		this.syncTracks()
@@ -353,17 +367,25 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private syncTracks(): void {
 		const childTracks = this.getChildTracks()
 		const attributeTracks = parsePlaylist(this.getAttribute(ATTR_PLAYLIST))
+		const remoteTracks = this.remotePlaylist ?? []
 		const src = this.getAttribute(ATTR_SRC)
 		const singleTrack = normalizeTrack(src ?? undefined)
+		this.remotePlaylistSelected =
+			this.playlistOverride === null &&
+			childTracks.length === 0 &&
+			attributeTracks.length === 0 &&
+			this.hasRemotePlaylistSource()
 		this.tracks =
 			this.playlistOverride ??
 			(childTracks.length > 0
 				? childTracks
 				: attributeTracks.length > 0
 					? attributeTracks
-					: singleTrack
-						? [singleTrack]
-						: [])
+					: remoteTracks.length > 0
+						? remoteTracks
+						: singleTrack
+							? [singleTrack]
+							: [])
 
 		const nextIndex = Number(this.getAttribute(ATTR_TRACK_INDEX))
 		this.index =
@@ -489,7 +511,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = ''
 			this.statusMessage = ''
-			this.renderDisplayText('No track')
+			this.renderDisplayText(this.getEmptyTrackDisplayText())
 			this.setReady(false)
 			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
@@ -703,6 +725,70 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track || this.activePlayableTrack) return
 		if (!resolveJuketteBackend(track)) return
 
+		this.loadTrack()
+	}
+
+	private getEmptyTrackDisplayText(): string {
+		if (!this.remotePlaylistSelected) return 'No track'
+		if (this.remotePlaylistLoading) return 'Loading playlist'
+		if (this.remotePlaylistError) return this.remotePlaylistError
+		return 'No track'
+	}
+
+	private hasRemotePlaylistSource(): boolean {
+		return (this.getAttribute(ATTR_PLAYLIST_SRC) ?? '').trim().length > 0
+	}
+
+	private async syncRemotePlaylist(): Promise<void> {
+		const playlistSrc = (this.getAttribute(ATTR_PLAYLIST_SRC) ?? '').trim()
+		const requestId = ++this.remotePlaylistRequestId
+
+		if (!playlistSrc) {
+			this.remotePlaylist = null
+			this.remotePlaylistError = ''
+			this.remotePlaylistLoading = false
+			this.syncTracks()
+			this.loadTrack()
+			return
+		}
+
+		this.remotePlaylist = null
+		this.remotePlaylistError = ''
+		this.remotePlaylistLoading = true
+		this.syncTracks()
+		this.loadTrack()
+
+		if (typeof fetch === 'undefined') {
+			if (requestId !== this.remotePlaylistRequestId) return
+			this.remotePlaylistLoading = false
+			this.remotePlaylistError = 'Playlist fetch unavailable'
+			this.syncTracks()
+			this.loadTrack()
+			return
+		}
+
+		try {
+			const response = await fetch(playlistSrc)
+			if (!response.ok) {
+				throw new Error(`Playlist request failed: ${response.status}`)
+			}
+
+			const parsed = normalizePlaylistItems(
+				JSON.parse(await response.text()) as unknown,
+			)
+			if (requestId !== this.remotePlaylistRequestId) return
+
+			this.remotePlaylist = parsed
+			this.remotePlaylistError = ''
+			this.remotePlaylistLoading = false
+		} catch {
+			if (requestId !== this.remotePlaylistRequestId) return
+			this.remotePlaylist = null
+			this.remotePlaylistError = 'Playlist failed to load'
+			this.remotePlaylistLoading = false
+		}
+
+		this.syncTracks()
 		this.loadTrack()
 	}
 }

@@ -216,11 +216,20 @@ object.
 When JSON parsing fails, Jukette treats the attribute as a newline-separated URL
 list.
 
+For remote JSON, point `playlist-src` at an endpoint or static file that
+returns the same JSON array or object shape accepted by the `playlist`
+attribute.
+
+```html
+<jukette-player playlist-src="/audio/playlist.json"></jukette-player>
+```
+
 Track sources are resolved in this order:
 
 - `player.playlist` set from JavaScript.
 - Direct `<jukette-track>` children.
 - `playlist` attribute JSON or newline list.
+- `playlist-src` remote JSON.
 - Single `src` attribute.
 
 [Back to top](#)
