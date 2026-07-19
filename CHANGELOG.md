@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.6.0](#v060)
 - [v0.5.0](#v050)
 - [v0.4.4](#v044)
 - [v0.4.3](#v043)
@@ -16,6 +17,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.6.0
 
 - Library
     - Merge the player header’s separate title and artist/status rows into one

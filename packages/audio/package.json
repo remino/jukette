@@ -1,6 +1,6 @@
 {
 	"name": "@remino/jukette-audio",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "Browser-native audio backend for jukette.",
 	"type": "module",
 	"license": "ISC",
@@ -36,7 +36,7 @@
 		"./src/lib/audio-auto.ts"
 	],
 	"dependencies": {
-		"@remino/jukette-core": "0.5.0"
+		"@remino/jukette-core": "0.6.0"
 	},
 	"scripts": {
 		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
