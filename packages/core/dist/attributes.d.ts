@@ -1,5 +1,6 @@
 export declare const ATTR_SRC = "src";
 export declare const ATTR_PLAYLIST = "playlist";
+export declare const ATTR_PLAYLIST_SRC = "playlist-src";
 export declare const ATTR_PRELOAD = "preload";
 export declare const ATTR_PRELOAD_METADATA = "preload-metadata";
 export declare const ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";

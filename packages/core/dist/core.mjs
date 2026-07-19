@@ -30,6 +30,7 @@ var HTMLElementBase = globalThis.HTMLElement ?? class {};
 //#endregion
 //#region src/lib/attributes.ts
 var ATTR_PLAYLIST = "playlist";
+var ATTR_PLAYLIST_SRC = "playlist-src";
 var ATTR_PRELOAD = "preload";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
 var ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
@@ -97,11 +98,13 @@ var normalizeTrack = (value) => {
 var parsePlaylist = (value) => {
 	if (!value) return [];
 	try {
-		const parsed = JSON.parse(value);
-		return (Array.isArray(parsed) ? parsed : [parsed]).map((item) => normalizeTrack(item)).filter((item) => item !== null);
+		return normalizePlaylistItems(JSON.parse(value));
 	} catch {
 		return value.split("\n").map((item) => normalizeTrack(item)).filter((item) => item !== null);
 	}
+};
+var normalizePlaylistItems = (value) => {
+	return (Array.isArray(value) ? value : [value]).map((item) => normalizeTrack(item)).filter((item) => item !== null);
 };
 var trackFromElement = (element) => {
 	if (element.localName !== "jukette-track") return null;
@@ -336,6 +339,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
 		"src",
 		ATTR_PLAYLIST,
+		ATTR_PLAYLIST_SRC,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_DISPLAY_MARQUEE,
@@ -359,6 +363,11 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	restartOnNextPlay = false;
 	trackObserver = null;
 	playlistOverride = null;
+	remotePlaylist = null;
+	remotePlaylistError = "";
+	remotePlaylistLoading = false;
+	remotePlaylistRequestId = 0;
+	remotePlaylistSelected = false;
 	loadedTrackKey = "";
 	statusMessage = "";
 	timeMode = "elapsed";
@@ -416,6 +425,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			childList: true,
 			subtree: true
 		});
+		if (this.hasRemotePlaylistSource()) this.syncRemotePlaylist();
 		if (this.canResumeConnectedTrack()) {
 			this.restoreConnectedTrack();
 			return;
@@ -447,6 +457,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.syncDisplayMarqueeMode();
 			return;
 		}
+		if (name === "playlist-src") this.syncRemotePlaylist();
 		this.syncTracks();
 		this.loadTrack();
 	}
@@ -567,8 +578,10 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	syncTracks() {
 		const childTracks = this.getChildTracks();
 		const attributeTracks = parsePlaylist(this.getAttribute(ATTR_PLAYLIST));
+		const remoteTracks = this.remotePlaylist ?? [];
 		const singleTrack = normalizeTrack(this.getAttribute("src") ?? void 0);
-		this.tracks = this.playlistOverride ?? (childTracks.length > 0 ? childTracks : attributeTracks.length > 0 ? attributeTracks : singleTrack ? [singleTrack] : []);
+		this.remotePlaylistSelected = this.playlistOverride === null && childTracks.length === 0 && attributeTracks.length === 0 && this.hasRemotePlaylistSource();
+		this.tracks = this.playlistOverride ?? (childTracks.length > 0 ? childTracks : attributeTracks.length > 0 ? attributeTracks : remoteTracks.length > 0 ? remoteTracks : singleTrack ? [singleTrack] : []);
 		const nextIndex = Number(this.getAttribute(ATTR_TRACK_INDEX));
 		this.index = Number.isInteger(nextIndex) && nextIndex >= 0 ? Math.min(nextIndex, Math.max(0, this.tracks.length - 1)) : Math.min(this.index, Math.max(0, this.tracks.length - 1));
 		this.renderTrackSelect();
@@ -662,7 +675,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = "";
 			this.statusMessage = "";
-			this.renderDisplayText("No track");
+			this.renderDisplayText(this.getEmptyTrackDisplayText());
 			this.setReady(false);
 			this.dom.trackSelect.disabled = true;
 			if (previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
@@ -829,6 +842,56 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		const track = this.currentTrack;
 		if (!track || this.activePlayableTrack) return;
 		if (!resolveJuketteBackend(track)) return;
+		this.loadTrack();
+	}
+	getEmptyTrackDisplayText() {
+		if (!this.remotePlaylistSelected) return "No track";
+		if (this.remotePlaylistLoading) return "Loading playlist";
+		if (this.remotePlaylistError) return this.remotePlaylistError;
+		return "No track";
+	}
+	hasRemotePlaylistSource() {
+		return (this.getAttribute("playlist-src") ?? "").trim().length > 0;
+	}
+	async syncRemotePlaylist() {
+		const playlistSrc = (this.getAttribute("playlist-src") ?? "").trim();
+		const requestId = ++this.remotePlaylistRequestId;
+		if (!playlistSrc) {
+			this.remotePlaylist = null;
+			this.remotePlaylistError = "";
+			this.remotePlaylistLoading = false;
+			this.syncTracks();
+			this.loadTrack();
+			return;
+		}
+		this.remotePlaylist = null;
+		this.remotePlaylistError = "";
+		this.remotePlaylistLoading = true;
+		this.syncTracks();
+		this.loadTrack();
+		if (typeof fetch === "undefined") {
+			if (requestId !== this.remotePlaylistRequestId) return;
+			this.remotePlaylistLoading = false;
+			this.remotePlaylistError = "Playlist fetch unavailable";
+			this.syncTracks();
+			this.loadTrack();
+			return;
+		}
+		try {
+			const response = await fetch(playlistSrc);
+			if (!response.ok) throw new Error(`Playlist request failed: ${response.status}`);
+			const parsed = normalizePlaylistItems(JSON.parse(await response.text()));
+			if (requestId !== this.remotePlaylistRequestId) return;
+			this.remotePlaylist = parsed;
+			this.remotePlaylistError = "";
+			this.remotePlaylistLoading = false;
+		} catch {
+			if (requestId !== this.remotePlaylistRequestId) return;
+			this.remotePlaylist = null;
+			this.remotePlaylistError = "Playlist failed to load";
+			this.remotePlaylistLoading = false;
+		}
+		this.syncTracks();
 		this.loadTrack();
 	}
 };

@@ -19,6 +19,11 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private restartOnNextPlay;
     private readonly trackObserver;
     private playlistOverride;
+    private remotePlaylist;
+    private remotePlaylistError;
+    private remotePlaylistLoading;
+    private remotePlaylistRequestId;
+    private remotePlaylistSelected;
     private loadedTrackKey;
     private statusMessage;
     private timeMode;
@@ -81,4 +86,7 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private setReady;
     private stopProgressLoop;
     private handleBackendRegistration;
+    private getEmptyTrackDisplayText;
+    private hasRemotePlaylistSource;
+    private syncRemotePlaylist;
 }
