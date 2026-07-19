@@ -107,10 +107,9 @@ const renderPlayer = (markup) => {
 	return {
 		audio,
 		elements: {
-			meta: shadowRoot.querySelector('.meta'),
+			display: shadowRoot.querySelector('.display'),
 			play: shadowRoot.querySelector('.play'),
 			select: shadowRoot.querySelector('.track-select'),
-			title: shadowRoot.querySelector('.title'),
 		},
 		player,
 		shadowRoot,
@@ -154,11 +153,10 @@ describe('SoundCloud addon', () => {
 
 		expect(ctx.elements.play.disabled).toBe(false)
 		await waitFor(
-			() => ctx.elements.title.textContent === 'Flickermood',
-			'Expected SoundCloud title metadata to update.',
+			() => ctx.elements.display.textContent === 'Flickermood - Forss',
+			'Expected SoundCloud display metadata to update.',
 		)
-		expect(ctx.elements.title.textContent).toBe('Flickermood')
-		expect(ctx.elements.meta.textContent).toBe('Forss')
+		expect(ctx.elements.display.textContent).toBe('Flickermood - Forss')
 
 		await ctx.player.play()
 		expect(soundCloud.widgets[0].widget.play).toHaveBeenCalledTimes(1)
