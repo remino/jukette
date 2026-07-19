@@ -1,4 +1,5 @@
 import type { AudioFileMetadata, JuketteTrack } from './types'
+import { formatTrackDisplay } from './player-display'
 
 export interface RenderTrackSelectOptions {
 	currentIndex: number
@@ -26,10 +27,9 @@ export const renderTrackSelect = ({
 				durationValue === undefined
 					? '--:--'
 					: formatTime(durationValue)
-			const artist = display.artist ? ` - ${display.artist}` : ''
 
 			option.value = String(index)
-			option.textContent = `${display.title}${artist} (${durationText})`
+			option.textContent = `${formatTrackDisplay(display)} (${durationText})`
 			return option
 		}),
 	)

@@ -54,13 +54,12 @@ const renderPlayer = (tracksMarkup) => {
 		shadowRoot,
 		state,
 		elements: {
-			meta: shadowRoot.querySelector('.meta'),
+			display: shadowRoot.querySelector('.display'),
 			play: shadowRoot.querySelector('.play'),
 			seek: shadowRoot.querySelector('.seek-input'),
 			select: shadowRoot.querySelector('.track-select'),
 			time: shadowRoot.querySelector('.time'),
 			timeValue: shadowRoot.querySelector('.time time'),
-			title: shadowRoot.querySelector('.title'),
 		},
 	}
 }
@@ -88,15 +87,40 @@ describe('JukettePlayerElement DOM', () => {
 			<jukette-track title="Two" artist="Band" src="/two.mp3"></jukette-track>
 		`)
 
-		expect(elements.title.textContent).toBe('One')
-		expect(elements.meta.textContent).toBe('Loading audio')
+		expect(elements.display.localName).toBe('re-marquee')
+		expect(elements.display.getAttribute('animate')).toBe('overflow')
+		expect(elements.display.textContent).toBe('Loading audio')
 		expect(elements.select.options).toHaveLength(2)
+		expect(elements.select.options[0].textContent).toBe(
+			'One - Artist (--:--)',
+		)
 		expect(elements.play).toBeTruthy()
 		expect(elements.seek).toBeTruthy()
 		expect(elements.time).toBeTruthy()
 		expect(shadowRoot.querySelector('.playlist')).toBeNull()
 		expect(shadowRoot.querySelector('.previous')).toBeNull()
 		expect(shadowRoot.querySelector('.next')).toBeNull()
+	})
+
+	it('supports overflow, always, and never marquee modes on the merged display', () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		expect(ctx.player.displayMarquee).toBe('overflow')
+		expect(ctx.elements.display.getAttribute('animate')).toBe('overflow')
+
+		ctx.player.displayMarquee = 'always'
+		expect(ctx.player.getAttribute('display-marquee')).toBe('always')
+		expect(ctx.elements.display.getAttribute('animate')).toBe('always')
+
+		ctx.player.setAttribute('display-marquee', 'never')
+		expect(ctx.player.displayMarquee).toBe('never')
+		expect(ctx.elements.display.getAttribute('animate')).toBe('never')
+
+		ctx.player.setAttribute('display-marquee', 'wat')
+		expect(ctx.player.displayMarquee).toBe('overflow')
+		expect(ctx.elements.display.getAttribute('animate')).toBe('overflow')
 	})
 
 	it('keeps controls disabled until canplay, not merely loadedmetadata', () => {
@@ -159,7 +183,7 @@ describe('JukettePlayerElement DOM', () => {
 		expect(ctx.elements.play.disabled).toBe(true)
 		expect(ctx.elements.seek.disabled).toBe(true)
 		expect(ctx.elements.time.disabled).toBe(true)
-		expect(ctx.elements.meta.textContent).toBe(
+		expect(ctx.elements.display.textContent).toBe(
 			'soundcloud playback unavailable',
 		)
 	})
@@ -206,6 +230,27 @@ describe('JukettePlayerElement DOM', () => {
 		expect(trackChange).not.toHaveBeenCalled()
 		expect(ctx.player.currentTrackIndex).toBe(0)
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Play')
+	})
+
+	it('keeps the toggled time mode while playback progress updates continue', async () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+		await ctx.player.play()
+
+		ctx.state.setCurrentTime(4)
+		ctx.audio.dispatchEvent(new Event('timeupdate'))
+		expect(ctx.elements.timeValue.textContent).toBe('0:04')
+
+		ctx.elements.time.click()
+		expect(ctx.elements.timeValue.textContent).toBe('-0:06')
+
+		ctx.state.setCurrentTime(5)
+		ctx.audio.dispatchEvent(new Event('timeupdate'))
+
+		expect(ctx.elements.timeValue.textContent).toBe('-0:05')
 	})
 
 	it('starts audio tracks from startAt and restarts from that offset', async () => {
@@ -343,7 +388,7 @@ describe('JukettePlayerElement DOM', () => {
 
 		expect(ctx.audio.load).toHaveBeenCalledTimes(1)
 		expect(ctx.player.currentTrackIndex).toBe(1)
-		expect(ctx.elements.title.textContent).toBe('Two')
+		expect(ctx.elements.display.textContent).toBe('Two - Band')
 	})
 
 	it('keeps unsupported tracks selected and disabled', () => {
@@ -360,11 +405,66 @@ describe('JukettePlayerElement DOM', () => {
 
 		const play = shadowRoot.querySelector('.play')
 		const select = shadowRoot.querySelector('.track-select')
-		const meta = shadowRoot.querySelector('.meta')
+		const display = shadowRoot.querySelector('.display')
 
 		expect(select.value).toBe('0')
 		expect(play.disabled).toBe(true)
-		expect(meta.textContent).toBe('soundcloud playback unavailable')
+		expect(display.textContent).toBe('soundcloud playback unavailable')
+	})
+
+	it('renders the merged display as title and artist once ready', () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		markAudioReady(ctx, 10)
+
+		expect(ctx.elements.display.textContent).toBe('One - Artist')
+	})
+
+	it('uses preferred media metadata in the merged display and select text', async () => {
+		registerJuketteBackend({
+			createPlayableTrack(track, callbacks) {
+				return {
+					track,
+					currentTime: 0,
+					duration: 10,
+					load() {
+						callbacks.onMetadata({
+							artist: 'Tagged Artist',
+							title: 'Tagged Title',
+						})
+						callbacks.onReady()
+					},
+					pause() {},
+					play: async () => true,
+					requestPosition() {},
+					seek() {},
+					stop() {},
+				}
+			},
+			type: 'metadata-test',
+		})
+		defineElement()
+		document.body.innerHTML = `
+			<jukette-player prefer-media-metadata>
+				<jukette-track title="One" artist="Artist" src="/one.mp3" type="metadata-test"></jukette-track>
+			</jukette-player>
+		`
+
+		const player = document.querySelector('jukette-player')
+		const shadowRoot = player.shadowRoot
+		const audio = shadowRoot.querySelector('audio')
+		patchAudio(audio)
+		const display = shadowRoot.querySelector('.display')
+		const select = shadowRoot.querySelector('.track-select')
+
+		await flushAsync()
+
+		expect(display.textContent).toBe('Tagged Title - Tagged Artist')
+		expect(select.options[0].textContent).toBe(
+			'Tagged Title - Tagged Artist (--:--)',
+		)
 	})
 
 	it('allows a registered backend to unlock the player through onReady', () => {

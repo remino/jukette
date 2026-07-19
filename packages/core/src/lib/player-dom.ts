@@ -1,13 +1,12 @@
 import playerStyles from './jukette-player.css?inline'
+import type { RemarqueebleElement } from 'remarqueeble'
 
 export interface JukettePlayerDom {
 	audio: HTMLAudioElement
-	metaElement: HTMLElement
+	displayElement: RemarqueebleElement
 	playButton: HTMLButtonElement
 	playerElement: HTMLElement
 	seekInput: HTMLInputElement
-	statusElement: HTMLElement
-	titleElement: HTMLElement
 	trackSelect: HTMLSelectElement
 	timeButton: HTMLButtonElement
 	timeElement: HTMLTimeElement
@@ -26,8 +25,7 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">
-				<div class="title" part="title"></div>
-				<div class="meta" part="artist status" role="status" aria-live="polite"></div>
+				<re-marquee class="display" part="display" role="status" aria-live="polite" animate="overflow"></re-marquee>
 			</div>
 			<div class="controls" part="controls">
 				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
@@ -43,12 +41,10 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 
 	return {
 		audio: query<HTMLAudioElement>(shadowRoot, 'audio'),
-		metaElement: query<HTMLElement>(shadowRoot, '.meta'),
+		displayElement: query<RemarqueebleElement>(shadowRoot, '.display'),
 		playButton: query<HTMLButtonElement>(shadowRoot, '.play'),
 		playerElement: query<HTMLElement>(shadowRoot, '.player'),
 		seekInput: query<HTMLInputElement>(shadowRoot, '.seek-input'),
-		statusElement: query<HTMLElement>(shadowRoot, '.meta'),
-		titleElement: query<HTMLElement>(shadowRoot, '.title'),
 		timeButton: query<HTMLButtonElement>(shadowRoot, '.time'),
 		timeElement: query<HTMLTimeElement>(shadowRoot, '.time time'),
 		trackSelect: query<HTMLSelectElement>(shadowRoot, '.track-select'),

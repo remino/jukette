@@ -1,5 +1,5 @@
 import { HTMLElementBase } from './dom';
-import type { JuketteMidiOscillator, JuketteTrack } from './types';
+import type { JuketteDisplayMarquee, JuketteMidiOscillator, JuketteTrack } from './types';
 export declare class JukettePlayerElement extends HTMLElementBase {
     static observedAttributes: string[];
     private static readonly reconnectGraceMs;
@@ -37,6 +37,8 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     set preloadMetadata(preload: boolean);
     get preferMediaMetadata(): boolean;
     set preferMediaMetadata(prefer: boolean);
+    get displayMarquee(): JuketteDisplayMarquee;
+    set displayMarquee(mode: JuketteDisplayMarquee);
     get midiOscillator(): JuketteMidiOscillator;
     set midiOscillator(oscillator: JuketteMidiOscillator);
     set playlist(tracks: JuketteTrack[]);
@@ -73,7 +75,8 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private syncPlayingState;
     private setStatus;
     private updateStatus;
-    private renderMetaLine;
+    private renderDisplayText;
+    private syncDisplayMarqueeMode;
     private finishTrack;
     private setReady;
     private stopProgressLoop;

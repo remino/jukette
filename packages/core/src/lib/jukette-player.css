@@ -22,19 +22,11 @@
 	min-inline-size: 0;
 }
 
-.title,
-.meta {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.title {
+.display {
+	display: block;
 	font-weight: 700;
-}
-
-.meta {
-	opacity: 0.75;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 .controls {
@@ -91,6 +83,8 @@ button:disabled {
 
 input[type='range'] {
 	accent-color: currentColor;
+	margin: 0;
+	width: 100%;
 }
 
 .seek {
@@ -101,15 +95,18 @@ input[type='range'] {
 	border: 0;
 	block-size: auto;
 	inline-size: auto;
-	min-inline-size: 0;
+	justify-content: end;
+	justify-items: end;
 	padding: 0;
-	font-variant-numeric: tabular-nums;
 	text-align: end;
 	white-space: nowrap;
 }
 
 .time time {
 	display: block;
+	font-family: monospace;
+	font-variant-numeric: tabular-nums;
+	min-inline-size: 3em;
 }
 
 .track-select {

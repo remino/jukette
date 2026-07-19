@@ -104,4 +104,9 @@ export class JuketteProgressController {
 			this.options.getDuration(),
 		)
 	}
+
+	restart(): void {
+		this.stop()
+		this.start()
+	}
 }

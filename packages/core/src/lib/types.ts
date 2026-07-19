@@ -1,5 +1,6 @@
 export type JuketteTrackKind = string
 export type JuketteMidiOscillator = OscillatorType | 'auto'
+export type JuketteDisplayMarquee = 'overflow' | 'always' | 'never'
 export type JuketteEventName =
 	| 'jukette:ended'
 	| 'jukette:pause'

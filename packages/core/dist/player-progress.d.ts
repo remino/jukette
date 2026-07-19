@@ -16,4 +16,5 @@ export declare class JuketteProgressController {
     syncPlayingState(): void;
     start(): void;
     stop(): void;
+    restart(): void;
 }

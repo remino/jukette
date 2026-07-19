@@ -5,6 +5,7 @@ import {
 	getJuketteBackend,
 	inferTrackType,
 	JukettePlayerElement,
+	normalizeDisplayMarquee,
 	normalizeTrack,
 	parsePlaylist,
 	resetJuketteBackends,
@@ -200,6 +201,17 @@ describe('jukette helpers', () => {
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'prefer-media-metadata',
 		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'display-marquee',
+		)
+	})
+
+	it('normalizes display marquee modes', () => {
+		expect(normalizeDisplayMarquee(null)).toBe('overflow')
+		expect(normalizeDisplayMarquee('overflow')).toBe('overflow')
+		expect(normalizeDisplayMarquee('always')).toBe('always')
+		expect(normalizeDisplayMarquee('never')).toBe('never')
+		expect(normalizeDisplayMarquee('anything-else')).toBe('overflow')
 	})
 
 	it('ignores non-track elements', () => {

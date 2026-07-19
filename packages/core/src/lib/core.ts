@@ -21,6 +21,7 @@ export {
 } from './elements'
 export { createJuketteEventDetail } from './events'
 export { normalizeMidiOscillator } from './midi'
+export { formatTrackDisplay, normalizeDisplayMarquee } from './player-display'
 export {
 	JukettePlayableTrack,
 	type PlayableTrackCallbacks,
@@ -42,6 +43,7 @@ export {
 } from './tracks'
 export type {
 	AudioFileMetadata,
+	JuketteDisplayMarquee,
 	JuketteEventDetail,
 	JuketteEventName,
 	JuketteMidiOscillator,

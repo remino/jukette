@@ -1,5 +1,6 @@
 import {
 	ATTR_ARTIST,
+	ATTR_DISPLAY_MARQUEE,
 	ATTR_MIDI_OSCILLATOR,
 	ATTR_PLAYLIST,
 	ATTR_PREFER_MEDIA_METADATA,
@@ -17,6 +18,7 @@ import {
 import { HTMLElementBase } from './dom'
 import { createJuketteEventDetail } from './events'
 import { normalizeMidiOscillator } from './midi'
+import { formatTrackDisplay, normalizeDisplayMarquee } from './player-display'
 import { createJukettePlayerDom, type JukettePlayerDom } from './player-dom'
 import { JuketteMetadataController } from './player-metadata'
 import { JuketteProgressController } from './player-progress'
@@ -31,11 +33,13 @@ import {
 } from './tracks'
 import type {
 	AudioFileMetadata,
+	JuketteDisplayMarquee,
 	JuketteEventDetail,
 	JuketteEventName,
 	JuketteMidiOscillator,
 	JuketteTrack,
 } from './types'
+import { defineRemarqueebleElements } from 'remarqueeble'
 
 export class JukettePlayerElement extends HTMLElementBase {
 	static observedAttributes = [
@@ -43,6 +47,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
 	]
@@ -71,6 +76,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	constructor() {
 		super()
+		defineRemarqueebleElements()
 
 		if (typeof MutationObserver !== 'undefined') {
 			this.trackObserver = new MutationObserver(() =>
@@ -79,6 +85,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 
 		this.dom = createJukettePlayerDom(this)
+		this.syncDisplayMarqueeMode()
 		this.metadataController = new JuketteMetadataController({
 			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
@@ -177,6 +184,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.preloadPlaylistMetadata()
 			return
 		}
+		if (name === ATTR_DISPLAY_MARQUEE) {
+			this.syncDisplayMarqueeMode()
+			return
+		}
 
 		this.syncTracks()
 		this.loadTrack()
@@ -220,6 +231,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	set preferMediaMetadata(prefer: boolean) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer)
+	}
+
+	get displayMarquee(): JuketteDisplayMarquee {
+		return normalizeDisplayMarquee(this.getAttribute(ATTR_DISPLAY_MARQUEE))
+	}
+
+	set displayMarquee(mode: JuketteDisplayMarquee) {
+		this.setAttribute(ATTR_DISPLAY_MARQUEE, normalizeDisplayMarquee(mode))
 	}
 
 	get midiOscillator(): JuketteMidiOscillator {
@@ -470,8 +489,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = ''
 			this.statusMessage = ''
-			this.dom.titleElement.textContent = 'No track'
-			this.dom.metaElement.textContent = ''
+			this.renderDisplayText('No track')
 			this.setReady(false)
 			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
@@ -596,8 +614,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track) return
 
 		const display = this.getTrackDisplay(track)
-		this.dom.titleElement.textContent = display.title
-		this.renderMetaLine(display.artist || inferTrackType(track))
+		this.renderDisplayText(
+			this.statusMessage || formatTrackDisplay(display),
+		)
 	}
 
 	private preloadPlaylistMetadata(): void {
@@ -608,6 +627,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!this.ready) return
 		this.timeMode = this.timeMode === 'elapsed' ? 'remaining' : 'elapsed'
 		this.syncProgress(this.getCurrentTime(), this.duration)
+		if (this.playing) this.progressController.restart()
 	}
 
 	private seekFromInput(): void {
@@ -635,14 +655,24 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private updateStatus(message = ''): void {
 		this.statusMessage = message
 		const track = this.currentTrack
-		const display = track ? this.getTrackDisplay(track) : null
-		this.renderMetaLine(
-			display?.artist || (track ? inferTrackType(track) : ''),
+		if (!track) {
+			this.renderDisplayText(message || 'No track')
+			return
+		}
+
+		this.renderDisplayText(
+			message || formatTrackDisplay(this.getTrackDisplay(track)),
 		)
 	}
 
-	private renderMetaLine(fallbackText: string): void {
-		this.dom.metaElement.textContent = this.statusMessage || fallbackText
+	private renderDisplayText(text: string): void {
+		this.dom.displayElement.textContent = text
+		this.dom.displayElement.stop()
+		this.dom.displayElement.start()
+	}
+
+	private syncDisplayMarqueeMode(): void {
+		this.dom.displayElement.setAttribute('animate', this.displayMarquee)
 	}
 
 	private finishTrack(): void {

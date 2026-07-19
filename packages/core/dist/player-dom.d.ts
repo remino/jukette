@@ -1,11 +1,10 @@
+import type { RemarqueebleElement } from 'remarqueeble';
 export interface JukettePlayerDom {
     audio: HTMLAudioElement;
-    metaElement: HTMLElement;
+    displayElement: RemarqueebleElement;
     playButton: HTMLButtonElement;
     playerElement: HTMLElement;
     seekInput: HTMLInputElement;
-    statusElement: HTMLElement;
-    titleElement: HTMLElement;
     trackSelect: HTMLSelectElement;
     timeButton: HTMLButtonElement;
     timeElement: HTMLTimeElement;

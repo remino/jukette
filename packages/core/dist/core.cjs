@@ -1,5 +1,6 @@
 /*! @remino/jukette-core v0.5.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+let remarqueeble = require("remarqueeble");
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();
 var registrationListeners = /* @__PURE__ */ new Set();
@@ -33,6 +34,7 @@ var ATTR_PLAYLIST = "playlist";
 var ATTR_PRELOAD = "preload";
 var ATTR_PRELOAD_METADATA = "preload-metadata";
 var ATTR_PREFER_MEDIA_METADATA = "prefer-media-metadata";
+var ATTR_DISPLAY_MARQUEE = "display-marquee";
 var ATTR_MIDI_OSCILLATOR = "midi-oscillator";
 var ATTR_TRACK_INDEX = "track-index";
 var ATTR_TITLE = "title";
@@ -128,8 +130,20 @@ var normalizeMidiOscillator = (value) => {
 	return "auto";
 };
 //#endregion
+//#region src/lib/player-display.ts
+var normalizeDisplayMarquee = (value) => {
+	if (value === "always" || value === "never" || value === "overflow") return value;
+	return "overflow";
+};
+var formatTrackDisplay = (display) => {
+	const title = display.title.trim();
+	const artist = display.artist.trim();
+	if (!artist) return title;
+	return `${title} - ${artist}`;
+};
+//#endregion
 //#region src/lib/jukette-player.css?inline
-var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.title,.meta{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.title{font-weight:700}.meta{opacity:.75}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor}.seek{display:grid}.time{font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap;border:0;block-size:auto;inline-size:auto;min-inline-size:0;padding:0}.time time{display:block}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;background:0 0;border:1px solid;border-radius:0;inline-size:100%;padding:.35rem .5em}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
+var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.display{white-space:nowrap;font-weight:700;display:block;overflow:hidden}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor;width:100%;margin:0}.seek{display:grid}.time{text-align:end;white-space:nowrap;border:0;justify-content:end;justify-items:end;block-size:auto;inline-size:auto;padding:0}.time time{font-variant-numeric:tabular-nums;min-inline-size:3em;font-family:monospace;display:block}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;background:0 0;border:1px solid;border-radius:0;inline-size:100%;padding:.35rem .5em}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -144,8 +158,7 @@ var createJukettePlayerDom = (host) => {
 
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">
-				<div class="title" part="title"></div>
-				<div class="meta" part="artist status" role="status" aria-live="polite"></div>
+				<re-marquee class="display" part="display" role="status" aria-live="polite" animate="overflow"></re-marquee>
 			</div>
 			<div class="controls" part="controls">
 				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
@@ -160,12 +173,10 @@ var createJukettePlayerDom = (host) => {
 	`;
 	return {
 		audio: query(shadowRoot, "audio"),
-		metaElement: query(shadowRoot, ".meta"),
+		displayElement: query(shadowRoot, ".display"),
 		playButton: query(shadowRoot, ".play"),
 		playerElement: query(shadowRoot, ".player"),
 		seekInput: query(shadowRoot, ".seek-input"),
-		statusElement: query(shadowRoot, ".meta"),
-		titleElement: query(shadowRoot, ".title"),
 		timeButton: query(shadowRoot, ".time"),
 		timeElement: query(shadowRoot, ".time time"),
 		trackSelect: query(shadowRoot, ".track-select")
@@ -246,11 +257,10 @@ var JuketteMetadataController = class {
 };
 //#endregion
 //#region src/lib/player-time.ts
+var pad = (val) => String(val).padStart(2, "0");
 var formatTime = (seconds) => {
 	const roundedSeconds = Math.floor(Number.isFinite(seconds) ? Math.max(0, seconds) : 0);
-	const minutes = Math.floor(roundedSeconds / 60);
-	const remainder = roundedSeconds % 60;
-	return `${minutes}:${String(remainder).padStart(2, "0")}`;
+	return `${Math.floor(roundedSeconds / 60)}:${pad(roundedSeconds % 60)}`;
 };
 //#endregion
 //#region src/lib/player-progress.ts
@@ -302,6 +312,10 @@ var JuketteProgressController = class {
 		this.progressFrame = 0;
 		this.syncProgress(this.options.getCurrentTime(), this.options.getDuration());
 	}
+	restart() {
+		this.stop();
+		this.start();
+	}
 };
 //#endregion
 //#region src/lib/player-track-select.ts
@@ -311,9 +325,8 @@ var renderTrackSelect = ({ currentIndex, element, formatTime, getDisplay, getDur
 		const display = getDisplay(track);
 		const durationValue = getDuration(track);
 		const durationText = durationValue === void 0 ? "--:--" : formatTime(durationValue);
-		const artist = display.artist ? ` - ${display.artist}` : "";
 		option.value = String(index);
-		option.textContent = `${display.title}${artist} (${durationText})`;
+		option.textContent = `${formatTrackDisplay(display)} (${durationText})`;
 		return option;
 	}));
 	element.value = String(Math.max(0, Math.min(currentIndex, tracks.length - 1)));
@@ -326,6 +339,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
 	];
@@ -352,8 +366,10 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	disconnectTeardownId = null;
 	constructor() {
 		super();
+		(0, remarqueeble.defineRemarqueebleElements)();
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
 		this.dom = createJukettePlayerDom(this);
+		this.syncDisplayMarqueeMode();
 		this.metadataController = new JuketteMetadataController({
 			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
@@ -428,6 +444,10 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.preloadPlaylistMetadata();
 			return;
 		}
+		if (name === "display-marquee") {
+			this.syncDisplayMarqueeMode();
+			return;
+		}
 		this.syncTracks();
 		this.loadTrack();
 	}
@@ -460,6 +480,12 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	}
 	set preferMediaMetadata(prefer) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer);
+	}
+	get displayMarquee() {
+		return normalizeDisplayMarquee(this.getAttribute(ATTR_DISPLAY_MARQUEE));
+	}
+	set displayMarquee(mode) {
+		this.setAttribute(ATTR_DISPLAY_MARQUEE, normalizeDisplayMarquee(mode));
 	}
 	get midiOscillator() {
 		return normalizeMidiOscillator(this.getAttribute(ATTR_MIDI_OSCILLATOR));
@@ -637,8 +663,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = "";
 			this.statusMessage = "";
-			this.dom.titleElement.textContent = "No track";
-			this.dom.metaElement.textContent = "";
+			this.renderDisplayText("No track");
 			this.setReady(false);
 			this.dom.trackSelect.disabled = true;
 			if (previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
@@ -737,8 +762,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		const track = this.currentTrack;
 		if (!track) return;
 		const display = this.getTrackDisplay(track);
-		this.dom.titleElement.textContent = display.title;
-		this.renderMetaLine(display.artist || inferTrackType(track));
+		this.renderDisplayText(this.statusMessage || formatTrackDisplay(display));
 	}
 	preloadPlaylistMetadata() {
 		this.metadataController.preloadPlaylistMetadata();
@@ -747,6 +771,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (!this.ready) return;
 		this.timeMode = this.timeMode === "elapsed" ? "remaining" : "elapsed";
 		this.syncProgress(this.getCurrentTime(), this.duration);
+		if (this.playing) this.progressController.restart();
 	}
 	seekFromInput() {
 		if (!this.ready || !this.duration) return;
@@ -768,11 +793,19 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	updateStatus(message = "") {
 		this.statusMessage = message;
 		const track = this.currentTrack;
-		const display = track ? this.getTrackDisplay(track) : null;
-		this.renderMetaLine(display?.artist || (track ? inferTrackType(track) : ""));
+		if (!track) {
+			this.renderDisplayText(message || "No track");
+			return;
+		}
+		this.renderDisplayText(message || formatTrackDisplay(this.getTrackDisplay(track)));
 	}
-	renderMetaLine(fallbackText) {
-		this.dom.metaElement.textContent = this.statusMessage || fallbackText;
+	renderDisplayText(text) {
+		this.dom.displayElement.textContent = text;
+		this.dom.displayElement.stop();
+		this.dom.displayElement.start();
+	}
+	syncDisplayMarqueeMode() {
+		this.dom.displayElement.setAttribute("animate", this.displayMarquee);
 	}
 	finishTrack() {
 		this.desiredPlaying = false;
@@ -868,9 +901,11 @@ exports.defineElement = defineElement;
 exports.defineElements = defineElements;
 exports.defineJuketteElement = defineJuketteElement;
 exports.defineJuketteElements = defineJuketteElements;
+exports.formatTrackDisplay = formatTrackDisplay;
 exports.getJuketteBackend = getJuketteBackend;
 exports.getRegisteredJuketteBackends = getRegisteredJuketteBackends;
 exports.inferTrackType = inferTrackType;
+exports.normalizeDisplayMarquee = normalizeDisplayMarquee;
 exports.normalizeMidiOscillator = normalizeMidiOscillator;
 exports.normalizeTrack = normalizeTrack;
 exports.parsePlaylist = parsePlaylist;

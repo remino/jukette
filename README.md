@@ -349,6 +349,10 @@ oscillator. Supported values are `auto`, `sine`, `square`, `sawtooth`, and
 preview timbre; invalid values fall back to `auto`. The property matters only
 when the MIDI addon is registered.
 
+Use `display-marquee` or `displayMarquee` to control how the merged header
+display scrolls. Supported values are `overflow`, `always`, and `never`.
+`overflow` is the default and scrolls only when the text overflows.
+
 Jukette dispatches bubbling composed custom events from the `<jukette-player>`
 host:
 
@@ -405,7 +409,7 @@ accent styling.
 For deeper styling, Jukette exposes stable `::part()` hooks:
 
 - Layout: `player`, `track`, `seek`, `time`, `controls`.
-- Track display: `title`, `artist`, `status`.
+- Track display: `display`.
 - Controls: `button`, `play-button`, `seek-input`, `track-select`.
 
 ```css

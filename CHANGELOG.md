@@ -17,6 +17,23 @@
 
 ## HEAD
 
+- Library
+    - Merge the player header’s separate title and artist/status rows into one
+      display line, and format the resting track label in the same
+      `Title - Artist` style used by the playlist selector.
+    - Add `remarqueeble` to the core player UI so the merged display line only
+      scrolls when its text overflows, including when transient status text
+      replaces the normal track label.
+    - Add a player-level `display-marquee` option with `overflow`, `always`,
+      and `never` modes so marquee motion can be configured explicitly.
+    - Keep the elapsed-versus-remaining time toggle stable during active
+      playback by restarting the live progress loop when the time mode changes.
+    - Replace the shadow-parts trio `title`, `artist`, and `status` with one
+      stable `display` part for styling the merged header line.
+- Docs
+    - Give the first demo track a deliberately long title so the live docs
+      showcase the overflow marquee behavior immediately.
+
 ## v0.5.0
 
 - Library
