@@ -76,6 +76,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 	private remotePlaylistError = ''
 	private remotePlaylistLoading = false
 	private remotePlaylistRequestId = 0
+	private remotePlaylistSource = ''
 	private remotePlaylistSelected = false
 	private loadedTrackKey = ''
 	private statusMessage = ''
@@ -199,7 +200,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.syncDisplayMarqueeMode()
 			return
 		}
-		if (name === ATTR_PLAYLIST_SRC) {
+		if (name === ATTR_PLAYLIST_SRC && this.isConnected) {
 			void this.syncRemotePlaylist()
 		}
 
@@ -741,9 +742,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private async syncRemotePlaylist(): Promise<void> {
 		const playlistSrc = (this.getAttribute(ATTR_PLAYLIST_SRC) ?? '').trim()
-		const requestId = ++this.remotePlaylistRequestId
 
 		if (!playlistSrc) {
+			this.remotePlaylistRequestId += 1
+			this.remotePlaylistSource = ''
 			this.remotePlaylist = null
 			this.remotePlaylistError = ''
 			this.remotePlaylistLoading = false
@@ -751,7 +753,17 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.loadTrack()
 			return
 		}
+		if (
+			playlistSrc === this.remotePlaylistSource &&
+			(this.remotePlaylistLoading ||
+				this.remotePlaylist !== null ||
+				this.remotePlaylistError !== '')
+		) {
+			return
+		}
 
+		const requestId = ++this.remotePlaylistRequestId
+		this.remotePlaylistSource = playlistSrc
 		this.remotePlaylist = null
 		this.remotePlaylistError = ''
 		this.remotePlaylistLoading = true

@@ -367,6 +367,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	remotePlaylistError = "";
 	remotePlaylistLoading = false;
 	remotePlaylistRequestId = 0;
+	remotePlaylistSource = "";
 	remotePlaylistSelected = false;
 	loadedTrackKey = "";
 	statusMessage = "";
@@ -457,7 +458,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.syncDisplayMarqueeMode();
 			return;
 		}
-		if (name === "playlist-src") this.syncRemotePlaylist();
+		if (name === "playlist-src" && this.isConnected) this.syncRemotePlaylist();
 		this.syncTracks();
 		this.loadTrack();
 	}
@@ -855,8 +856,9 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	}
 	async syncRemotePlaylist() {
 		const playlistSrc = (this.getAttribute("playlist-src") ?? "").trim();
-		const requestId = ++this.remotePlaylistRequestId;
 		if (!playlistSrc) {
+			this.remotePlaylistRequestId += 1;
+			this.remotePlaylistSource = "";
 			this.remotePlaylist = null;
 			this.remotePlaylistError = "";
 			this.remotePlaylistLoading = false;
@@ -864,6 +866,9 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.loadTrack();
 			return;
 		}
+		if (playlistSrc === this.remotePlaylistSource && (this.remotePlaylistLoading || this.remotePlaylist !== null || this.remotePlaylistError !== "")) return;
+		const requestId = ++this.remotePlaylistRequestId;
+		this.remotePlaylistSource = playlistSrc;
 		this.remotePlaylist = null;
 		this.remotePlaylistError = "";
 		this.remotePlaylistLoading = true;

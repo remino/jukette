@@ -23,6 +23,7 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private remotePlaylistError;
     private remotePlaylistLoading;
     private remotePlaylistRequestId;
+    private remotePlaylistSource;
     private remotePlaylistSelected;
     private loadedTrackKey;
     private statusMessage;

@@ -167,7 +167,10 @@ describe('JukettePlayerElement DOM', () => {
 
 		await flushAsync()
 
-		expect(fetch).toHaveBeenCalledWith('/playlist.json')
+		const playlistRequests = fetch.mock.calls.filter(
+			([url]) => url === '/playlist.json',
+		)
+		expect(playlistRequests).toHaveLength(1)
 		expect(player.playlist).toEqual([
 			{ artist: 'Remote', src: '/remote.mp3', title: 'One' },
 		])

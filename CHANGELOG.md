@@ -19,6 +19,14 @@
 
 ## HEAD
 
+- Library
+    - Avoid duplicate initial `playlist-src` fetches by deduplicating remote
+      playlist loads across element setup and attribute updates for the same
+      source URL.
+- Docs
+    - Keep the docs demo aligned with the new remote playlist support by
+      rebuilding the package `dist` outputs consumed by `jukette/auto`.
+
 ## v0.7.0
 
 - Library
