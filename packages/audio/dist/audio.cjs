@@ -1,4 +1,4 @@
-/*! @remino/jukette-audio v0.7.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-audio v0.7.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 let _remino_jukette_core = require("@remino/jukette-core");
 //#region src/lib/metadata.ts

@@ -1,6 +1,6 @@
 {
 	"name": "@remino/jukette-midi",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "Tone-based MIDI backend for jukette.",
 	"type": "module",
 	"license": "ISC",
@@ -36,7 +36,7 @@
 		"./src/lib/midi-auto.ts"
 	],
 	"dependencies": {
-		"@remino/jukette-core": "0.7.0",
+		"@remino/jukette-core": "0.7.1",
 		"@tonejs/midi": "^2.0.28",
 		"tone": "^15.1.22"
 	},

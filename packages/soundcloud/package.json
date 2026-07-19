@@ -1,6 +1,6 @@
 {
 	"name": "@remino/jukette-soundcloud",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "SoundCloud backend addon for jukette.",
 	"type": "module",
 	"license": "ISC",
@@ -36,7 +36,7 @@
 		"./src/lib/soundcloud-auto.ts"
 	],
 	"dependencies": {
-		"@remino/jukette-core": "0.7.0"
+		"@remino/jukette-core": "0.7.1"
 	},
 	"scripts": {
 		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",

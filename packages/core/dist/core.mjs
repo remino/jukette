@@ -1,4 +1,4 @@
-/*! @remino/jukette-core v0.7.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-core v0.7.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 import { defineRemarqueebleElements } from "remarqueeble";
 //#region src/lib/backend-registry.ts
 var backends = /* @__PURE__ */ new Map();
