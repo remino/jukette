@@ -26,6 +26,7 @@ import {
 	MidiPlayableTrack,
 	warmMidiAudioContext,
 } from '../../packages/midi/src/lib/midi-track'
+import { formatTime, pad } from '../../packages/core/src/lib/player-time'
 
 describe('jukette helpers', () => {
 	beforeEach(() => {
@@ -212,6 +213,14 @@ describe('jukette helpers', () => {
 		expect(normalizeDisplayMarquee('always')).toBe('always')
 		expect(normalizeDisplayMarquee('never')).toBe('never')
 		expect(normalizeDisplayMarquee('anything-else')).toBe('overflow')
+	})
+
+	it('pads seconds for player time formatting', () => {
+		expect(pad(0)).toBe('00')
+		expect(pad(7)).toBe('07')
+		expect(pad(12)).toBe('12')
+		expect(formatTime(5)).toBe('0:05')
+		expect(formatTime(65)).toBe('1:05')
 	})
 
 	it('ignores non-track elements', () => {
