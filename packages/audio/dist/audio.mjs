@@ -1,4 +1,4 @@
-/*! @remino/jukette-audio v0.6.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-audio v0.7.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 import { JukettePlayableTrack, cleanMetadataText, decodeAscii, decodeIso88591, decodeTextBytes, decodeUtf16Be, registerJuketteBackend } from "@remino/jukette-core";
 //#region src/lib/metadata.ts
 var readSynchsafeInteger = (data, offset, length = 4) => {

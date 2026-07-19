@@ -1,4 +1,4 @@
-/*! @remino/jukette-core v0.6.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-core v0.7.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 let remarqueeble = require("remarqueeble");
 //#region src/lib/backend-registry.ts
