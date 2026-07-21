@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.8.1](#v081)
 - [v0.8.0](#v080)
 - [v0.7.1](#v071)
 - [v0.7.0](#v070)
@@ -20,6 +21,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.8.1
 
 - Library
     - Avoid unnecessary full track reloads when non-playback attributes change by special-casing display-only attributes (for example: `show-source-link` and `midi-oscillator`). Toggling the source-link now updates the header link in-place via `syncSourceLink()` and no longer resets the current track or playback state.

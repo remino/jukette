@@ -1,6 +1,6 @@
 {
 	"name": "jukette",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"description": "White-label jukebox custom element for audio, SoundCloud, and MIDI playlists.",
 	"type": "module",
 	"license": "ISC",
@@ -47,8 +47,8 @@
 		"./src/lib/auto.ts"
 	],
 	"dependencies": {
-		"@remino/jukette-audio": "0.8.0",
-		"@remino/jukette-core": "0.8.0"
+		"@remino/jukette-audio": "0.8.1",
+		"@remino/jukette-core": "0.8.1"
 	},
 	"scripts": {
 		"build": "node ../../bin/build-package.mjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
