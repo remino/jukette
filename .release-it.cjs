@@ -28,7 +28,7 @@ module.exports = {
 		],
 		'before:release': 'npm run publish:workspaces:dry-run',
 		'after:github:release': [
-			'npm run publish:workspaces',
+			'node bin/publish-workspaces-with-otp.mjs',
 			'npm run docs:publish',
 		],
 	},
