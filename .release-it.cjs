@@ -27,10 +27,9 @@ module.exports = {
 			'git add package.json package-lock.json apps/docs/package.json packages/core/package.json packages/audio/package.json packages/midi/package.json packages/soundcloud/package.json packages/jukette/package.json CHANGELOG.md README.md packages/core/dist packages/audio/dist packages/midi/dist packages/soundcloud/dist packages/jukette/dist',
 		],
 		'before:release': 'npm run publish:workspaces:dry-run',
-		'before:github:release': 'node bin/npm-publish-with-otp.mjs',
 		'after:github:release': 'npm run docs:publish',
 	},
 	npm: {
-		publish: false,
+		publish: true,
 	},
 }
