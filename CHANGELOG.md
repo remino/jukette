@@ -21,6 +21,9 @@
 
 ## HEAD
 
+- Docs
+    - Optimize the playground demo script to update only changed player attributes instead of recreating or reinitializing the player element on every setting change. This preserves playback and selection state while keeping the embed preview in sync.
+
 ## v0.8.0
 
 - Library

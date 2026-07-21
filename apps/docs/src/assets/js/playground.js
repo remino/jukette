@@ -192,6 +192,8 @@ const buildEmbedCode = (settings) => {
 	return `<jukette-player ${attributes.join(' ')}>\n${trackMarkup}\n</jukette-player>\n\n<script type="module">\n  import 'jukette/auto'\n  import '@remino/jukette-midi/auto'\n  import '@remino/jukette-soundcloud/auto'\n</script>`
 }
 
+let previousSettings = {}
+
 const render = () => {
 	if (!player) return
 
@@ -205,28 +207,45 @@ const render = () => {
 		trackIndex: readSetting('trackIndex'),
 	}
 
-	player.setAttribute('display-marquee', settings.displayMarquee)
-	player.setAttribute('midi-oscillator', settings.midiOscillator)
-	toggleBooleanAttribute(
-		player,
-		'prefer-media-metadata',
-		settings.preferMediaMetadata === 'true',
-	)
-	toggleBooleanAttribute(
-		player,
-		'preload-metadata',
-		settings.preloadMetadata === 'true',
-	)
-	toggleBooleanAttribute(
-		player,
-		'show-source-link',
-		settings.showSourceLink === 'true',
-	)
+	// Only update attributes that changed
+	if (settings.displayMarquee !== previousSettings.displayMarquee) {
+		player.setAttribute('display-marquee', settings.displayMarquee)
+	}
 
-	if (settings.showTrackSelect === 'true') {
-		player.removeAttribute('show-track-select')
-	} else {
-		player.setAttribute('show-track-select', 'false')
+	if (settings.midiOscillator !== previousSettings.midiOscillator) {
+		player.setAttribute('midi-oscillator', settings.midiOscillator)
+	}
+
+	if (settings.preferMediaMetadata !== previousSettings.preferMediaMetadata) {
+		toggleBooleanAttribute(
+			player,
+			'prefer-media-metadata',
+			settings.preferMediaMetadata === 'true',
+		)
+	}
+
+	if (settings.preloadMetadata !== previousSettings.preloadMetadata) {
+		toggleBooleanAttribute(
+			player,
+			'preload-metadata',
+			settings.preloadMetadata === 'true',
+		)
+	}
+
+	if (settings.showSourceLink !== previousSettings.showSourceLink) {
+		toggleBooleanAttribute(
+			player,
+			'show-source-link',
+			settings.showSourceLink === 'true',
+		)
+	}
+
+	if (settings.showTrackSelect !== previousSettings.showTrackSelect) {
+		if (settings.showTrackSelect === 'true') {
+			player.removeAttribute('show-track-select')
+		} else {
+			player.setAttribute('show-track-select', 'false')
+		}
 	}
 
 	const embedCode = buildEmbedCode(settings)
@@ -235,6 +254,8 @@ const render = () => {
 		code.setAttribute('data-copy-source', embedCode)
 		code.source = embedCode
 	}
+
+	previousSettings = { ...settings }
 }
 
 const resetSettings = () => {
