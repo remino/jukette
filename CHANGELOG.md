@@ -3,6 +3,7 @@
 <!-- mtoc-start -->
 
 - [HEAD](#head)
+- [v0.8.0](#v080)
 - [v0.7.1](#v071)
 - [v0.7.0](#v070)
 - [v0.6.0](#v060)
@@ -19,6 +20,8 @@
 <!-- mtoc-end -->
 
 ## HEAD
+
+## v0.8.0
 
 - Library
     - Add a `show-source-link` attribute/property on `jukette-player` with

@@ -1,4 +1,4 @@
-/*! @remino/jukette-soundcloud v0.7.1 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
+/*! @remino/jukette-soundcloud v0.8.0 | (c) 2026 Rémino Rem <https://remino.net/> | ISC Licence */
 let _remino_jukette_core = require("@remino/jukette-core");
 //#region src/lib/soundcloud.ts
 var soundCloudWidgetApiUrl = "https://w.soundcloud.com/player/api.js";
