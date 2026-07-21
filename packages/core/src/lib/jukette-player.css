@@ -149,7 +149,10 @@ input[type='range'] {
 	cursor: pointer;
 	font: inherit;
 	inline-size: 100%;
+	overflow: hidden;
 	padding: 0.35rem 0.5em;
+	max-width: 100%;
+	text-overflow: ellipsis;
 }
 
 .track-select:focus-visible {
