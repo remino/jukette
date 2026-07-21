@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process'
 import { createInterface } from 'readline'
-
-const rl = createInterface({
-	input: process.stdin,
-	output: process.stdout,
-})
+import fs from 'fs'
 
 function askForOTP() {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
+		const rl = createInterface({
+			input: fs.createReadStream('/dev/tty'),
+			output: fs.createWriteStream('/dev/tty'),
+			terminal: true,
+		})
+
 		rl.question('Enter your npm OTP (one-time password): ', (answer) => {
 			rl.close()
 			resolve(answer)
+		})
+
+		rl.on('error', (err) => {
+			reject(err)
 		})
 	})
 }
