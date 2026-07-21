@@ -12,11 +12,6 @@ header nav ul {
 	padding: 0;
 }
 
-jukette-player {
-	margin-block: var(--dress-m-bs) var(--dress-m-be);
-	max-inline-size: 42rem;
-}
-
 .code-block {
 	margin-block-end: var(--dress-m-be);
 	margin-block-start: var(--dress-m-bs);

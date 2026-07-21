@@ -31,6 +31,7 @@
     - Enable the source link in the live demo and point the docs app at local
       workspace source entries during development/builds so player changes show
       up in the demo without rebuilding package `dist` outputs first.
+    - Replace _Demo_ page with new [_Playground_](/jukette/playground/).
 
 ## v0.7.1
 

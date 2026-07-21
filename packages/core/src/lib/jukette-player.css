@@ -4,6 +4,8 @@
 	display: block;
 	font: inherit;
 	color: inherit;
+	min-width: 4em;
+	overflow: hidden;
 }
 
 * {

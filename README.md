@@ -480,7 +480,7 @@ This repository is an npm workspaces monorepo:
 - `packages/core`: publishes `@remino/jukette-core`.
 - `packages/audio`: publishes `@remino/jukette-audio`.
 - `packages/midi`: publishes `@remino/jukette-midi`.
-- `apps/docs`: Astro docs and demo site.
+- `apps/docs`: Astro docs and playground site.
 
 Root scripts orchestrate builds in dependency order. Use `npm run build`,
 `npm run typecheck`, and `npm test` from the repo root.

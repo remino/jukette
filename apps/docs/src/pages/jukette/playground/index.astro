@@ -1,0 +1,171 @@
+---
+import BaseLayout from '../../../components/BaseLayout.astro'
+import { site } from '../../../data/site'
+import '../../../assets/css/playground.css'
+
+const embedCode = `<jukette-player preload-metadata prefer-media-metadata show-source-link>
+  <jukette-track
+    title="C-sharp arpeggiator for late-night cassette deck calibration and soft neon hallway testing"
+    artist="Jukette"
+    src="/jukette/demo-tone.mp3"
+    preload
+  ></jukette-track>
+  <jukette-track
+    title="MIDI scale"
+    artist="Jukette"
+    src="/jukette/demo-scale.mid"
+    type="midi"
+  ></jukette-track>
+  <jukette-track
+    title="Flickermood"
+    artist="Forss"
+    src="https://soundcloud.com/forss/flickermood"
+    type="soundcloud"
+  ></jukette-track>
+  <jukette-track
+    title="Wii Shop Music"
+    artist="Nintendo"
+    src="https://soundcloud.com/yanocon/nintendo-shop-theme-wii-shop"
+    type="soundcloud"
+    start-at="59"
+  ></jukette-track>
+</jukette-player>
+
+<script type="module">
+  import 'jukette/auto'
+  import '@remino/jukette-midi/auto'
+  import '@remino/jukette-soundcloud/auto'
+</script>`
+---
+
+<BaseLayout
+	title="Playground"
+	description={site.description}
+	path="/jukette/playground/"
+	bodyClass="playground-page"
+	mainClass="playground-layout"
+	showHeader={false}
+>
+	<header class="playground-header">
+		<hgroup>
+			<h1>
+				<a href="/jukette/">▶︎ {site.title}</a>
+			</h1>
+			<h2>playground</h2>
+		</hgroup>
+
+		<nav aria-label="Playground navigation">
+			<ul>
+				<li><a role="button" href="/jukette/">Back</a></li>
+				<li><button type="button" data-reset>Reset</button></li>
+			</ul>
+		</nav>
+	</header>
+
+	<section
+		id="playground-display"
+		class="playground-display"
+		aria-labelledby="display-heading"
+	>
+		<h1 id="display-heading" class="sr-only">Jukette playground player</h1>
+		<div class="preview-stage">
+			<div class="preview-item">
+				<jukette-player
+					data-player
+					preload-metadata
+					prefer-media-metadata
+					show-source-link
+				>
+					<jukette-track
+						title="C-sharp arpeggiator for late-night cassette deck calibration and soft neon hallway testing"
+						artist="Jukette"
+						src="/jukette/demo-tone.mp3"
+						preload></jukette-track>
+					<jukette-track
+						title="MIDI scale"
+						artist="Jukette"
+						src="/jukette/demo-scale.mid"
+						type="midi"></jukette-track>
+					<jukette-track
+						title="Flickermood"
+						artist="Forss"
+						src="https://soundcloud.com/forss/flickermood"
+						type="soundcloud"></jukette-track>
+					<jukette-track
+						title="Wii Shop Music"
+						artist="Nintendo"
+						src="https://soundcloud.com/yanocon/nintendo-shop-theme-wii-shop"
+						type="soundcloud"
+						start-at="59"></jukette-track>
+				</jukette-player>
+			</div>
+		</div>
+		<div class="code-preview">
+			<div class="code-preview-header">
+				<strong>Embed</strong>
+				<button type="button" data-copy>Copy</button>
+			</div>
+			<code-viewer data-copy-source={embedCode}>{embedCode}</code-viewer>
+		</div>
+	</section>
+
+	<section
+		class="playground-controls playground-controls"
+		aria-label="Playground controls"
+	>
+		<form data-playground>
+			<details open>
+				<summary>Display</summary>
+				<label>
+					<span>Marquee</span>
+					<select name="displayMarquee">
+						<option value="overflow">overflow</option>
+						<option value="always">always</option>
+						<option value="never">never</option>
+					</select>
+				</label>
+
+				<label class="checkbox-control">
+					<input name="showSourceLink" type="checkbox" checked />
+					<span>Show source link</span>
+				</label>
+
+				<label class="checkbox-control">
+					<input name="showTrackSelect" type="checkbox" checked />
+					<span>Show track selector</span>
+				</label>
+			</details>
+
+			<details open>
+				<summary>Metadata</summary>
+				<label class="checkbox-control">
+					<input name="preloadMetadata" type="checkbox" checked />
+					<span>Preload metadata</span>
+				</label>
+
+				<label class="checkbox-control">
+					<input name="preferMediaMetadata" type="checkbox" checked />
+					<span>Prefer media metadata</span>
+				</label>
+			</details>
+
+			<details>
+				<summary>MIDI</summary>
+				<label>
+					<span>Oscillator</span>
+					<select name="midiOscillator">
+						<option value="auto">auto</option>
+						<option value="sine">sine</option>
+						<option value="square">square</option>
+						<option value="sawtooth">sawtooth</option>
+						<option value="triangle">triangle</option>
+					</select>
+				</label>
+			</details>
+		</form>
+	</section>
+
+	<Fragment slot="scripts">
+		<script src="../../../assets/js/playground.js"></script>
+	</Fragment>
+</BaseLayout>
