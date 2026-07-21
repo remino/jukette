@@ -22,7 +22,6 @@
 .track {
 	align-items: start;
 	display: grid;
-	gap: 0.5em;
 	grid-template-columns: minmax(0, 1fr) auto;
 	min-inline-size: 0;
 }
@@ -44,6 +43,7 @@
 	font-weight: 700;
 	justify-items: center;
 	line-height: 1;
+	margin-inline-start: 0.5em;
 	max-block-size: var(--jukette-control-size);
 	text-decoration: none;
 }
