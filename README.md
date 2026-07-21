@@ -252,6 +252,8 @@ Track sources are resolved in this order:
   preparation preference.
 - `prefer-media-metadata` / `preferMediaMetadata`: optional per-track override
   for the player's media metadata preference.
+- `show-source-link` / `showSourceLink`: optional per-track override for
+  whether the selected track should expose a source-page link in the header.
 
 If `type` is omitted, Jukette treats `.mid` / `.midi` sources as `midi`.
 Everything else defaults to `audio`.
@@ -299,6 +301,7 @@ console.log(player.totalTracks)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 player.preloadMetadata = true
 player.preferMediaMetadata = true
+player.showSourceLink = true
 player.midiOscillator = 'sine'
 ```
 
@@ -361,6 +364,14 @@ when the MIDI addon is registered.
 Use `display-marquee` or `displayMarquee` to control how the merged header
 display scrolls. Supported values are `overflow`, `always`, and `never`.
 `overflow` is the default and scrolls only when the text overflows.
+
+Use `show-source-link` or `showSourceLink` to expose a narrow source-page link
+beside the header display for the selected track. The default is off. When
+enabled, Jukette uses the selected track's `src` as the link target. Direct
+`<jukette-track>` children and JavaScript track objects can override the player
+setting per track with `show-source-link`,
+`show-source-link="false"`, `showSourceLink: true`, or
+`showSourceLink: false`.
 
 Jukette dispatches bubbling composed custom events from the `<jukette-player>`
 host:

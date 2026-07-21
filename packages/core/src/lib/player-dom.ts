@@ -7,6 +7,7 @@ export interface JukettePlayerDom {
 	playButton: HTMLButtonElement
 	playerElement: HTMLElement
 	seekInput: HTMLInputElement
+	sourceLink: HTMLAnchorElement
 	trackSelect: HTMLSelectElement
 	timeButton: HTMLButtonElement
 	timeElement: HTMLTimeElement
@@ -26,6 +27,15 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">
 				<re-marquee class="display" part="display" role="status" aria-live="polite" animate="overflow"></re-marquee>
+				<a
+					class="source-link"
+					part="source-link"
+					aria-label="Open source page"
+					hidden
+					rel="noopener noreferrer"
+					target="_blank"
+					title="Open source page"
+				><span class="source-link-glyph">↗</span></a>
 			</div>
 			<div class="controls" part="controls">
 				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
@@ -45,6 +55,7 @@ export const createJukettePlayerDom = (host: HTMLElement): JukettePlayerDom => {
 		playButton: query<HTMLButtonElement>(shadowRoot, '.play'),
 		playerElement: query<HTMLElement>(shadowRoot, '.player'),
 		seekInput: query<HTMLInputElement>(shadowRoot, '.seek-input'),
+		sourceLink: query<HTMLAnchorElement>(shadowRoot, '.source-link'),
 		timeButton: query<HTMLButtonElement>(shadowRoot, '.time'),
 		timeElement: query<HTMLTimeElement>(shadowRoot, '.time time'),
 		trackSelect: query<HTMLSelectElement>(shadowRoot, '.track-select'),

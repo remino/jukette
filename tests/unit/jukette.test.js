@@ -68,6 +68,21 @@ describe('jukette helpers', () => {
 		).toEqual({ preload: false, src: '/track.mp3' })
 	})
 
+	it('normalizes track source link preferences', () => {
+		expect(
+			normalizeTrack({
+				showSourceLink: true,
+				src: '/track.mp3',
+			}),
+		).toEqual({ showSourceLink: true, src: '/track.mp3' })
+		expect(
+			normalizeTrack({
+				showSourceLink: 'false',
+				src: '/track.mp3',
+			}),
+		).toEqual({ showSourceLink: false, src: '/track.mp3' })
+	})
+
 	it('normalizes track start offsets', () => {
 		expect(
 			normalizeTrack({
@@ -169,6 +184,7 @@ describe('jukette helpers', () => {
 						artist: 'Example',
 						'prefer-media-metadata': 'false',
 						preload: 'true',
+						'show-source-link': 'true',
 						'start-at': '1.5',
 						src: '/one.mp3',
 						title: 'One',
@@ -182,6 +198,7 @@ describe('jukette helpers', () => {
 			artist: 'Example',
 			preferMediaMetadata: false,
 			preload: true,
+			showSourceLink: true,
 			startAt: 1.5,
 			src: '/one.mp3',
 			title: 'One',
@@ -201,6 +218,9 @@ describe('jukette helpers', () => {
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'prefer-media-metadata',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
+			'show-source-link',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
 			'display-marquee',

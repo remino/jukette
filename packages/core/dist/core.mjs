@@ -40,6 +40,7 @@ var ATTR_TRACK_INDEX = "track-index";
 var ATTR_TITLE = "title";
 var ATTR_ARTIST = "artist";
 var ATTR_TYPE = "type";
+var ATTR_SHOW_SOURCE_LINK = "show-source-link";
 //#endregion
 //#region src/lib/utils.ts
 var isRecord = (value) => typeof value === "object" && value !== null;
@@ -89,6 +90,11 @@ var normalizeTrack = (value) => {
 		const preload = normalizeBooleanAttribute(value.preload);
 		if (preload !== void 0) track.preload = preload;
 	}
+	if (typeof value.showSourceLink === "boolean") track.showSourceLink = value.showSourceLink;
+	else if (typeof value.showSourceLink === "string") {
+		const showSourceLink = normalizeBooleanAttribute(value.showSourceLink);
+		if (showSourceLink !== void 0) track.showSourceLink = showSourceLink;
+	}
 	const startAt = normalizeStartAt(value.startAt);
 	if (startAt !== void 0) track.startAt = startAt;
 	if (typeof value.title === "string") track.title = value.title;
@@ -112,6 +118,7 @@ var trackFromElement = (element) => {
 		artist: element.getAttribute("artist") ?? void 0,
 		preferMediaMetadata: element.getAttribute("prefer-media-metadata") ?? void 0,
 		preload: element.getAttribute("preload") ?? void 0,
+		showSourceLink: element.getAttribute("show-source-link") ?? void 0,
 		startAt: element.getAttribute("start-at") ?? void 0,
 		src: element.getAttribute("src") ?? "",
 		title: element.getAttribute("title") ?? void 0,
@@ -145,7 +152,7 @@ var formatTrackDisplay = (display) => {
 };
 //#endregion
 //#region src/lib/jukette-player.css?inline
-var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{min-inline-size:0;display:grid}.display{white-space:nowrap;font-weight:700;display:block;overflow:hidden}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor;width:100%;margin:0}.seek{display:grid}.time{text-align:end;white-space:nowrap;border:0;justify-content:end;justify-items:end;block-size:auto;inline-size:auto;padding:0}.time time{font-variant-numeric:tabular-nums;min-inline-size:3em;font-family:monospace;display:block}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;background:0 0;border:1px solid;border-radius:0;inline-size:100%;padding:.35rem .5em}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
+var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.5em;min-inline-size:0;display:grid}.display{white-space:nowrap;align-self:center;font-weight:700;display:block;overflow:hidden}.source-link{color:inherit;min-block-size:var(--jukette-control-size);min-inline-size:var(--jukette-control-size);border:1px solid;align-self:center;place-items:center;font-weight:700;line-height:1;text-decoration:none;display:inline-grid}.source-link-glyph{transform:translateY(-.04em)}.source-link:focus-visible{outline-offset:.1em;outline:2px solid}.source-link[hidden]{display:none}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor;width:100%;margin:0}.seek{display:grid}.time{text-align:end;white-space:nowrap;border:0;justify-content:end;justify-items:end;block-size:auto;inline-size:auto;padding:0}.time time{font-variant-numeric:tabular-nums;min-inline-size:3em;font-family:monospace;display:block}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;background:0 0;border:1px solid;border-radius:0;inline-size:100%;padding:.35rem .5em}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -161,6 +168,15 @@ var createJukettePlayerDom = (host) => {
 		<div class="player" part="player">
 			<div class="track" part="track" aria-live="polite">
 				<re-marquee class="display" part="display" role="status" aria-live="polite" animate="overflow"></re-marquee>
+				<a
+					class="source-link"
+					part="source-link"
+					aria-label="Open source page"
+					hidden
+					rel="noopener noreferrer"
+					target="_blank"
+					title="Open source page"
+				><span class="source-link-glyph">↗</span></a>
 			</div>
 			<div class="controls" part="controls">
 				<button class="play" part="button play-button" type="button" aria-label="Play">▶</button>
@@ -179,6 +195,7 @@ var createJukettePlayerDom = (host) => {
 		playButton: query(shadowRoot, ".play"),
 		playerElement: query(shadowRoot, ".player"),
 		seekInput: query(shadowRoot, ".seek-input"),
+		sourceLink: query(shadowRoot, ".source-link"),
 		timeButton: query(shadowRoot, ".time"),
 		timeElement: query(shadowRoot, ".time time"),
 		trackSelect: query(shadowRoot, ".track-select")
@@ -342,6 +359,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST_SRC,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_SHOW_SOURCE_LINK,
 		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
@@ -418,6 +436,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
 				ATTR_PRELOAD,
+				ATTR_SHOW_SOURCE_LINK,
 				"src",
 				ATTR_TITLE,
 				ATTR_TYPE
@@ -491,6 +510,12 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	}
 	set preferMediaMetadata(prefer) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer);
+	}
+	get showSourceLink() {
+		return this.hasAttribute(ATTR_SHOW_SOURCE_LINK);
+	}
+	set showSourceLink(show) {
+		this.toggleAttribute(ATTR_SHOW_SOURCE_LINK, show);
 	}
 	get displayMarquee() {
 		return normalizeDisplayMarquee(this.getAttribute(ATTR_DISPLAY_MARQUEE));
@@ -676,7 +701,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = "";
 			this.statusMessage = "";
-			this.renderDisplayText(this.getEmptyTrackDisplayText());
+			this.renderDisplay(this.getEmptyTrackDisplayText());
 			this.setReady(false);
 			this.dom.trackSelect.disabled = true;
 			if (previousTrackKey) this.emitJuketteEvent("jukette:trackchange");
@@ -775,7 +800,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		const track = this.currentTrack;
 		if (!track) return;
 		const display = this.getTrackDisplay(track);
-		this.renderDisplayText(this.statusMessage || formatTrackDisplay(display));
+		this.renderDisplay(this.statusMessage || formatTrackDisplay(display), track);
 	}
 	preloadPlaylistMetadata() {
 		this.metadataController.preloadPlaylistMetadata();
@@ -807,15 +832,34 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		this.statusMessage = message;
 		const track = this.currentTrack;
 		if (!track) {
-			this.renderDisplayText(message || "No track");
+			this.renderDisplay(message || "No track");
 			return;
 		}
-		this.renderDisplayText(message || formatTrackDisplay(this.getTrackDisplay(track)));
+		this.renderDisplay(message || formatTrackDisplay(this.getTrackDisplay(track)), track);
 	}
-	renderDisplayText(text) {
+	renderDisplay(text, track = null) {
 		this.dom.displayElement.textContent = text;
 		this.dom.displayElement.stop();
 		this.dom.displayElement.start();
+		this.syncSourceLink(track);
+	}
+	syncSourceLink(track) {
+		const sourceUrl = this.getTrackSourceUrl(track);
+		if (!sourceUrl) {
+			this.dom.sourceLink.hidden = true;
+			this.dom.sourceLink.removeAttribute("href");
+			return;
+		}
+		this.dom.sourceLink.href = sourceUrl;
+		this.dom.sourceLink.hidden = false;
+	}
+	getTrackSourceUrl(track) {
+		if (!track) return null;
+		if (!this.trackShowsSourceLink(track)) return null;
+		return track.src;
+	}
+	trackShowsSourceLink(track) {
+		return track.showSourceLink ?? this.showSourceLink;
 	}
 	syncDisplayMarqueeMode() {
 		this.dom.displayElement.setAttribute("animate", this.displayMarquee);

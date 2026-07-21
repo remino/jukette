@@ -2,6 +2,7 @@ import {
 	ATTR_ARTIST,
 	ATTR_PREFER_MEDIA_METADATA,
 	ATTR_PRELOAD,
+	ATTR_SHOW_SOURCE_LINK,
 	ATTR_START_AT,
 	ATTR_SRC,
 	ATTR_TITLE,
@@ -68,6 +69,14 @@ export const normalizeTrack = (value: unknown): JuketteTrack | null => {
 		const preload = normalizeBooleanAttribute(value.preload)
 		if (preload !== undefined) track.preload = preload
 	}
+	if (typeof value.showSourceLink === 'boolean') {
+		track.showSourceLink = value.showSourceLink
+	} else if (typeof value.showSourceLink === 'string') {
+		const showSourceLink = normalizeBooleanAttribute(value.showSourceLink)
+		if (showSourceLink !== undefined) {
+			track.showSourceLink = showSourceLink
+		}
+	}
 	const startAt = normalizeStartAt(value.startAt)
 	if (startAt !== undefined) track.startAt = startAt
 	if (typeof value.title === 'string') track.title = value.title
@@ -106,6 +115,8 @@ export const trackFromElement = (element: Element): JuketteTrack | null => {
 		preferMediaMetadata:
 			element.getAttribute(ATTR_PREFER_MEDIA_METADATA) ?? undefined,
 		preload: element.getAttribute(ATTR_PRELOAD) ?? undefined,
+		showSourceLink:
+			element.getAttribute(ATTR_SHOW_SOURCE_LINK) ?? undefined,
 		startAt: element.getAttribute(ATTR_START_AT) ?? undefined,
 		src: element.getAttribute(ATTR_SRC) ?? '',
 		title: element.getAttribute(ATTR_TITLE) ?? undefined,

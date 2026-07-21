@@ -18,15 +18,46 @@
 }
 
 .track {
+	align-items: start;
 	display: grid;
+	gap: 0.5em;
+	grid-template-columns: minmax(0, 1fr) auto;
 	min-inline-size: 0;
 }
 
 .display {
+	align-self: center;
 	display: block;
 	font-weight: 700;
 	overflow: hidden;
 	white-space: nowrap;
+}
+
+.source-link {
+	align-self: center;
+	align-items: center;
+	color: inherit;
+	border: 1px solid currentColor;
+	display: inline-grid;
+	font-weight: 700;
+	justify-items: center;
+	line-height: 1;
+	min-block-size: var(--jukette-control-size);
+	min-inline-size: var(--jukette-control-size);
+	text-decoration: none;
+}
+
+.source-link-glyph {
+	transform: translateY(-0.04em);
+}
+
+.source-link:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 0.1em;
+}
+
+.source-link[hidden] {
+	display: none;
 }
 
 .controls {

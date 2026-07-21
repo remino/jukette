@@ -20,6 +20,18 @@
 
 ## HEAD
 
+- Library
+    - Add a `show-source-link` attribute/property on `jukette-player` with
+      per-track `show-source-link` / `showSourceLink` overrides so the selected
+      track can expose its source URL directly from the player header.
+    - Split the player header row into a wide display area and a narrow source
+      link target, with a larger clickable hit area and a small optical glyph
+      offset for the default link icon.
+- Docs
+    - Enable the source link in the live demo and point the docs app at local
+      workspace source entries during development/builds so player changes show
+      up in the demo without rebuilding package `dist` outputs first.
+
 ## v0.7.1
 
 - Library

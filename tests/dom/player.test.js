@@ -209,6 +209,19 @@ describe('JukettePlayerElement DOM', () => {
 		expect(shadowRoot.querySelector('.track-select').disabled).toBe(true)
 	})
 
+	it('shows a source link for the selected track when enabled on the player', () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		ctx.player.setAttribute('show-source-link', '')
+
+		const sourceLink = ctx.shadowRoot.querySelector('.source-link')
+		expect(sourceLink.hidden).toBe(false)
+		expect(sourceLink.getAttribute('href')).toBe('/one.mp3')
+		expect(sourceLink.textContent).toBe('↗')
+	})
+
 	it('prefers inline playlist sources over playlist-src', async () => {
 		vi.stubGlobal(
 			'fetch',

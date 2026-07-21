@@ -6,8 +6,10 @@ import BaseLayout from '../../../components/BaseLayout.astro'
 	<h2>Demo</h2>
 	<jukette-player
 		playlist-src="/jukette/demo-playlist.data.json"
+		track-index="2"
 		preload-metadata
-		prefer-media-metadata></jukette-player>
+		prefer-media-metadata
+		show-source-link></jukette-player>
 	<script>
 		import 'jukette/auto'
 		import '@remino/jukette-midi/auto'

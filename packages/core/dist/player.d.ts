@@ -43,6 +43,8 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     set preloadMetadata(preload: boolean);
     get preferMediaMetadata(): boolean;
     set preferMediaMetadata(prefer: boolean);
+    get showSourceLink(): boolean;
+    set showSourceLink(show: boolean);
     get displayMarquee(): JuketteDisplayMarquee;
     set displayMarquee(mode: JuketteDisplayMarquee);
     get midiOscillator(): JuketteMidiOscillator;
@@ -81,7 +83,10 @@ export declare class JukettePlayerElement extends HTMLElementBase {
     private syncPlayingState;
     private setStatus;
     private updateStatus;
-    private renderDisplayText;
+    private renderDisplay;
+    private syncSourceLink;
+    private getTrackSourceUrl;
+    private trackShowsSourceLink;
     private syncDisplayMarqueeMode;
     private finishTrack;
     private setReady;

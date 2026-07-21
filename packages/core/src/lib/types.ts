@@ -13,6 +13,7 @@ export interface JuketteTrack {
 	artist?: string
 	preferMediaMetadata?: boolean
 	preload?: boolean
+	showSourceLink?: boolean
 	startAt?: number
 	src: string
 	type?: JuketteTrackKind

@@ -7,6 +7,7 @@ import {
 	ATTR_PREFER_MEDIA_METADATA,
 	ATTR_PRELOAD,
 	ATTR_PRELOAD_METADATA,
+	ATTR_SHOW_SOURCE_LINK,
 	ATTR_SRC,
 	ATTR_TITLE,
 	ATTR_TRACK_INDEX,
@@ -50,6 +51,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PLAYLIST_SRC,
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
+		ATTR_SHOW_SOURCE_LINK,
 		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
@@ -148,6 +150,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
 				ATTR_PRELOAD,
+				ATTR_SHOW_SOURCE_LINK,
 				ATTR_SRC,
 				ATTR_TITLE,
 				ATTR_TYPE,
@@ -246,6 +249,14 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	set preferMediaMetadata(prefer: boolean) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer)
+	}
+
+	get showSourceLink(): boolean {
+		return this.hasAttribute(ATTR_SHOW_SOURCE_LINK)
+	}
+
+	set showSourceLink(show: boolean) {
+		this.toggleAttribute(ATTR_SHOW_SOURCE_LINK, show)
 	}
 
 	get displayMarquee(): JuketteDisplayMarquee {
@@ -512,7 +523,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track) {
 			this.loadedTrackKey = ''
 			this.statusMessage = ''
-			this.renderDisplayText(this.getEmptyTrackDisplayText())
+			this.renderDisplay(this.getEmptyTrackDisplayText())
 			this.setReady(false)
 			this.dom.trackSelect.disabled = true
 			if (previousTrackKey) this.emitJuketteEvent('jukette:trackchange')
@@ -637,8 +648,9 @@ export class JukettePlayerElement extends HTMLElementBase {
 		if (!track) return
 
 		const display = this.getTrackDisplay(track)
-		this.renderDisplayText(
+		this.renderDisplay(
 			this.statusMessage || formatTrackDisplay(display),
+			track,
 		)
 	}
 
@@ -679,19 +691,46 @@ export class JukettePlayerElement extends HTMLElementBase {
 		this.statusMessage = message
 		const track = this.currentTrack
 		if (!track) {
-			this.renderDisplayText(message || 'No track')
+			this.renderDisplay(message || 'No track')
 			return
 		}
 
-		this.renderDisplayText(
+		this.renderDisplay(
 			message || formatTrackDisplay(this.getTrackDisplay(track)),
+			track,
 		)
 	}
 
-	private renderDisplayText(text: string): void {
+	private renderDisplay(
+		text: string,
+		track: JuketteTrack | null = null,
+	): void {
 		this.dom.displayElement.textContent = text
 		this.dom.displayElement.stop()
 		this.dom.displayElement.start()
+		this.syncSourceLink(track)
+	}
+
+	private syncSourceLink(track: JuketteTrack | null): void {
+		const sourceUrl = this.getTrackSourceUrl(track)
+		if (!sourceUrl) {
+			this.dom.sourceLink.hidden = true
+			this.dom.sourceLink.removeAttribute('href')
+			return
+		}
+
+		this.dom.sourceLink.href = sourceUrl
+		this.dom.sourceLink.hidden = false
+	}
+
+	private getTrackSourceUrl(track: JuketteTrack | null): string | null {
+		if (!track) return null
+		if (!this.trackShowsSourceLink(track)) return null
+		return track.src
+	}
+
+	private trackShowsSourceLink(track: JuketteTrack): boolean {
+		return track.showSourceLink ?? this.showSourceLink
 	}
 
 	private syncDisplayMarqueeMode(): void {

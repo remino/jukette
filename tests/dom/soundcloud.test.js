@@ -110,6 +110,7 @@ const renderPlayer = (markup) => {
 			display: shadowRoot.querySelector('.display'),
 			play: shadowRoot.querySelector('.play'),
 			select: shadowRoot.querySelector('.track-select'),
+			sourceLink: shadowRoot.querySelector('.source-link'),
 		},
 		player,
 		shadowRoot,
@@ -161,6 +162,65 @@ describe('SoundCloud addon', () => {
 		await ctx.player.play()
 		expect(soundCloud.widgets[0].widget.play).toHaveBeenCalledTimes(1)
 		expect(ctx.elements.play.getAttribute('aria-label')).toBe('Pause')
+	})
+
+	it('shows a source link for a SoundCloud track when enabled on the player', async () => {
+		const soundCloud = stubSoundCloudEnvironment()
+		const ctx = renderPlayer(`
+			<jukette-track src="${soundCloudTrackUrl}" type="soundcloud"></jukette-track>
+		`)
+		ctx.player.setAttribute('show-source-link', '')
+
+		await waitFor(
+			() => ctx.elements.sourceLink.hidden === false,
+			'Expected source link to become visible.',
+		)
+
+		expect(ctx.elements.sourceLink.getAttribute('href')).toBe(
+			soundCloudTrackUrl,
+		)
+		expect(ctx.elements.sourceLink.textContent).toBe('↗')
+	})
+
+	it('lets a track override the player source link setting', async () => {
+		const soundCloud = stubSoundCloudEnvironment()
+		const ctx = renderPlayer(`
+			<jukette-track
+				src="${soundCloudTrackUrl}"
+				type="soundcloud"
+				show-source-link="true"
+			></jukette-track>
+			<jukette-track
+				src="https://soundcloud.com/forss/soulhack"
+				type="soundcloud"
+				show-source-link="false"
+			></jukette-track>
+		`)
+
+		await waitFor(
+			() => ctx.elements.sourceLink.hidden === false,
+			'Expected first track source link to become visible.',
+		)
+		expect(ctx.elements.sourceLink.getAttribute('href')).toBe(
+			soundCloudTrackUrl,
+		)
+
+		ctx.elements.select.value = '1'
+		ctx.elements.select.dispatchEvent(new Event('change'))
+		await waitFor(
+			() => soundCloud.widgets.length === 2,
+			'Expected second SoundCloud widget to be created.',
+		)
+
+		await waitFor(
+			() => ctx.elements.sourceLink.hidden === true,
+			'Expected second track source link to become hidden.',
+		)
+		expect(ctx.elements.sourceLink.hasAttribute('href')).toBe(false)
+
+		soundCloud.widgets[1].widget.emit(soundCloud.events.READY)
+		await flushAsync()
+		expect(ctx.elements.sourceLink.hidden).toBe(true)
 	})
 
 	it('keeps the play button idle when the widget emits PLAY during preparation', async () => {
