@@ -223,6 +223,9 @@ describe('jukette helpers', () => {
 			'show-source-link',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(
+			'show-track-select',
+		)
+		expect(JukettePlayerElement.observedAttributes).toContain(
 			'display-marquee',
 		)
 		expect(JukettePlayerElement.observedAttributes).toContain(

@@ -34,26 +34,25 @@
 }
 
 .source-link {
-	align-self: center;
 	align-items: center;
+	align-self: stretch;
+	aspect-ratio: 1;
 	color: inherit;
-	border: 1px solid currentColor;
 	display: inline-grid;
 	font-weight: 700;
 	justify-items: center;
 	line-height: 1;
-	min-block-size: var(--jukette-control-size);
-	min-inline-size: var(--jukette-control-size);
+	max-block-size: var(--jukette-control-size);
 	text-decoration: none;
 }
 
 .source-link-glyph {
-	transform: translateY(-0.04em);
+	transform: translateY(-0.06em);
 }
 
 .source-link:focus-visible {
 	outline: 2px solid currentColor;
-	outline-offset: 0.1em;
+	outline-offset: 0;
 }
 
 .source-link[hidden] {
@@ -138,6 +137,14 @@ input[type='range'] {
 	font-family: monospace;
 	font-variant-numeric: tabular-nums;
 	min-inline-size: 3em;
+}
+
+.track-picker {
+	display: grid;
+}
+
+.track-picker[hidden] {
+	display: none;
 }
 
 .track-select {

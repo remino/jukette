@@ -57,6 +57,7 @@ const renderPlayer = (tracksMarkup) => {
 			display: shadowRoot.querySelector('.display'),
 			play: shadowRoot.querySelector('.play'),
 			seek: shadowRoot.querySelector('.seek-input'),
+			trackPicker: shadowRoot.querySelector('.track-picker'),
 			select: shadowRoot.querySelector('.track-select'),
 			time: shadowRoot.querySelector('.time'),
 			timeValue: shadowRoot.querySelector('.time time'),
@@ -121,6 +122,24 @@ describe('JukettePlayerElement DOM', () => {
 		ctx.player.setAttribute('display-marquee', 'wat')
 		expect(ctx.player.displayMarquee).toBe('overflow')
 		expect(ctx.elements.display.getAttribute('animate')).toBe('overflow')
+	})
+
+	it('shows the track selector by default and allows it to be hidden', () => {
+		const ctx = renderPlayer(`
+			<jukette-track title="One" artist="Artist" src="/one.mp3"></jukette-track>
+		`)
+
+		expect(ctx.player.showTrackSelect).toBe(true)
+		expect(ctx.elements.trackPicker.hidden).toBe(false)
+
+		ctx.player.showTrackSelect = false
+		expect(ctx.player.getAttribute('show-track-select')).toBe('false')
+		expect(ctx.player.showTrackSelect).toBe(false)
+		expect(ctx.elements.trackPicker.hidden).toBe(true)
+
+		ctx.player.setAttribute('show-track-select', '')
+		expect(ctx.player.showTrackSelect).toBe(true)
+		expect(ctx.elements.trackPicker.hidden).toBe(false)
 	})
 
 	it('keeps controls disabled until canplay, not merely loadedmetadata', () => {

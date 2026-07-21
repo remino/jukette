@@ -8,6 +8,7 @@ import {
 	ATTR_PRELOAD,
 	ATTR_PRELOAD_METADATA,
 	ATTR_SHOW_SOURCE_LINK,
+	ATTR_SHOW_TRACK_SELECT,
 	ATTR_SRC,
 	ATTR_TITLE,
 	ATTR_TRACK_INDEX,
@@ -42,6 +43,7 @@ import type {
 	JuketteMidiOscillator,
 	JuketteTrack,
 } from './types'
+import { normalizeBooleanAttribute } from './utils'
 import { defineRemarqueebleElements } from 'remarqueeble'
 
 export class JukettePlayerElement extends HTMLElementBase {
@@ -52,6 +54,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_SHOW_SOURCE_LINK,
+		ATTR_SHOW_TRACK_SELECT,
 		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX,
@@ -97,6 +100,7 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 		this.dom = createJukettePlayerDom(this)
 		this.syncDisplayMarqueeMode()
+		this.syncTrackPickerVisibility()
 		this.metadataController = new JuketteMetadataController({
 			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
@@ -203,6 +207,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 			this.syncDisplayMarqueeMode()
 			return
 		}
+		if (name === ATTR_SHOW_TRACK_SELECT) {
+			this.syncTrackPickerVisibility()
+			return
+		}
 		if (name === ATTR_PLAYLIST_SRC && this.isConnected) {
 			void this.syncRemotePlaylist()
 		}
@@ -249,6 +257,23 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	set preferMediaMetadata(prefer: boolean) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer)
+	}
+
+	get showTrackSelect(): boolean {
+		return (
+			normalizeBooleanAttribute(
+				this.getAttribute(ATTR_SHOW_TRACK_SELECT),
+			) ?? true
+		)
+	}
+
+	set showTrackSelect(show: boolean) {
+		if (show) {
+			this.removeAttribute(ATTR_SHOW_TRACK_SELECT)
+			return
+		}
+
+		this.setAttribute(ATTR_SHOW_TRACK_SELECT, 'false')
 	}
 
 	get showSourceLink(): boolean {
@@ -735,6 +760,10 @@ export class JukettePlayerElement extends HTMLElementBase {
 
 	private syncDisplayMarqueeMode(): void {
 		this.dom.displayElement.setAttribute('animate', this.displayMarquee)
+	}
+
+	private syncTrackPickerVisibility(): void {
+		this.dom.trackPicker.hidden = !this.showTrackSelect
 	}
 
 	private finishTrack(): void {

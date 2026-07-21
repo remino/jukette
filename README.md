@@ -301,6 +301,7 @@ console.log(player.totalTracks)
 player.playlist = [{ title: 'Track', src: '/track.mp3' }]
 player.preloadMetadata = true
 player.preferMediaMetadata = true
+player.showTrackSelect = false
 player.showSourceLink = true
 player.midiOscillator = 'sine'
 ```
@@ -364,6 +365,11 @@ when the MIDI addon is registered.
 Use `display-marquee` or `displayMarquee` to control how the merged header
 display scrolls. Supported values are `overflow`, `always`, and `never`.
 `overflow` is the default and scrolls only when the text overflows.
+
+Use `show-track-select` or `showTrackSelect` to control whether the track
+selector row is shown. The default is on. Set `show-track-select="false"` or
+`player.showTrackSelect = false` to hide it, and omit the attribute or set it
+to `true` to show it.
 
 Use `show-source-link` or `showSourceLink` to expose a narrow source-page link
 beside the header display for the selected track. The default is off. When

@@ -12,3 +12,4 @@ export declare const ATTR_ARTIST = "artist";
 export declare const ATTR_TYPE = "type";
 export declare const ATTR_START_AT = "start-at";
 export declare const ATTR_SHOW_SOURCE_LINK = "show-source-link";
+export declare const ATTR_SHOW_TRACK_SELECT = "show-track-select";

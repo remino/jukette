@@ -41,6 +41,7 @@ var ATTR_TITLE = "title";
 var ATTR_ARTIST = "artist";
 var ATTR_TYPE = "type";
 var ATTR_SHOW_SOURCE_LINK = "show-source-link";
+var ATTR_SHOW_TRACK_SELECT = "show-track-select";
 //#endregion
 //#region src/lib/utils.ts
 var isRecord = (value) => typeof value === "object" && value !== null;
@@ -152,7 +153,7 @@ var formatTrackDisplay = (display) => {
 };
 //#endregion
 //#region src/lib/jukette-player.css?inline
-var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.5em;min-inline-size:0;display:grid}.display{white-space:nowrap;align-self:center;font-weight:700;display:block;overflow:hidden}.source-link{color:inherit;min-block-size:var(--jukette-control-size);min-inline-size:var(--jukette-control-size);border:1px solid;align-self:center;place-items:center;font-weight:700;line-height:1;text-decoration:none;display:inline-grid}.source-link-glyph{transform:translateY(-.04em)}.source-link:focus-visible{outline-offset:.1em;outline:2px solid}.source-link[hidden]{display:none}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor;width:100%;margin:0}.seek{display:grid}.time{text-align:end;white-space:nowrap;border:0;justify-content:end;justify-items:end;block-size:auto;inline-size:auto;padding:0}.time time{font-variant-numeric:tabular-nums;min-inline-size:3em;font-family:monospace;display:block}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;inline-size:100%;text-overflow:ellipsis;background:0 0;border:1px solid;border-radius:0;max-width:100%;padding:.35rem .5em;overflow:hidden}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
+var jukette_player_default = ":host{--jukette-control-size:2em;font:inherit;color:inherit;display:block;container-type:inline-size}*{box-sizing:border-box}.player{border:1px solid;gap:.5lh;padding:.5rlh 1em;display:grid}.track{grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.5em;min-inline-size:0;display:grid}.display{white-space:nowrap;align-self:center;font-weight:700;display:block;overflow:hidden}.source-link{aspect-ratio:1;color:inherit;max-block-size:var(--jukette-control-size);align-self:stretch;place-items:center;font-weight:700;line-height:1;text-decoration:none;display:inline-grid}.source-link-glyph{transform:translateY(-.06em)}.source-link:focus-visible{outline-offset:0;outline:2px solid}.source-link[hidden]{display:none}.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto;align-items:center;gap:.5em;display:grid}.play{block-size:var(--jukette-control-size);inline-size:var(--jukette-control-size)}button{appearance:none;block-size:var(--jukette-control-size);color:inherit;cursor:pointer;font:inherit;inline-size:var(--jukette-control-size);background:0 0;border:1px solid;justify-content:center;align-items:center;padding:0;display:inline-grid}button:focus-visible{outline-offset:0;outline-radius:0;outline:2px solid}button:active,button[aria-pressed=true]{background:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b));color:rgb(from currentColor calc(255 - r) calc(255 - g) calc(255 - b))}button:disabled{cursor:default;opacity:.45}input[type=range]{accent-color:currentColor;width:100%;margin:0}.seek{display:grid}.time{text-align:end;white-space:nowrap;border:0;justify-content:end;justify-items:end;block-size:auto;inline-size:auto;padding:0}.time time{font-variant-numeric:tabular-nums;min-inline-size:3em;font-family:monospace;display:block}.track-picker{display:grid}.track-picker[hidden]{display:none}.track-select{appearance:none;color:inherit;cursor:pointer;font:inherit;inline-size:100%;text-overflow:ellipsis;background:0 0;border:1px solid;border-radius:0;max-width:100%;padding:.35rem .5em;overflow:hidden}.track-select:focus-visible{outline-offset:0;outline:2px solid}audio{display:none}@container (width<=11rem){.controls{grid-template-columns:var(--jukette-control-size) minmax(0, 1fr) auto}.seek{visibility:hidden}}";
 //#endregion
 //#region src/lib/player-dom.ts
 var query = (root, selector) => {
@@ -185,7 +186,9 @@ var createJukettePlayerDom = (host) => {
 				</div>
 				<button class="time" part="time" type="button" aria-label="Toggle time display"><time datetime="PT0S">0:00</time></button>
 			</div>
-			<select class="track-select" part="track-select" aria-label="Track selection"></select>
+			<div class="track-picker" part="track-picker">
+				<select class="track-select" part="track-select" aria-label="Track selection"></select>
+			</div>
 			<audio preload="metadata"></audio>
 		</div>
 	`;
@@ -196,6 +199,7 @@ var createJukettePlayerDom = (host) => {
 		playerElement: query(shadowRoot, ".player"),
 		seekInput: query(shadowRoot, ".seek-input"),
 		sourceLink: query(shadowRoot, ".source-link"),
+		trackPicker: query(shadowRoot, ".track-picker"),
 		timeButton: query(shadowRoot, ".time"),
 		timeElement: query(shadowRoot, ".time time"),
 		trackSelect: query(shadowRoot, ".track-select")
@@ -360,6 +364,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		ATTR_PRELOAD_METADATA,
 		ATTR_PREFER_MEDIA_METADATA,
 		ATTR_SHOW_SOURCE_LINK,
+		ATTR_SHOW_TRACK_SELECT,
 		ATTR_DISPLAY_MARQUEE,
 		ATTR_MIDI_OSCILLATOR,
 		ATTR_TRACK_INDEX
@@ -397,6 +402,7 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 		if (typeof MutationObserver !== "undefined") this.trackObserver = new MutationObserver(() => this.syncChildTracks());
 		this.dom = createJukettePlayerDom(this);
 		this.syncDisplayMarqueeMode();
+		this.syncTrackPickerVisibility();
 		this.metadataController = new JuketteMetadataController({
 			getHost: () => this,
 			getPreloadMetadata: () => this.preloadMetadata,
@@ -477,6 +483,10 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.syncDisplayMarqueeMode();
 			return;
 		}
+		if (name === "show-track-select") {
+			this.syncTrackPickerVisibility();
+			return;
+		}
 		if (name === "playlist-src" && this.isConnected) this.syncRemotePlaylist();
 		this.syncTracks();
 		this.loadTrack();
@@ -510,6 +520,16 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	}
 	set preferMediaMetadata(prefer) {
 		this.toggleAttribute(ATTR_PREFER_MEDIA_METADATA, prefer);
+	}
+	get showTrackSelect() {
+		return normalizeBooleanAttribute(this.getAttribute("show-track-select")) ?? true;
+	}
+	set showTrackSelect(show) {
+		if (show) {
+			this.removeAttribute(ATTR_SHOW_TRACK_SELECT);
+			return;
+		}
+		this.setAttribute(ATTR_SHOW_TRACK_SELECT, "false");
 	}
 	get showSourceLink() {
 		return this.hasAttribute(ATTR_SHOW_SOURCE_LINK);
@@ -863,6 +883,9 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 	}
 	syncDisplayMarqueeMode() {
 		this.dom.displayElement.setAttribute("animate", this.displayMarquee);
+	}
+	syncTrackPickerVisibility() {
+		this.dom.trackPicker.hidden = !this.showTrackSelect;
 	}
 	finishTrack() {
 		this.desiredPlaying = false;

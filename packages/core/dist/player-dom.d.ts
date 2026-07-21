@@ -6,6 +6,7 @@ export interface JukettePlayerDom {
     playerElement: HTMLElement;
     seekInput: HTMLInputElement;
     sourceLink: HTMLAnchorElement;
+    trackPicker: HTMLElement;
     trackSelect: HTMLSelectElement;
     timeButton: HTMLButtonElement;
     timeElement: HTMLTimeElement;
