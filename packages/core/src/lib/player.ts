@@ -154,7 +154,6 @@ export class JukettePlayerElement extends HTMLElementBase {
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
 				ATTR_PRELOAD,
-				ATTR_SHOW_SOURCE_LINK,
 				ATTR_SRC,
 				ATTR_TITLE,
 				ATTR_TYPE,
@@ -209,6 +208,13 @@ export class JukettePlayerElement extends HTMLElementBase {
 		}
 		if (name === ATTR_SHOW_TRACK_SELECT) {
 			this.syncTrackPickerVisibility()
+			return
+		}
+		if (name === ATTR_SHOW_SOURCE_LINK) {
+			this.syncSourceLink(this.currentTrack)
+			return
+		}
+		if (name === ATTR_MIDI_OSCILLATOR) {
 			return
 		}
 		if (name === ATTR_PLAYLIST_SRC && this.isConnected) {

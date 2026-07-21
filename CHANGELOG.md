@@ -21,6 +21,10 @@
 
 ## HEAD
 
+- Library
+    - Avoid unnecessary full track reloads when non-playback attributes change by special-casing display-only attributes (for example: `show-source-link` and `midi-oscillator`). Toggling the source-link now updates the header link in-place via `syncSourceLink()` and no longer resets the current track or playback state.
+    - Stop observing `show-source-link` mutations on child track elements so player-level toggles don't trigger child-track resynchronization and accidental track reloads.
+    - Ensure MIDI oscillator changes are applied at track load time without forcing a reload of the active playable track.
 - Docs
     - Optimize the playground demo script to update only changed player attributes instead of recreating or reinitializing the player element on every setting change. This preserves playback and selection state while keeping the embed preview in sync.
 

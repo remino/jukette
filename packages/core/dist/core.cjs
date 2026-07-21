@@ -443,7 +443,6 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 				ATTR_ARTIST,
 				ATTR_PREFER_MEDIA_METADATA,
 				ATTR_PRELOAD,
-				ATTR_SHOW_SOURCE_LINK,
 				"src",
 				ATTR_TITLE,
 				ATTR_TYPE
@@ -488,6 +487,11 @@ var JukettePlayerElement = class JukettePlayerElement extends HTMLElementBase {
 			this.syncTrackPickerVisibility();
 			return;
 		}
+		if (name === "show-source-link") {
+			this.syncSourceLink(this.currentTrack);
+			return;
+		}
+		if (name === "midi-oscillator") return;
 		if (name === "playlist-src" && this.isConnected) this.syncRemotePlaylist();
 		this.syncTracks();
 		this.loadTrack();
